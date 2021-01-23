@@ -1,12 +1,14 @@
-.format "nes"
 
-.bank 0, 16, $c000, "NES_PRG0"
+.segment "INESHDR"
+    .byt "NES",$1A  ; magic signature
+    .byt 1          ; PRG ROM size in 16384 byte units
+    .byt 0          ; CHR ROM size in 8192 byte units
+    .byt $00        ; mirroring type and mapper number lower nibble
+    .byt $00        ; mapper number upper nibble
 
-.org $c000
+.segment "CODE"
 
-.code, 0
-
-reset:
+reset_handler:
     sei        ; ignore IRQs
     cld        ; disable decimal mode
     ldx #$40
@@ -22,22 +24,25 @@ reset:
     ; Set up mapper and jmp to further init code here.
 
     ; The vblank flag is in an unknown state after reset,
-    ; so it is cleared here to make sure that @vblankwait1
+    ; so it is cleared here to make sure that vblankwait1
     ; does not exit immediately.
+
+    ; NOTE: reading $2002 clears the 7th bit, so, testing it effectively clears
+    ; it.
     bit $2002
 
     ; First of two waits for vertical blank to make sure that the
     ; PPU has stabilized
-@vblankwait1:
+vblankwait1:
     bit $2002
-    bpl @vblankwait1
+    bpl vblankwait1
 
     ; We now have about 30,000 cycles to burn before the PPU stabilizes.
     ; One thing we can do with this time is put RAM in a known state.
     ; Here we fill it with $00, which matches what (say) a C compiler
     ; expects for BSS.  Conveniently, X is still 0.
     txa
-@clrmem:
+clrmem:
     sta $000,x
     sta $100,x
     sta $200,x
@@ -47,11 +52,30 @@ reset:
     sta $600,x
     sta $700,x
     inx
-    bne @clrmem
+    bne clrmem
 
     ; Other things you can do between vblank waits are set up audio
     ; or set up other mapper registers.
 
-@vblankwait2:
+vblankwait2:
     bit $2002
-    bpl @vblankwait2
+    bpl vblankwait2
+
+
+loop_forever:
+    jmp loop_forever
+
+;
+; Handle non-masked interrupts
+;
+nmi_handler:
+    rti
+
+;
+; Handle IRQs
+;
+irq_handler:
+    rti
+
+.segment "VECTORS"
+.addr nmi_handler, reset_handler, irq_handler
