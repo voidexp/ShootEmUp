@@ -76,6 +76,10 @@ def main():
             msg = (err.stdout or err.stderr).decode('utf8').strip()
             print(f'{asm_file}: {msg}')
             success = False
+        except FileNotFoundError:
+            print(f'{assembler} not found')
+            success = False
+            break
 
         print(o_file)
 
@@ -89,6 +93,9 @@ def main():
         except sp.CalledProcessError as err:
             msg = (err.stdout or err.stderr).decode('utf8').strip()
             print(f'{rom_file}: {msg}')
+            success = False
+        except FileNotFoundError:
+            print(f'{linker} not found')
             success = False
 
     print('done' if success else 'failed')
