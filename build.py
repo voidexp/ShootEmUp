@@ -31,6 +31,7 @@ def run_assembler(assembler, src, dst):
         '-o', str(dst),
         str(src),
     ]
+    print(' '.join(args))
     return sp.run(args, capture_output=True)
 
 
@@ -41,7 +42,7 @@ def run_linker(linker, cfg_file, input_files, out_file):
         '-o', str(out_file),
     ]
     args.extend([str(i) for i in input_files])
-
+    print(' '.join(args))
     return sp.run(args, capture_output=True)
 
 
@@ -81,15 +82,12 @@ def main():
             success = False
             break
 
-        print(o_file)
-
     if success:
         obj_files = pathlib.Path(OUT_DIR).glob('*.o')
         cfg_file = pathlib.Path('.').joinpath(LINKER_CFG)
         rom_file = pathlib.Path(OUT_DIR).joinpath(ROM)
         try:
             run_linker(linker, cfg_file, obj_files, rom_file).check_returncode()
-            print(rom_file)
         except sp.CalledProcessError as err:
             msg = (err.stdout or err.stderr).decode('utf8').strip()
             print(f'{rom_file}: {msg}')
