@@ -2,7 +2,7 @@
 .segment "INESHDR"
     .byt "NES",$1A  ; magic signature
     .byt 1          ; PRG ROM size in 16384 byte units
-    .byt 0          ; CHR ROM size in 8192 byte units
+    .byt 1          ; CHR ROM size in 8192 byte units
     .byt $00        ; mirroring type and mapper number lower nibble
     .byt $00        ; mapper number upper nibble
 
@@ -61,9 +61,16 @@ vblankwait2:
     bit $2002
     bpl vblankwait2
 
+    ; Ready to go, enable drawing
+    lda #%10001000
+	sta $2000
+    lda $1e
+    sta $2001
+	jmp main
 
-loop_forever:
-    jmp loop_forever
+main:
+    jmp main
+
 
 ;
 ; Handle non-masked interrupts
@@ -79,3 +86,6 @@ irq_handler:
 
 .segment "VECTORS"
 .addr nmi_handler, reset_handler, irq_handler
+
+.segment "DATA"
+.incbin "../assets/chr_sheet.chr"
