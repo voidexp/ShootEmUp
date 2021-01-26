@@ -134,9 +134,9 @@ ppusetup:
     ; Set sprite-0 palette
     ;
     ; Set PPUADDR destination address to Sprite Palette 0 ($3F11)
-    lda #$3F
+    lda #>VRAM_SPR_PAL0
     sta PPUADDR
-    lda #$11
+    lda #<VRAM_SPR_PAL0
     sta PPUADDR
 
     ; Write each of the three palette colors.
