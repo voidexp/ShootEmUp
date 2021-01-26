@@ -7,6 +7,7 @@ import shutil
 
 
 SRC_DIR = 'src'
+BIN_DIR = 'assets'
 OUT_DIR = 'build'
 ROM = 'game.nes'
 LINKER_CFG = 'rom.cfg'
@@ -46,6 +47,16 @@ def run_linker(linker, cfg_file, input_files, out_file):
     return sp.run(args, capture_output=True)
 
 
+def run_chr_tool(tool, src, dst):
+    args = [
+        'py', '-3', str(tool),
+        str(src),
+        str(dst),
+    ]
+    print(' '.join(args))
+    return sp.run(args, capture_output=True)
+
+
 def prepare_folder_structure(out_dir):
     out_dir_path = pathlib.Path(out_dir)
     if out_dir_path.exists():
@@ -65,22 +76,37 @@ def main():
 
     assembler = args.assembler or ASSEMBLER
     linker = args.linker or LINKER
+    chr_tool = pathlib.Path('.').joinpath('.', 'tools', 'pilbmp2nes.py')
 
-    # collect asm files and compile them
     success = True
-    for asm_file in pathlib.Path(SRC_DIR).glob('*.asm'):
-        o_file = pathlib.Path(OUT_DIR).joinpath(f'{asm_file.stem}.o')
+
+    # collect bitmap files and convert them to CHR files
+    for bmp_file in pathlib.Path(BIN_DIR).glob('*.bmp'):
+        o_file = pathlib.Path(OUT_DIR).joinpath(f'{bmp_file.stem}.chr')
 
         try:
-            run_assembler(assembler, asm_file, o_file).check_returncode()
+            run_chr_tool(chr_tool, bmp_file, o_file).check_returncode()
         except sp.CalledProcessError as err:
             msg = (err.stdout or err.stderr).decode('utf8').strip()
-            print(f'{asm_file}: {msg}')
-            success = False
-        except FileNotFoundError:
-            print(f'{assembler} not found')
+            print(f'{bmp_file}: {msg}')
             success = False
             break
+
+    # collect asm files and compile them
+    if success:
+        for asm_file in pathlib.Path(SRC_DIR).glob('*.asm'):
+            o_file = pathlib.Path(OUT_DIR).joinpath(f'{asm_file.stem}.o')
+
+            try:
+                run_assembler(assembler, asm_file, o_file).check_returncode()
+            except sp.CalledProcessError as err:
+                msg = (err.stdout or err.stderr).decode('utf8').strip()
+                print(f'{asm_file}: {msg}')
+                success = False
+            except FileNotFoundError:
+                print(f'{assembler} not found')
+                success = False
+                break
 
     if success:
         obj_files = pathlib.Path(OUT_DIR).glob('*.o')

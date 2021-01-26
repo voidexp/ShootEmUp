@@ -33,7 +33,7 @@ VRAM_SPR_PAL3 = $3f1d   ; Sprite palette 3
 ; CHR-ROM, accessible by the PPU
 ;
 .data
-.incbin "../assets/ships.chr"
+.incbin "../build/ships.chr"
 
 
 ;

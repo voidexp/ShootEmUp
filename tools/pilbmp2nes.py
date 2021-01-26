@@ -50,6 +50,8 @@ Planemap opcodes:
                 rowbits = 1
                 thisrow = bytearray()
                 for px in pxrow:
+                    r, g, b = px
+                    px = r << 16 | g << 8 | b
                     for bitnum in rowplane:
                         rowbits = (rowbits << 1) | ((px >> bitnum) & 1)
                         if rowbits >= 0x100:
