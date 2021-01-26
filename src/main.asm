@@ -2,7 +2,7 @@ PLAYER_START_X = $58    ; Player start X coord
 PLAYER_START_Y = $74    ; Player start Y coord
 
 BGCOLOR = $0d           ; Overall background color index
-PLCOLOR = $362606       ; Player palette color indices
+PLCOLOR = $062636       ; Player palette color indices
 
 PPUADDR = $2006         ; VRAM write address register
 PPUDATA = $2007         ; VRAM write data register
@@ -32,9 +32,11 @@ VRAM_SPR_PAL3 = $3f1d   ; Sprite palette 3
 ;
 ; CHR-ROM, accessible by the PPU
 ;
-.data
+.segment "CHR1"
 .incbin "../build/ships.chr"
 
+.segment "CHR2"
+.incbin "../build/background.chr"
 
 ;
 ; PRG-ROM, read-only data

@@ -1,4 +1,5 @@
 *.nes
 *.o
+.venv
 .vscode
 build

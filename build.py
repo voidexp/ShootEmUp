@@ -47,7 +47,7 @@ def run_linker(linker, cfg_file, input_files, out_file):
     return sp.run(args, capture_output=True)
 
 
-def run_chr_tool(tool, src, dst):
+def run_bmp2chr(tool, src, dst):
     args = [
         'py', '-3', str(tool),
         str(src),
@@ -76,7 +76,7 @@ def main():
 
     assembler = args.assembler or ASSEMBLER
     linker = args.linker or LINKER
-    chr_tool = pathlib.Path('.').joinpath('.', 'tools', 'pilbmp2nes.py')
+    bmp2chr = pathlib.Path('.').joinpath('.', 'tools', 'bmp2chr.py')
 
     success = True
 
@@ -85,7 +85,7 @@ def main():
         o_file = pathlib.Path(OUT_DIR).joinpath(f'{bmp_file.stem}.chr')
 
         try:
-            run_chr_tool(chr_tool, bmp_file, o_file).check_returncode()
+            run_bmp2chr(bmp2chr, bmp_file, o_file).check_returncode()
         except sp.CalledProcessError as err:
             msg = (err.stdout or err.stderr).decode('utf8').strip()
             print(f'{bmp_file}: {msg}')
