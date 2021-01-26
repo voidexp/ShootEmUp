@@ -1,6 +1,26 @@
-MESSAGE_Y = $78
-MESSAGE_X = $50
+PLAYER_START_X = $58    ; Player start X coord
+PLAYER_START_Y = $74    ; Player start Y coord
 
+BGCOLOR = $0d           ; Overall background color index
+PLCOLOR = $362606       ; Player palette color indices
+
+PPUADDR = $2006         ; VRAM write address register
+PPUDATA = $2007         ; VRAM write data register
+
+VRAM_BGCOLOR = $3f00    ; Universal background color
+VRAM_BGR_PAL0 = $3f01   ; Background palette 0
+VRAM_BGR_PAL1 = $3f05   ; Background palette 1
+VRAM_BGR_PAL2 = $3f09   ; Background palette 2
+VRAM_BGR_PAL3 = $3f0d   ; Background palette 3
+VRAM_SPR_PAL0 = $3f11   ; Sprite palette 0
+VRAM_SPR_PAL1 = $3f15   ; Sprite palette 1
+VRAM_SPR_PAL2 = $3f19   ; Sprite palette 2
+VRAM_SPR_PAL3 = $3f1d   ; Sprite palette 3
+
+
+;
+; iNES header for the emulators.
+;
 .segment "INESHDR"
     .byt "NES",$1A  ; magic signature
     .byt 1          ; PRG ROM size in 16384 byte units
@@ -9,24 +29,38 @@ MESSAGE_X = $50
     .byt $00        ; mapper number upper nibble
 
 
-.rodata
-message:
-    .byt "Hello World!", $00
-
-
-.zeropage
-frame_counter: .res 1
-odd_frame_flag: .res 1
+;
+; CHR-ROM, accessible by the PPU
+;
+.data
+.incbin "../assets/ships.chr"
 
 
 ;
-; PPU Object Attribute Memory - shadow memory which holds rendering attributes
-; of up to 64 sprites
+; PRG-ROM, read-only data
+;
+.rodata
+
+
+;
+; Zero-page RAM.
+;
+.zeropage
+    frame_counter: .res 1   ; current frame, wraps at $ff
+
+
+;
+; PPU Object Attribute Memory - shadow RAM which holds rendering attributes
+; of up to 64 sprites.
+;
 .segment "OAM"
 oam:
     .res 256
 
 
+;
+; PRG-ROM, code.
+;
 .code
 reset_handler:
     sei        ; ignore IRQs
@@ -81,7 +115,38 @@ vblankwait2:
     bit $2002
     bpl vblankwait2
 
-    ; Set destination OAM address
+ppusetup:
+    ;
+    ; Set universal background color
+    ;
+    ; set PPUADDR
+    lda #>VRAM_BGCOLOR
+    sta PPUADDR
+    lda #<VRAM_BGCOLOR
+    sta PPUADDR
+    ; write the color index
+    lda #BGCOLOR
+    sta PPUDATA
+
+    ;
+    ; Set sprite-0 palette
+    ;
+    ; Set PPUADDR destination address to Sprite Palette 0 ($3F11)
+    lda #$3F
+    sta PPUADDR
+    lda #$11
+    sta PPUADDR
+
+    ; Write each of the three palette colors.
+    ; NOTE: each writethis advances the PPUDATA address by 1 byte
+    lda #(PLCOLOR >> 16)
+    sta PPUDATA
+    lda #(PLCOLOR >> 8) & $ff
+    sta PPUDATA
+    lda #(PLCOLOR) & $ff
+    sta PPUDATA
+
+    ; Clear OAMDATA address
     lda #$00
     sta $2003
 
@@ -93,65 +158,107 @@ vblankwait2:
     lda #$80
 	sta $2000
 
-
 main:
     ;
     ; Display the message on screen using sprites representing ASCII symbols
     ;
     ldx #$00 ; character index
     ldy #$00 ; byte offset
-@advance_character:
 
-    ; set Y coord (or hide the character by setting it to $ff)
+draw_player:
+    ;
+    ; Player ship is made up of 4 sprites in a 2x2 box, as below following:
+    ; +--+--+
+    ; |00|01|
+    ; +--+--+
+    ; |10|11|
+    ; +--+--+
+
+    ;;; TODO: rework this into some kind of loop ;;;
+
+    ;
+    ; sprite $00
+    ;
+    ; Y coord
     txa
-    and #$1
-    sta odd_frame_flag
-    lda frame_counter
-    and #$1
-    eor odd_frame_flag
-
-    bne @hide_char
-    lda #MESSAGE_Y
+    lda #PLAYER_START_Y
     sta oam,Y
     iny
-    jmp @set_x
-
-@hide_char:
-    lda #$ff
-    sta oam,Y
-    iny
-
-    ; set sprite index based on character value or break loop on NUL-terminator
-@set_x:
-    lda message,X
-    cmp #$0
-    beq main
-    sta oam,Y
-    iny
-
-    ; set sprite attrs
+    ; sprite id
     lda #$00
     sta oam,Y
     iny
-
-    ; increment X coord by 8 * <X reg>
-    txa
-    pha
-    lda #MESSAGE_X
-@add:
-    dex
-    bmi @end
-    adc #$08
-    jmp @add
-@end:
+    ; sprite attrs
+    lda #$00
     sta oam,Y
-    pla
-    tax
+    iny
+    ; X coord
+    lda #PLAYER_START_Y
+    sta oam,Y
     iny
 
-    ; go to next character
-    inx
-    jmp @advance_character
+    ;
+    ; sprite $01
+    ;
+    ; Y coord
+    txa
+    lda #PLAYER_START_Y
+    sta oam,Y
+    iny
+    ; sprite id
+    lda #$01
+    sta oam,Y
+    iny
+    ; sprite attrs
+    lda #$00
+    sta oam,Y
+    iny
+    ; X coord
+    lda #PLAYER_START_Y + $08
+    sta oam,Y
+    iny
+
+    ;
+    ; sprite $10
+    ;
+    ; Y coord
+    txa
+    lda #PLAYER_START_Y + $08
+    sta oam,Y
+    iny
+    ; sprite id
+    lda #$10
+    sta oam,Y
+    iny
+    ; sprite attrs
+    lda #$00
+    sta oam,Y
+    iny
+    ; X coord
+    lda #PLAYER_START_Y
+    sta oam,Y
+    iny
+
+    ;
+    ; sprite $11
+    ;
+    ; Y coord
+    txa
+    lda #PLAYER_START_Y + $08
+    sta oam,Y
+    iny
+    ; sprite id
+    lda #$11
+    sta oam,Y
+    iny
+    ; sprite attrs
+    lda #$00
+    sta oam,Y
+    iny
+    ; X coord
+    lda #PLAYER_START_Y + $08
+    sta oam,Y
+    iny
 
     jmp main
 
@@ -188,8 +295,10 @@ nmi_handler:
 irq_handler:
     rti
 
+
+;
+; Interrupt handler vectors (pointers).
+; Three 16 bit addresses to, respectively, the NMI, RESET and IRQ handlers.
+;
 .segment "VECTORS"
 .addr nmi_handler, reset_handler, irq_handler
-
-.segment "DATA"
-.incbin "../assets/chr_sheet.chr"
