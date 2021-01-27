@@ -1,8 +1,9 @@
 PLAYER_START_X = $58    ; Player start X coord
 PLAYER_START_Y = $74    ; Player start Y coord
 
-BGCOLOR = $0d           ; Overall background color index
-PLCOLOR = $062636       ; Player palette color indices
+BGCOLOR =  $0d          ; Overall background color index
+BGR_PAL0 = $103020      ; Background 0 tiles palette indices
+PLCOLOR =  $062636      ; Player palette color indices
 
 PPUADDR = $2006         ; VRAM write address register
 PPUDATA = $2007         ; VRAM write data register
@@ -16,6 +17,14 @@ VRAM_SPR_PAL0 = $3f11   ; Sprite palette 0
 VRAM_SPR_PAL1 = $3f15   ; Sprite palette 1
 VRAM_SPR_PAL2 = $3f19   ; Sprite palette 2
 VRAM_SPR_PAL3 = $3f1d   ; Sprite palette 3
+VRAM_NAMETABLE0 = $2000 ; Nametable 0
+VRAM_NAMETABLE1 = $2400 ; Nametable 1
+VRAM_NAMETABLE2 = $2800 ; Nametable 2
+VRAM_NAMETABLE3 = $2c00 ; Nametable 3
+VRAM_ATTRTABLE0 = $23c0 ; Attribute table 0
+VRAM_ATTRTABLE1 = $27c0 ; Attribute table 1
+VRAM_ATTRTABLE2 = $2bc0 ; Attribute table 2
+VRAM_ATTRTABLE3 = $2fc0 ; Attribute table 3
 
 
 ;
@@ -117,6 +126,13 @@ vblankwait2:
     bit $2002
     bpl vblankwait2
 
+
+;
+; Here we setup the PPU for drawing by writing apropriate memory-mapped
+; registers and specific memory locations.
+;
+; IMPORTANT! Writes to the PPU RAM afterwards should occur only during VBlank!
+;
 ppusetup:
     ;
     ; Set universal background color
@@ -131,16 +147,29 @@ ppusetup:
     sta PPUDATA
 
     ;
+    ; Set background-0 palette
+    ;
+    lda #>VRAM_BGR_PAL0
+    sta PPUADDR
+    lda #<VRAM_BGR_PAL0
+    sta PPUADDR
+    ; write the color indices
+    lda #(BGR_PAL0 >> 16)
+    sta PPUDATA
+    lda #(BGR_PAL0 >> 8) & $ff
+    sta PPUDATA
+    lda #(BGR_PAL0 & $ff)
+    sta PPUDATA
+
+    ;
     ; Set sprite-0 palette
     ;
-    ; Set PPUADDR destination address to Sprite Palette 0 ($3F11)
+    ; set PPUADDR destination address to Sprite Palette 0 ($3F11)
     lda #>VRAM_SPR_PAL0
     sta PPUADDR
     lda #<VRAM_SPR_PAL0
     sta PPUADDR
-
-    ; Write each of the three palette colors.
-    ; NOTE: each writethis advances the PPUDATA address by 1 byte
+    ; write each of the three palette colors.
     lda #(PLCOLOR >> 16)
     sta PPUDATA
     lda #(PLCOLOR >> 8) & $ff
@@ -153,11 +182,12 @@ ppusetup:
     sta $2003
 
     ; Enable sprite drawing
-    lda #$10
+    lda #$1e
     sta $2001
 
-    ; Ready to go, enable VBlank NMI
-    lda #$80
+    ; Ready to go, enable VBlank NMI, all subsequent writes should take place
+    ; during VBlank, inside NMI handler.
+    lda #$90
 	sta $2000
 
 main:
@@ -179,7 +209,7 @@ draw_player:
     ;;; TODO: rework this into some kind of loop ;;;
 
     ;
-    ; sprite $00
+    ; Sprite $00
     ;
     ; Y coord
     txa
@@ -187,7 +217,7 @@ draw_player:
     sta oam,Y
     iny
     ; sprite id
-    lda #$00
+    lda #$01
     sta oam,Y
     iny
     ; sprite attrs
@@ -208,7 +238,7 @@ draw_player:
     sta oam,Y
     iny
     ; sprite id
-    lda #$01
+    lda #$02
     sta oam,Y
     iny
     ; sprite attrs
@@ -229,7 +259,7 @@ draw_player:
     sta oam,Y
     iny
     ; sprite id
-    lda #$10
+    lda #$11
     sta oam,Y
     iny
     ; sprite attrs
@@ -250,7 +280,7 @@ draw_player:
     sta oam,Y
     iny
     ; sprite id
-    lda #$11
+    lda #$12
     sta oam,Y
     iny
     ; sprite attrs
@@ -281,6 +311,28 @@ nmi_handler:
     ; Perform DMA copy of shadow OAM to PPU's OAM
     lda #>oam
     sta $4014
+
+    ; Prepare to fill the nametable memory, i.e load the VRAM_NAMETABLE0 address
+    ; into PPUADDR
+    lda #>VRAM_NAMETABLE0
+    sta PPUADDR
+    lda #<VRAM_NAMETABLE0
+    sta PPUADDR
+
+    ; Write some tile index values
+    lda #$01 ; small star
+    sta PPUDATA
+    lda #$02 ; big star
+    sta PPUDATA
+
+    ; Prepare to fill the attributes table memory
+    lda #>VRAM_ATTRTABLE0
+    sta PPUADDR
+    lda #<VRAM_ATTRTABLE1
+    sta PPUADDR
+
+    ; Write the attributes
+    ; TODO: right now using all zeroes, i.e, first bg palette for everything
 
     ; restore the registers
     pla
