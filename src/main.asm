@@ -5,6 +5,8 @@ BGCOLOR =  $0d          ; Overall background color index
 BGR_PAL0 = $103020      ; Background 0 tiles palette indices
 PLCOLOR =  $062636      ; Player palette color indices
 
+PPUSTAT = $2002         ; PPU status register
+PPUSCRL = $2005         ; PPU scroll register (x2 writes for X and Y)
 PPUADDR = $2006         ; VRAM write address register
 PPUDATA = $2007         ; VRAM write data register
 
@@ -51,13 +53,19 @@ VRAM_ATTRTABLE3 = $2fc0 ; Attribute table 3
 ; PRG-ROM, read-only data
 ;
 .rodata
+    starfield: .incbin "../build/levels/starfield.lvl"
 
 
 ;
 ; Zero-page RAM.
 ;
 .zeropage
-    frame_counter: .res 1   ; current frame, wraps at $ff
+    frame_counter:  .res 1  ; current frame, wraps at $ff
+
+    ; pointer for indexed indirect addressing
+    ptr:
+    ptrL:           .res 1  ; pointer low address (goes *before* high!)
+    ptrH:           .res 1  ; pointer high address
 
 
 ;
@@ -65,8 +73,7 @@ VRAM_ATTRTABLE3 = $2fc0 ; Attribute table 3
 ; of up to 64 sprites.
 ;
 .segment "OAM"
-oam:
-    .res 256
+    oam: .res 256
 
 
 ;
@@ -162,6 +169,37 @@ ppusetup:
     sta PPUDATA
 
     ;
+    ; Populate nametable-0 with data stored in PRG-ROM
+    ;
+    ; set the destination VRAM address
+    lda #>VRAM_NAMETABLE0
+    sta PPUADDR
+    lda #<VRAM_NAMETABLE0
+    sta PPUADDR
+
+    ; setup the pointer to starfield memory region
+    lda #>starfield
+    sta ptrH
+    lda #<starfield
+    sta ptrL
+
+    ; X counts the 256-byte chunks (960 / 256 = 3)
+    ldx #$03
+    ; Y counts the bytes in the current chunk
+    ldy #$00
+
+@cpbyte:
+    lda (ptr),Y ; load the tile index from (ptrH,ptrL) + Y address
+    sta PPUDATA ; write it to the nametable, this advances the PPUADDR by 1
+    iny         ; go to the next byte
+    bne @cpbyte ; loop over until Y does not overflow
+    dex         ; decrement the number of chunks to copy
+    bmi @end    ; all chunks copied, go to the end
+    inc ptrH    ; increase the high address value
+    jmp @cpbyte ; copy the next chunk
+@end:
+
+    ;
     ; Set sprite-0 palette
     ;
     ; set PPUADDR destination address to Sprite Palette 0 ($3F11)
@@ -176,6 +214,14 @@ ppusetup:
     sta PPUDATA
     lda #(PLCOLOR) & $ff
     sta PPUDATA
+
+    ;
+    ; Clear PPU status and scroll registers
+    ;
+    bit PPUSTAT
+    lda #$00
+    sta PPUSCRL
+    sta PPUSCRL
 
     ; Clear OAMDATA address
     lda #$00
@@ -311,28 +357,6 @@ nmi_handler:
     ; Perform DMA copy of shadow OAM to PPU's OAM
     lda #>oam
     sta $4014
-
-    ; Prepare to fill the nametable memory, i.e load the VRAM_NAMETABLE0 address
-    ; into PPUADDR
-    lda #>VRAM_NAMETABLE0
-    sta PPUADDR
-    lda #<VRAM_NAMETABLE0
-    sta PPUADDR
-
-    ; Write some tile index values
-    lda #$01 ; small star
-    sta PPUDATA
-    lda #$02 ; big star
-    sta PPUDATA
-
-    ; Prepare to fill the attributes table memory
-    lda #>VRAM_ATTRTABLE0
-    sta PPUADDR
-    lda #<VRAM_ATTRTABLE1
-    sta PPUADDR
-
-    ; Write the attributes
-    ; TODO: right now using all zeroes, i.e, first bg palette for everything
 
     ; restore the registers
     pla

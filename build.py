@@ -57,12 +57,24 @@ def run_bmp2chr(tool, src, dst):
     return sp.run(args, capture_output=True)
 
 
+def run_bmp2lvl(tool, src, dst):
+    args = [
+        'py', '-3', str(tool),
+        str(src),
+        str(dst),
+    ]
+    print(' '.join(args))
+    return sp.run(args, capture_output=True)
+
+
+
 def prepare_folder_structure(out_dir):
     out_dir_path = pathlib.Path(out_dir)
     if out_dir_path.exists():
         shutil.rmtree(out_dir_path)
 
     os.mkdir(out_dir_path)
+    os.mkdir(out_dir_path.joinpath('levels'))
 
 
 def main():
@@ -77,6 +89,7 @@ def main():
     assembler = args.assembler or ASSEMBLER
     linker = args.linker or LINKER
     bmp2chr = pathlib.Path('.').joinpath('.', 'tools', 'bmp2chr.py')
+    bmp2lvl = pathlib.Path('.').joinpath('.', 'tools', 'bmp2lvl.py')
 
     success = True
 
@@ -91,6 +104,19 @@ def main():
             print(f'{bmp_file}: {msg}')
             success = False
             break
+
+    # collect level files and convert them to CHR files
+    if success:
+        for bmp_file in pathlib.Path(BIN_DIR).joinpath('levels').glob('*.bmp'):
+            o_file = pathlib.Path(OUT_DIR).joinpath('levels', f'{bmp_file.stem}.lvl')
+
+            try:
+                run_bmp2lvl(bmp2lvl, bmp_file, o_file).check_returncode()
+            except sp.CalledProcessError as err:
+                msg = (err.stdout or err.stderr).decode('utf8').strip()
+                print(f'{bmp_file}: {msg}')
+                success = False
+                break
 
     # collect asm files and compile them
     if success:
