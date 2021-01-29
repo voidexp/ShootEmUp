@@ -1,6 +1,3 @@
-PLAYER_START_X = $58    ; Player start X coord
-PLAYER_START_Y = $74    ; Player start Y coord
-
 BGCOLOR =  $0d          ; Overall background color index
 BGR_PAL0 = $103020      ; Background 0 tiles palette indices
 PLCOLOR =  $062636      ; Player palette color indices
@@ -28,6 +25,7 @@ VRAM_ATTRTABLE1 = $27c0 ; Attribute table 1
 VRAM_ATTRTABLE2 = $2bc0 ; Attribute table 2
 VRAM_ATTRTABLE3 = $2fc0 ; Attribute table 3
 
+JOYPAD1 = $4016
 
 ;
 ; iNES header for the emulators.
@@ -61,6 +59,8 @@ VRAM_ATTRTABLE3 = $2fc0 ; Attribute table 3
 ;
 .zeropage
     frame_counter:  .res 1  ; current frame, wraps at $ff
+    player_pos_x:  .res 1    ; Player start X coord
+    player_pos_y:  .res 1    ; Player start Y coord
 
     ; pointer for indexed indirect addressing
     ptr:
@@ -188,6 +188,13 @@ ppusetup:
     ; Y counts the bytes in the current chunk
     ldy #$00
 
+    ; setup initial player position
+    lda #$00
+    sta player_pos_x
+
+    lda #$00
+    sta player_pos_y
+
 @cpbyte:
     lda (ptr),Y ; load the tile index from (ptrH,ptrL) + Y address
     sta PPUDATA ; write it to the nametable, this advances the PPUADDR by 1
@@ -253,13 +260,12 @@ draw_player:
     ; +--+--+
 
     ;;; TODO: rework this into some kind of loop ;;;
-
     ;
     ; Sprite $00
     ;
     ; Y coord
     txa
-    lda #PLAYER_START_Y
+    lda player_pos_y
     sta oam,Y
     iny
     ; sprite id
@@ -271,7 +277,7 @@ draw_player:
     sta oam,Y
     iny
     ; X coord
-    lda #PLAYER_START_Y
+    lda player_pos_x
     sta oam,Y
     iny
 
@@ -280,7 +286,7 @@ draw_player:
     ;
     ; Y coord
     txa
-    lda #PLAYER_START_Y
+    lda player_pos_y
     sta oam,Y
     iny
     ; sprite id
@@ -292,7 +298,8 @@ draw_player:
     sta oam,Y
     iny
     ; X coord
-    lda #PLAYER_START_Y + $08
+    lda player_pos_x 
+    adc #$08
     sta oam,Y
     iny
 
@@ -301,7 +308,8 @@ draw_player:
     ;
     ; Y coord
     txa
-    lda #PLAYER_START_Y + $08
+    lda player_pos_y
+    adc #$08
     sta oam,Y
     iny
     ; sprite id
@@ -313,16 +321,17 @@ draw_player:
     sta oam,Y
     iny
     ; X coord
-    lda #PLAYER_START_Y
+    lda player_pos_x
     sta oam,Y
     iny
 
-    ;
+	;
     ; sprite $11
     ;
     ; Y coord
     txa
-    lda #PLAYER_START_Y + $08
+    lda player_pos_y
+    adc #$08
     sta oam,Y
     iny
     ; sprite id
@@ -334,9 +343,11 @@ draw_player:
     sta oam,Y
     iny
     ; X coord
-    lda #PLAYER_START_Y + $08
+    lda player_pos_x
+    adc #$08
     sta oam,Y
     iny
+
 
     jmp main
 
@@ -353,6 +364,8 @@ nmi_handler:
 
     ; increment the frame counter
     inc frame_counter
+
+    jsr handle_input
 
     ; Perform DMA copy of shadow OAM to PPU's OAM
     lda #>oam
@@ -373,6 +386,65 @@ nmi_handler:
 irq_handler:
     rti
 
+;
+; handle input
+;
+handle_input:
+    lda #$01
+    sta JOYPAD1
+    lda #$00
+    sta JOYPAD1
+
+    ; we don't process those yet, need to be executed in correct order
+    lda JOYPAD1       ; Player 1 - A
+    lda JOYPAD1       ; Player 1 - B
+    lda JOYPAD1       ; Player 1 - Select
+    lda JOYPAD1       ; Player 1 - Start
+
+    lda JOYPAD1       ; Player 1 - Up
+    and #%00000001
+    bne move_up
+        
+    lda JOYPAD1       ; Player 1 - Down
+    and #%00000001
+    bne move_down
+        
+    lda JOYPAD1       ; Player 1 - Left
+    and #%00000001
+    bne move_left
+
+    lda JOYPAD1       ; Player 1 - Right
+    and #%00000001
+    bne move_right
+    rts    
+
+move_right:
+    lda player_pos_x
+    clc
+    adc #$01
+    sta player_pos_x
+    rts
+
+move_left:
+    lda player_pos_x
+    sec
+    sbc #$01
+    sta player_pos_x
+    rts
+
+move_up:
+    lda player_pos_y
+    sec  
+    sbc #$01
+    sta player_pos_y
+    rts
+
+move_down:
+    lda player_pos_y      
+    clc  
+    adc #$01
+    sta player_pos_y
+    rts
 
 ;
 ; Interrupt handler vectors (pointers).
