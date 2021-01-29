@@ -2,9 +2,20 @@ Shoot 'Em Up!
 =============
 A shooter game for Nintendo Entertainment System.
 
+# Python virtualenv
+The build scripts are written in Python and depend on few packages.
+Create and setup a virtual environment for the project:
+
+    python -m venv .venv
+    .venv/bin/activate          # Unix-es
+    .venv/Scripts/activate.bat  # Windows CMD
+    .venv/Scripts/activate.ps1  # Windows PowerShell
+
+    pip install -r requirements.txt
+
 # Building the ROM
-Ensure you have a Python 3.6+ interpreter installed and the CC65 toolchain in
-your PATH, then just run:
+Ensure to have the virtualenv activated and that the CC65 toolchain is in your
+PATH, then just run:
 
     python build.py
 
