@@ -1,31 +1,12 @@
+.include "nes.asm"
+.include "globals.asm"
+
+.import copy_to_vram
+
 BGCOLOR =  $0d          ; Overall background color index
 BGR_PAL0 = $103020      ; Background 0 tiles palette indices
 PLCOLOR =  $062636      ; Player palette color indices
 
-PPUSTAT = $2002         ; PPU status register
-PPUSCRL = $2005         ; PPU scroll register (x2 writes for X and Y)
-PPUADDR = $2006         ; VRAM write address register
-PPUDATA = $2007         ; VRAM write data register
-
-VRAM_BGCOLOR = $3f00    ; Universal background color
-VRAM_BGR_PAL0 = $3f01   ; Background palette 0
-VRAM_BGR_PAL1 = $3f05   ; Background palette 1
-VRAM_BGR_PAL2 = $3f09   ; Background palette 2
-VRAM_BGR_PAL3 = $3f0d   ; Background palette 3
-VRAM_SPR_PAL0 = $3f11   ; Sprite palette 0
-VRAM_SPR_PAL1 = $3f15   ; Sprite palette 1
-VRAM_SPR_PAL2 = $3f19   ; Sprite palette 2
-VRAM_SPR_PAL3 = $3f1d   ; Sprite palette 3
-VRAM_NAMETABLE0 = $2000 ; Nametable 0
-VRAM_NAMETABLE1 = $2400 ; Nametable 1
-VRAM_NAMETABLE2 = $2800 ; Nametable 2
-VRAM_NAMETABLE3 = $2c00 ; Nametable 3
-VRAM_ATTRTABLE0 = $23c0 ; Attribute table 0
-VRAM_ATTRTABLE1 = $27c0 ; Attribute table 1
-VRAM_ATTRTABLE2 = $2bc0 ; Attribute table 2
-VRAM_ATTRTABLE3 = $2fc0 ; Attribute table 3
-
-JOYPAD1 = $4016
 
 ;
 ; iNES header for the emulators.
@@ -33,7 +14,7 @@ JOYPAD1 = $4016
 .segment "INESHDR"
     .byt "NES",$1A  ; magic signature
     .byt 1          ; PRG ROM size in 16384 byte units
-    .byt 1          ; CHR ROM size in 8192 byte units
+    .byt 2          ; CHR ROM size in 8192 byte units
     .byt $00        ; mirroring type and mapper number lower nibble
     .byt $00        ; mapper number upper nibble
 
@@ -47,26 +28,32 @@ JOYPAD1 = $4016
 .segment "CHR2"
 .incbin "../build/background.chr"
 
+
 ;
 ; PRG-ROM, read-only data
 ;
 .rodata
-    starfield: .incbin "../build/levels/starfield.lvl"
+    starfield1: .incbin "../build/levels/starfield.lvl"
+    starfield1_end:
 
+    starfield2: .incbin "../build/levels/starfield2.lvl"
+    starfield2_end:
 
 ;
 ; Zero-page RAM.
 ;
 .zeropage
     frame_counter:  .res 1  ; current frame, wraps at $ff
+    
+    ; moving player
+    player_speed: .res 1 ; current direction bit set 
+    player_direction: .res 1 ; current direction bit set 
     player_pos_x:  .res 1    ; Player start X coord
     player_pos_y:  .res 1    ; Player start Y coord
 
-    ; pointer for indexed indirect addressing
-    ptr:
-    ptrL:           .res 1  ; pointer low address (goes *before* high!)
-    ptrH:           .res 1  ; pointer high address
-
+    ; scroll
+    scroll_y:       .res 1
+    scroll_x:       .res 1
 
 ;
 ; PPU Object Attribute Memory - shadow RAM which holds rendering attributes
@@ -134,6 +121,17 @@ vblankwait2:
     bpl vblankwait2
 
 
+ready:
+    ; init the X-stack to the end of the zeropage RAM
+    ldx #$ff
+
+    ; setup initial player position
+    lda #$00
+    sta player_pos_x
+
+    lda #$00
+    sta player_pos_y
+
 ;
 ; Here we setup the PPU for drawing by writing apropriate memory-mapped
 ; registers and specific memory locations.
@@ -169,42 +167,54 @@ ppusetup:
     sta PPUDATA
 
     ;
-    ; Populate nametable-0 with data stored in PRG-ROM
+    ; Populate nametable-0 with starfield1 stored in PRG-ROM
     ;
-    ; set the destination VRAM address
-    lda #>VRAM_NAMETABLE0
-    sta PPUADDR
-    lda #<VRAM_NAMETABLE0
-    sta PPUADDR
+    size1 = starfield1_end - starfield1
+    lda #size1 & $ff        ; SIZE_LO
+    sta $00,X
+    dex
+    lda #size1 >> 8         ; SIZE_HI
+    sta $00,X
+    dex
+    lda #>starfield1        ; SRC_HI
+    sta $00,X
+    dex
+    lda #<starfield1        ; SRC_LO
+    sta $00,X
+    dex
+    lda #<VRAM_NAMETABLE0   ; VRAM_LO
+    sta $00,X
+    dex
+    lda #>VRAM_NAMETABLE0   ; VRAM_HI
+    sta $00,X
+    dex
 
-    ; setup the pointer to starfield memory region
-    lda #>starfield
-    sta ptrH
-    lda #<starfield
-    sta ptrL
+    jsr copy_to_vram
 
-    ; X counts the 256-byte chunks (960 / 256 = 3)
-    ldx #$03
-    ; Y counts the bytes in the current chunk
-    ldy #$00
+    ;
+    ; Populate nametable-2 with starfield2 stored in PRG-ROM
+    ;
+    size2 = starfield2_end - starfield2
+    lda #size2 & $ff        ; SIZE_LO
+    sta $00,X
+    dex
+    lda #size2 >> 8         ; SIZE_HI
+    sta $00,X
+    dex
+    lda #>starfield2        ; SRC_HI
+    sta $00,X
+    dex
+    lda #<starfield2        ; SRC_LO
+    sta $00,X
+    dex
+    lda #<VRAM_NAMETABLE2   ; VRAM_LO
+    sta $00,X
+    dex
+    lda #>VRAM_NAMETABLE2   ; VRAM_HI
+    sta $00,X
+    dex
 
-    ; setup initial player position
-    lda #$00
-    sta player_pos_x
-
-    lda #$00
-    sta player_pos_y
-
-@cpbyte:
-    lda (ptr),Y ; load the tile index from (ptrH,ptrL) + Y address
-    sta PPUDATA ; write it to the nametable, this advances the PPUADDR by 1
-    iny         ; go to the next byte
-    bne @cpbyte ; loop over until Y does not overflow
-    dex         ; decrement the number of chunks to copy
-    bmi @end    ; all chunks copied, go to the end
-    inc ptrH    ; increase the high address value
-    jmp @cpbyte ; copy the next chunk
-@end:
+    jsr copy_to_vram
 
     ;
     ; Set sprite-0 palette
@@ -230,18 +240,24 @@ ppusetup:
     sta PPUSCRL
     sta PPUSCRL
 
+    ; clear player direction
+    sta player_direction
+
+    lda INITIAL_SPEED
+    sta player_speed
+
     ; Clear OAMDATA address
     lda #$00
-    sta $2003
+    sta OAMADDR 
 
     ; Enable sprite drawing
     lda #$1e
-    sta $2001
+    sta PPUMASK
 
     ; Ready to go, enable VBlank NMI, all subsequent writes should take place
     ; during VBlank, inside NMI handler.
     lda #$90
-	sta $2000
+	sta PPUCTRL
 
 main:
     ;
@@ -249,6 +265,12 @@ main:
     ;
     ldx #$00 ; character index
     ldy #$00 ; byte offset
+
+    jsr handle_input ; process input and reposition the ship
+
+    ; jsr draw_player
+
+
 
 draw_player:
     ;
@@ -347,9 +369,37 @@ draw_player:
     adc #$08
     sta oam,Y
     iny
-
-
+    
     jmp main
+
+
+move_right:
+    lda player_pos_x
+    clc
+    adc #player_speed
+    sta player_pos_x
+    rts
+
+move_left:
+    lda player_pos_x
+    sec
+    sbc #player_speed
+    sta player_pos_x
+    rts
+
+move_up:
+    lda player_pos_y
+    sec  
+    sbc #player_speed
+    sta player_pos_y
+    rts
+
+move_down:
+    lda player_pos_y      
+    clc  
+    adc #player_speed
+    sta player_pos_y
+    rts
 
 ;
 ; Handle non-masked interrupts
@@ -365,11 +415,26 @@ nmi_handler:
     ; increment the frame counter
     inc frame_counter
 
-    jsr handle_input
+    jsr update_player
+
+
+    ; scroll up the Y axis
+    lda scroll_y
+    bne :+
+    sbc #$0f        ; wtf?! just figured out this number empirically, but why
+                    ; it's needed in first place?
+:   sbc #$01
+    sta scroll_y
 
     ; Perform DMA copy of shadow OAM to PPU's OAM
     lda #>oam
     sta $4014
+
+    ; set scroll, what pixel of the NT should be on the left top of the screen
+    lda scroll_x
+    sta PPUSCRL
+    lda scroll_y
+    sta PPUSCRL
 
     ; restore the registers
     pla
@@ -386,64 +451,97 @@ nmi_handler:
 irq_handler:
     rti
 
+
+; 
+; update position of player
+; check if one of the position bits is set if so, update the position of the player
+update_player:
+    lda player_direction
+    lsr
+    bcs move_up
+    lsr
+    bcs move_right
+    lsr
+    bcs move_down
+    lsr
+    bcs move_left
+
+    lda #$00
+    sta player_direction
+    rts
+
 ;
 ; handle input
 ;
 handle_input:
-    lda #$01
-    sta JOYPAD1
     lda #$00
+    sta player_direction
+
+    ; first latch buttons to be able to poll input
+    lda #$01          ; fill input from buttons currently held
+    sta JOYPAD1 
+    lda #$00          ; return to serial mode wait for bits to be read out
     sta JOYPAD1
 
     ; we don't process those yet, need to be executed in correct order
     lda JOYPAD1       ; Player 1 - A
+    and #%00000001
+    bne increase_speed
+
+
     lda JOYPAD1       ; Player 1 - B
+    and #%00000001
+    bne decrease_speed
+
     lda JOYPAD1       ; Player 1 - Select
     lda JOYPAD1       ; Player 1 - Start
 
     lda JOYPAD1       ; Player 1 - Up
     and #%00000001
-    bne move_up
+    bne handle_up
         
     lda JOYPAD1       ; Player 1 - Down
     and #%00000001
-    bne move_down
+    bne handle_down
         
     lda JOYPAD1       ; Player 1 - Left
     and #%00000001
-    bne move_left
+    bne handle_left
 
     lda JOYPAD1       ; Player 1 - Right
     and #%00000001
-    bne move_right
+    bne handle_right
     rts    
 
-move_right:
-    lda player_pos_x
-    clc
-    adc #$01
-    sta player_pos_x
+increase_speed:
+    inc player_speed
     rts
 
-move_left:
-    lda player_pos_x
-    sec
-    sbc #$01
-    sta player_pos_x
+decrease_speed:
+    dec player_speed
     rts
 
-move_up:
-    lda player_pos_y
-    sec  
-    sbc #$01
-    sta player_pos_y
+handle_right:
+    lda #MOVE_RIGHT
+    sta player_direction
     rts
 
-move_down:
-    lda player_pos_y      
-    clc  
-    adc #$01
-    sta player_pos_y
+handle_left:
+    lda #MOVE_LEFT
+    sta player_direction
+    rts
+
+handle_up:
+    lda #MOVE_UP
+    sta player_direction
+    rts
+
+handle_down:
+    lda #MOVE_DOWN
+    sta player_direction
+    rts
+
+skip_moving:
     rts
 
 ;
