@@ -45,16 +45,20 @@ PLCOLOR1 =  $162637      ; Player palette color indices
 ;
 .zeropage
     frame_counter:      .res 1  ; current frame, wraps at $ff
-    
+
     ; moving player
     player_speed:       .res 1  ; current player speed
-    player_direction:   .res 1  ; current direction bit set 
+    player_direction:   .res 1  ; current direction bit set  (0000 LEFT DOWN RIGHT UP)
     player_pos_x:       .res 1  ; Player start X coord
     player_pos_y:       .res 1  ; Player start Y coord
 
     ; scroll
     scroll_y:           .res 1
     scroll_x:           .res 1
+
+    ; draw flags
+    update_flags:    .res 1 ; flags what to update (0000 000 UPDATE_POSITIONS)
+    draw_flags:  	    .res 1 ; flags what to draw in the next frame (0000 000 DRAW_FLAME)
 
 ;
 ; PPU Object Attribute Memory - shadow RAM which holds rendering attributes
@@ -287,47 +291,87 @@ main:
 
     jsr handle_input ; process input and reposition the ship
 
-
-; 
-; update position of player
-; check if one of the position bits is set if so, update the position of the player
+    ; 
+    ; update position of player
+    ; check if one of the position bits is set if so, update the position of the player
 update_player_position:
     ; check how often to increase the player position, depending on the speed
-    lda frame_counter
-    cmp player_speed
-    bmi draw_player
+    lda #%00000001
+    cmp update_flags  ; check if the last frame was drawn then update the position for the next one
+    bne draw_player
+
+    ; reset draw flags, set them one by one for the elements
+    lda #$00
+    sta draw_flags  
+
+    lda player_speed  ; check if the player is currently in high speed mode
+    cmp #$04
+    bmi increase_speed
+
+    inc draw_flags  ; set the draw flag for the flame 
+increase_speed:
+    lda #INCREASE_SPEED
+    bit player_direction
+    beq decrease_speed
+
+    ; cap the max speed at 8px
+    lda player_speed
+    cmp #$08            
+    bpl decrease_speed
+    inc player_speed
+decrease_speed:
+    lda #DECREASE_SPEED
+    bit player_direction
+    beq move_up
+
+    ; cap the min speed at 1px
+    lda player_speed
+    cmp #$02
+    bmi move_up
+    dec player_speed
 move_up:
     lda #MOVE_UP
     bit player_direction
     beq move_down
     ; move up
-    dec player_pos_y
+    lda player_pos_y
+    sec 
+    sbc player_speed
+    sta player_pos_y
 move_down:
     lda #MOVE_DOWN
     bit player_direction
     beq move_left 
     ; move down
-    inc player_pos_y
+    lda player_pos_y
+    clc 
+    adc player_speed
+    sta player_pos_y
 move_left:
     lda #MOVE_LEFT
     bit player_direction
     beq move_right
     ; move left
-    dec player_pos_x
+    lda player_pos_x
+    sec
+    sbc player_speed
+    sta player_pos_x
 move_right:
     lda #MOVE_RIGHT
     bit player_direction
     beq end_of_player_move
     ; move right
-    inc player_pos_x
+    lda player_pos_x
+    clc
+    adc player_speed
+    sta player_pos_x
 
 end_of_player_move:
     ; reset frame counter and player direction and update the position in the next second
     ; so that the next time 
     lda #$00
-    sta frame_counter
     sta player_direction
-
+    sta update_flags
 
 draw_player:
     ;
@@ -378,6 +422,7 @@ draw_player:
     iny
     ; X coord
     lda player_pos_x 
+    clc
     adc #$08
     sta oam,Y
     iny
@@ -388,6 +433,7 @@ draw_player:
     ; Y coord
     txa
     lda player_pos_y
+    clc
     adc #$08
     sta oam,Y
     iny
@@ -423,14 +469,15 @@ draw_player:
     iny
     ; X coord
     lda player_pos_x
+    clc
     adc #$08
     sta oam,Y
     iny
     
 draw_flame:
-    lda player_direction
-    cmp #$01
-    bmi return_to_main
+    lda #%00000001 
+    bit draw_flags
+    beq return_to_main
 
     lda #$00
     sta $0e
@@ -479,6 +526,9 @@ nmi_handler:
     ; increment the frame counter
     inc frame_counter
 
+    lda #$01
+    sta update_flags
+
     ; scroll up the Y axis
     lda scroll_y
     bne :+
@@ -526,12 +576,12 @@ handle_input:
     ; we don't process those yet, need to be executed in correct order
     lda JOYPAD1       ; Player 1 - A
     and #%00000001
-    bne increase_speed
+    bne handle_increase_speed
 
 
     lda JOYPAD1       ; Player 1 - B
     and #%00000001
-    bne decrease_speed
+    bne handle_decrease_speed
 
     lda JOYPAD1       ; Player 1 - Select
     lda JOYPAD1       ; Player 1 - Start
@@ -556,20 +606,27 @@ handle_input:
 abort:
     rts
 
-increase_speed:
-    lda player_speed
-    cmp #$08
-    bpl abort
+handle_increase_speed:
+    ; check if the speed increase is already set otherwise return
+    lda #INCREASE_SPEED
+    bit player_direction
+    bne skip_moving
 
-    inc player_speed
+    lda player_direction
+    clc
+    adc #INCREASE_SPEED 
+    sta player_direction
     rts
 
-decrease_speed:
-    lda player_speed
-    cmp #$01
-    bmi abort
+handle_decrease_speed:
+    lda #DECREASE_SPEED
+    bit player_direction
+    bne skip_moving
 
-    dec player_speed
+    lda player_direction
+    clc
+    adc #DECREASE_SPEED 
+    sta player_direction
     rts
 
 handle_right:
