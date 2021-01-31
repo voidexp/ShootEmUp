@@ -5,7 +5,8 @@
 
 BGCOLOR =  $0d          ; Overall background color index
 BGR_PAL0 = $103020      ; Background 0 tiles palette indices
-PLCOLOR =  $062636      ; Player palette color indices
+PLCOLOR0 =  $022232     ; Player palette color indices
+PLCOLOR1 =  $162637      ; Player palette color indices
 
 
 ;
@@ -43,17 +44,17 @@ PLCOLOR =  $062636      ; Player palette color indices
 ; Zero-page RAM.
 ;
 .zeropage
-    frame_counter:  .res 1  ; current frame, wraps at $ff
+    frame_counter:      .res 1  ; current frame, wraps at $ff
     
     ; moving player
-    player_speed: .res 1 ; current direction bit set 
-    player_direction: .res 1 ; current direction bit set 
-    player_pos_x:  .res 1    ; Player start X coord
-    player_pos_y:  .res 1    ; Player start Y coord
+    player_speed:       .res 1  ; current player speed
+    player_direction:   .res 1  ; current direction bit set 
+    player_pos_x:       .res 1  ; Player start X coord
+    player_pos_y:       .res 1  ; Player start Y coord
 
     ; scroll
-    scroll_y:       .res 1
-    scroll_x:       .res 1
+    scroll_y:           .res 1
+    scroll_x:           .res 1
 
 ;
 ; PPU Object Attribute Memory - shadow RAM which holds rendering attributes
@@ -126,10 +127,10 @@ ready:
     ldx #$ff
 
     ; setup initial player position
-    lda #$00
+    lda #$74
     sta player_pos_x
 
-    lda #$00
+    lda #$74
     sta player_pos_y
 
 ;
@@ -224,12 +225,30 @@ ppusetup:
     sta PPUADDR
     lda #<VRAM_SPR_PAL0
     sta PPUADDR
-    ; write each of the three palette colors.
-    lda #(PLCOLOR >> 16)
+
+    ; write the color indices
+    lda #(PLCOLOR0 >> 16)
     sta PPUDATA
-    lda #(PLCOLOR >> 8) & $ff
+    lda #(PLCOLOR0 >> 8) & $ff
     sta PPUDATA
-    lda #(PLCOLOR) & $ff
+    lda #(PLCOLOR0 & $ff)
+    sta PPUDATA
+
+    ;
+    ; Set sprite-1 palette
+    ;
+    ; set PPUADDR destination address to Sprite Palette 0 ($3F11)
+    lda #>VRAM_SPR_PAL1
+    sta PPUADDR
+    lda #<VRAM_SPR_PAL1
+    sta PPUADDR
+
+    ; write the color indices
+    lda #(PLCOLOR1 >> 16)
+    sta PPUDATA
+    lda #(PLCOLOR1 >> 8) & $ff
+    sta PPUDATA
+    lda #(PLCOLOR1 & $ff)
     sta PPUDATA
 
     ;
@@ -243,7 +262,7 @@ ppusetup:
     ; clear player direction
     sta player_direction
 
-    lda INITIAL_SPEED
+    lda #$01
     sta player_speed
 
     ; Clear OAMDATA address
@@ -268,8 +287,46 @@ main:
 
     jsr handle_input ; process input and reposition the ship
 
-    ; jsr draw_player
 
+; 
+; update position of player
+; check if one of the position bits is set if so, update the position of the player
+update_player_position:
+    ; check how often to increase the player position, depending on the speed
+    lda frame_counter
+    cmp player_speed
+    bmi draw_player
+move_up:
+    lda #MOVE_UP
+    bit player_direction
+    beq move_down
+    ; move up
+    dec player_pos_y
+move_down:
+    lda #MOVE_DOWN
+    bit player_direction
+    beq move_left 
+    ; move down
+    inc player_pos_y
+move_left:
+    lda #MOVE_LEFT
+    bit player_direction
+    beq move_right
+    ; move left
+    dec player_pos_x
+move_right:
+    lda #MOVE_RIGHT
+    bit player_direction
+    beq end_of_player_move
+    ; move right
+    inc player_pos_x
+
+end_of_player_move:
+    ; reset frame counter and player direction and update the position in the next second
+    ; so that the next time 
+    lda #$00
+    sta frame_counter
+    sta player_direction
 
 
 draw_player:
@@ -370,37 +427,44 @@ draw_player:
     sta oam,Y
     iny
     
+draw_flame:
+    lda player_direction
+    cmp #$01
+    bmi return_to_main
+
+    lda #$00
+    sta $0e
+
+	;
+    ; sprite $03
+    ;
+    ; Y coord
+    lda player_pos_y
+    adc #$0f
+    sta oam,Y
+    iny
+    ; sprite id
+    lda #$03
+    sta oam,Y
+    iny
+    ; sprite attrs
+    lda #$01
+    sta oam,Y
+    iny
+    ; X coord
+    lda player_pos_x
+    adc #$04
+    sta oam,Y
+    iny
+    
+return_to_main:
+    lda #$ff
+    sta $0e
+    
     jmp main
 
 
-move_right:
-    lda player_pos_x
-    clc
-    adc #player_speed
-    sta player_pos_x
-    rts
-
-move_left:
-    lda player_pos_x
-    sec
-    sbc #player_speed
-    sta player_pos_x
-    rts
-
-move_up:
-    lda player_pos_y
-    sec  
-    sbc #player_speed
-    sta player_pos_y
-    rts
-
-move_down:
-    lda player_pos_y      
-    clc  
-    adc #player_speed
-    sta player_pos_y
-    rts
-
+    
 ;
 ; Handle non-masked interrupts
 ;
@@ -414,9 +478,6 @@ nmi_handler:
 
     ; increment the frame counter
     inc frame_counter
-
-    jsr update_player
-
 
     ; scroll up the Y axis
     lda scroll_y
@@ -452,31 +513,10 @@ irq_handler:
     rti
 
 
-; 
-; update position of player
-; check if one of the position bits is set if so, update the position of the player
-update_player:
-    lda player_direction
-    lsr
-    bcs move_up
-    lsr
-    bcs move_right
-    lsr
-    bcs move_down
-    lsr
-    bcs move_left
-
-    lda #$00
-    sta player_direction
-    rts
-
 ;
 ; handle input
 ;
 handle_input:
-    lda #$00
-    sta player_direction
-
     ; first latch buttons to be able to poll input
     lda #$01          ; fill input from buttons currently held
     sta JOYPAD1 
@@ -511,33 +551,71 @@ handle_input:
     lda JOYPAD1       ; Player 1 - Right
     and #%00000001
     bne handle_right
-    rts    
+    rts 
+
+abort:
+    rts
 
 increase_speed:
+    lda player_speed
+    cmp #$08
+    bpl abort
+
     inc player_speed
     rts
 
 decrease_speed:
+    lda player_speed
+    cmp #$01
+    bmi abort
+
     dec player_speed
     rts
 
 handle_right:
+    ; check if the direction is already set otherwise return
     lda #MOVE_RIGHT
+    bit player_direction
+    bne skip_moving
+
+    lda player_direction
+    clc
+    adc #MOVE_RIGHT 
     sta player_direction
     rts
 
 handle_left:
+    ; check if the direction is already set otherwise return
     lda #MOVE_LEFT
+    bit player_direction
+    bne skip_moving
+
+    lda player_direction
+    clc
+    adc #MOVE_LEFT 
     sta player_direction
     rts
 
 handle_up:
+    ; check if the direction is already set otherwise return
     lda #MOVE_UP
+    bit player_direction
+    bne skip_moving
+
+    lda player_direction
+    adc #MOVE_UP
     sta player_direction
     rts
 
 handle_down:
+    ; check if the direction is already set otherwise return
     lda #MOVE_DOWN
+    bit player_direction
+    bne skip_moving
+
+    lda player_direction
+    clc
+    adc #MOVE_DOWN 
     sta player_direction
     rts
 
