@@ -6,7 +6,7 @@
 BGCOLOR =  $0d          ; Overall background color index
 BGR_PAL0 = $103020      ; Background 0 tiles palette indices
 PLCOLOR0 =  $022232     ; Player palette color indices
-PLCOLOR1 =  $162637      ; Player palette color indices
+PLCOLOR1 =  $162637     ; Player palette color indices
 
 
 ;
@@ -57,7 +57,7 @@ PLCOLOR1 =  $162637      ; Player palette color indices
     scroll_x:           .res 1
 
     ; draw flags
-    update_flags:    .res 1 ; flags what to update (0000 000 UPDATE_POSITIONS)
+    update_flags:       .res 1 ; flags what to update (0000 000 UPDATE_POSITIONS)
     draw_flags:  	    .res 1 ; flags what to draw in the next frame (0000 000 DRAW_FLAME)
 
 ;
@@ -475,9 +475,6 @@ draw_player:
     iny
     
 draw_flame:
-    lda #$00
-    sta $0e
-
 	;
     ; sprite $03
     ;
@@ -574,115 +571,63 @@ irq_handler:
 ;
 handle_input:
     ; first latch buttons to be able to poll input
-    lda #$01          ; fill input from buttons currently held
+    lda #$01            ; fill input from buttons currently held
     sta JOYPAD1 
-    lda #$00          ; return to serial mode wait for bits to be read out
+    lda #$00            ; return to serial mode wait for bits to be read out
     sta JOYPAD1
 
+    ldx #$00
     ; we don't process those yet, need to be executed in correct order
-    lda JOYPAD1       ; Player 1 - A
-    and #%00000001
-    bne handle_increase_speed
+    ; check if magic flag is set for this button and store direction indicator 
 
 
-    lda JOYPAD1       ; Player 1 - B
-    and #%00000001
-    bne handle_decrease_speed
+    lda JOYPAD1         ; Player 1 - A
+    and #$01
+    beq :+
+    txa
+    ora #INCREASE_SPEED
+    tax
 
-    lda JOYPAD1       ; Player 1 - Select
-    lda JOYPAD1       ; Player 1 - Start
+:   lda JOYPAD1         ; Player 1 - B
+    and #$01
+    beq :+
+    txa
+    ora #DECREASE_SPEED
+    tax
 
-    lda JOYPAD1       ; Player 1 - Up
-    and #%00000001
-    bne handle_up
-        
-    lda JOYPAD1       ; Player 1 - Down
-    and #%00000001
-    bne handle_down
-        
-    lda JOYPAD1       ; Player 1 - Left
-    and #%00000001
-    bne handle_left
+:   lda JOYPAD1         ; Player 1 - Select
+    lda JOYPAD1         ; Player 1 - Start
 
-    lda JOYPAD1       ; Player 1 - Right
-    and #%00000001
-    bne handle_right
-    rts 
+    lda JOYPAD1         ; Player 1 - Up
+    and #$01
+    beq :+
+    txa
+    ora #MOVE_UP
+    tax
 
-abort:
-    rts
+ :  lda JOYPAD1         ; Player 1 - Down
+    and #$01
+    beq :+
+    txa
+    ora #MOVE_DOWN
+    tax
 
-handle_increase_speed:
-    ; check if the speed increase is already set otherwise return
-    lda #INCREASE_SPEED
-    bit player_direction
-    bne skip_moving
+:   lda JOYPAD1         ; Player 1 - Left
+    and #$01
+    beq :+
+    txa
+    ora #MOVE_LEFT
+    tax
 
-    lda player_direction
-    clc
-    adc #INCREASE_SPEED 
+:   lda JOYPAD1         ; Player 1 - Right
+    and #$01
+    beq :+
+    txa
+    ora #MOVE_RIGHT
+    tax
+
+:   txa
     sta player_direction
-    rts
-
-handle_decrease_speed:
-    lda #DECREASE_SPEED
-    bit player_direction
-    bne skip_moving
-
-    lda player_direction
-    clc
-    adc #DECREASE_SPEED 
-    sta player_direction
-    rts
-
-handle_right:
-    ; check if the direction is already set otherwise return
-    lda #MOVE_RIGHT
-    bit player_direction
-    bne skip_moving
-
-    lda player_direction
-    clc
-    adc #MOVE_RIGHT 
-    sta player_direction
-    rts
-
-handle_left:
-    ; check if the direction is already set otherwise return
-    lda #MOVE_LEFT
-    bit player_direction
-    bne skip_moving
-
-    lda player_direction
-    clc
-    adc #MOVE_LEFT 
-    sta player_direction
-    rts
-
-handle_up:
-    ; check if the direction is already set otherwise return
-    lda #MOVE_UP
-    bit player_direction
-    bne skip_moving
-
-    lda player_direction
-    adc #MOVE_UP
-    sta player_direction
-    rts
-
-handle_down:
-    ; check if the direction is already set otherwise return
-    lda #MOVE_DOWN
-    bit player_direction
-    bne skip_moving
-
-    lda player_direction
-    clc
-    adc #MOVE_DOWN 
-    sta player_direction
-    rts
-
-skip_moving:
     rts
 
 ;
