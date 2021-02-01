@@ -475,10 +475,6 @@ draw_player:
     iny
     
 draw_flame:
-    lda #%00000001 
-    bit draw_flags
-    beq return_to_main
-
     lda #$00
     sta $0e
 
@@ -487,6 +483,7 @@ draw_flame:
     ;
     ; Y coord
     lda player_pos_y
+
     adc #$0f
     sta oam,Y
     iny
@@ -498,9 +495,18 @@ draw_flame:
     lda #$01
     sta oam,Y
     iny
+
     ; X coord
     lda player_pos_x
     adc #$04
+    tax 
+    lda #%00000001 
+
+    bit draw_flags
+    bne flame_x_pos_set
+    ldx #$ff
+flame_x_pos_set:
+    txa
     sta oam,Y
     iny
     
