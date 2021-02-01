@@ -304,8 +304,8 @@ update_player_position:
     lda #$00
     sta draw_flags  
 
-    lda player_speed  ; check if the player is currently in high speed mode
-    cmp #$04
+    lda player_direction  ; check if the player is currently in high speed mode
+    cmp #$01
     bmi increase_speed
 
     inc draw_flags  ; set the draw flag for the flame 
