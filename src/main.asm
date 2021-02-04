@@ -1,13 +1,12 @@
 .include "nes.asm"
+.include "globals.asm"
 
 .import copy_to_vram
 
-PLAYER_START_X = $58    ; Player start X coord
-PLAYER_START_Y = $74    ; Player start Y coord
-
 BGCOLOR =  $0d          ; Overall background color index
 BGR_PAL0 = $103020      ; Background 0 tiles palette indices
-PLCOLOR =  $062636      ; Player palette color indices
+PLCOLOR0 =  $022232     ; Player palette color indices
+PLCOLOR1 =  $162637     ; Player palette color indices
 
 
 ;
@@ -45,11 +44,21 @@ PLCOLOR =  $062636      ; Player palette color indices
 ; Zero-page RAM.
 ;
 .zeropage
-    frame_counter:  .res 1  ; current frame, wraps at $ff
+    frame_counter:      .res 1  ; current frame, wraps at $ff
+
+    ; moving player
+    player_speed:       .res 1  ; current player speed
+    player_direction:   .res 1  ; current direction bit set  (0000 LEFT DOWN RIGHT UP)
+    player_pos_x:       .res 1  ; Player start X coord
+    player_pos_y:       .res 1  ; Player start Y coord
 
     ; scroll
-    scroll_y:       .res 1
-    scroll_x:       .res 1
+    scroll_y:           .res 1
+    scroll_x:           .res 1
+
+    ; draw flags
+    update_flags:       .res 1 ; flags what to update (0000 000 UPDATE_POSITIONS)
+    draw_flags:  	    .res 1 ; flags what to draw in the next frame (0000 000 DRAW_FLAME)
 
 ;
 ; PPU Object Attribute Memory - shadow RAM which holds rendering attributes
@@ -120,6 +129,13 @@ vblankwait2:
 ready:
     ; init the X-stack to the end of the zeropage RAM
     ldx #$ff
+
+    ; setup initial player position
+    lda #$74
+    sta player_pos_x
+
+    lda #$74
+    sta player_pos_y
 
 ;
 ; Here we setup the PPU for drawing by writing apropriate memory-mapped
@@ -213,12 +229,30 @@ ppusetup:
     sta PPUADDR
     lda #<VRAM_SPR_PAL0
     sta PPUADDR
-    ; write each of the three palette colors.
-    lda #(PLCOLOR >> 16)
+
+    ; write the color indices
+    lda #(PLCOLOR0 >> 16)
     sta PPUDATA
-    lda #(PLCOLOR >> 8) & $ff
+    lda #(PLCOLOR0 >> 8) & $ff
     sta PPUDATA
-    lda #(PLCOLOR) & $ff
+    lda #(PLCOLOR0 & $ff)
+    sta PPUDATA
+
+    ;
+    ; Set sprite-1 palette
+    ;
+    ; set PPUADDR destination address to Sprite Palette 0 ($3F11)
+    lda #>VRAM_SPR_PAL1
+    sta PPUADDR
+    lda #<VRAM_SPR_PAL1
+    sta PPUADDR
+
+    ; write the color indices
+    lda #(PLCOLOR1 >> 16)
+    sta PPUDATA
+    lda #(PLCOLOR1 >> 8) & $ff
+    sta PPUDATA
+    lda #(PLCOLOR1 & $ff)
     sta PPUDATA
 
     ;
@@ -229,18 +263,24 @@ ppusetup:
     sta PPUSCRL
     sta PPUSCRL
 
+    ; clear player direction
+    sta player_direction
+
+    lda #$01
+    sta player_speed
+
     ; Clear OAMDATA address
     lda #$00
-    sta $2003
+    sta OAMADDR 
 
     ; Enable sprite drawing
     lda #$1e
-    sta $2001
+    sta PPUMASK
 
     ; Ready to go, enable VBlank NMI, all subsequent writes should take place
     ; during VBlank, inside NMI handler.
     lda #$90
-	sta $2000
+	sta PPUCTRL
 
 main:
     ;
@@ -248,6 +288,90 @@ main:
     ;
     ldx #$00 ; character index
     ldy #$00 ; byte offset
+
+    jsr handle_input ; process input and reposition the ship
+
+    ; 
+    ; update position of player
+    ; check if one of the position bits is set if so, update the position of the player
+update_player_position:
+    ; check how often to increase the player position, depending on the speed
+    lda #%00000001
+    cmp update_flags  ; check if the last frame was drawn then update the position for the next one
+    bne draw_player
+
+    ; reset draw flags, set them one by one for the elements
+    lda #$00
+    sta draw_flags  
+
+    lda player_direction  ; check if the player is currently in high speed mode
+    cmp #$01
+    bmi increase_speed
+
+    inc draw_flags  ; set the draw flag for the flame 
+increase_speed:
+    lda #INCREASE_SPEED
+    bit player_direction
+    beq decrease_speed
+
+    ; cap the max speed at 8px
+    lda player_speed
+    cmp #$08            
+    bpl decrease_speed
+    inc player_speed
+decrease_speed:
+    lda #DECREASE_SPEED
+    bit player_direction
+    beq move_up
+
+    ; cap the min speed at 1px
+    lda player_speed
+    cmp #$02
+    bmi move_up
+    dec player_speed
+move_up:
+    lda #MOVE_UP
+    bit player_direction
+    beq move_down
+    ; move up
+    lda player_pos_y
+    sec 
+    sbc player_speed
+    sta player_pos_y
+move_down:
+    lda #MOVE_DOWN
+    bit player_direction
+    beq move_left 
+    ; move down
+    lda player_pos_y
+    clc 
+    adc player_speed
+    sta player_pos_y
+move_left:
+    lda #MOVE_LEFT
+    bit player_direction
+    beq move_right
+    ; move left
+    lda player_pos_x
+    sec
+    sbc player_speed
+    sta player_pos_x
+move_right:
+    lda #MOVE_RIGHT
+    bit player_direction
+    beq end_of_player_move
+    ; move right
+    lda player_pos_x
+    clc
+    adc player_speed
+    sta player_pos_x
+
+end_of_player_move:
+    ; reset frame counter and player direction and update the position in the next second
+    ; so that the next time 
+    lda #$00
+    sta player_direction
+    sta update_flags
 
 draw_player:
     ;
@@ -259,13 +383,12 @@ draw_player:
     ; +--+--+
 
     ;;; TODO: rework this into some kind of loop ;;;
-
     ;
     ; Sprite $00
     ;
     ; Y coord
     txa
-    lda #PLAYER_START_Y
+    lda player_pos_y
     sta oam,Y
     iny
     ; sprite id
@@ -277,7 +400,7 @@ draw_player:
     sta oam,Y
     iny
     ; X coord
-    lda #PLAYER_START_Y
+    lda player_pos_x
     sta oam,Y
     iny
 
@@ -286,7 +409,7 @@ draw_player:
     ;
     ; Y coord
     txa
-    lda #PLAYER_START_Y
+    lda player_pos_y
     sta oam,Y
     iny
     ; sprite id
@@ -298,7 +421,9 @@ draw_player:
     sta oam,Y
     iny
     ; X coord
-    lda #PLAYER_START_Y + $08
+    lda player_pos_x 
+    clc
+    adc #$08
     sta oam,Y
     iny
 
@@ -307,7 +432,9 @@ draw_player:
     ;
     ; Y coord
     txa
-    lda #PLAYER_START_Y + $08
+    lda player_pos_y
+    clc
+    adc #$08
     sta oam,Y
     iny
     ; sprite id
@@ -319,16 +446,17 @@ draw_player:
     sta oam,Y
     iny
     ; X coord
-    lda #PLAYER_START_Y
+    lda player_pos_x
     sta oam,Y
     iny
 
-    ;
+	;
     ; sprite $11
     ;
     ; Y coord
     txa
-    lda #PLAYER_START_Y + $08
+    lda player_pos_y
+    adc #$08
     sta oam,Y
     iny
     ; sprite id
@@ -340,12 +468,53 @@ draw_player:
     sta oam,Y
     iny
     ; X coord
-    lda #PLAYER_START_Y + $08
+    lda player_pos_x
+    clc
+    adc #$08
+    sta oam,Y
+    iny
+    
+draw_flame:
+	;
+    ; sprite $03
+    ;
+    ; Y coord
+    lda player_pos_y
+
+    adc #$0f
+    sta oam,Y
+    iny
+    ; sprite id
+    lda #$03
+    sta oam,Y
+    iny
+    ; sprite attrs
+    lda #$01
     sta oam,Y
     iny
 
+    ; X coord
+    lda player_pos_x
+    adc #$04
+    tax 
+    lda #%00000001 
+
+    bit draw_flags
+    bne flame_x_pos_set
+    ldx #$ff
+flame_x_pos_set:
+    txa
+    sta oam,Y
+    iny
+    
+return_to_main:
+    lda #$ff
+    sta $0e
+    
     jmp main
 
+
+    
 ;
 ; Handle non-masked interrupts
 ;
@@ -360,6 +529,9 @@ nmi_handler:
     ; increment the frame counter
     inc frame_counter
 
+    lda #$01
+    sta update_flags
+
     ; scroll up the Y axis
     lda scroll_y
     bne :+
@@ -372,7 +544,7 @@ nmi_handler:
     lda #>oam
     sta $4014
 
-    ; set scroll
+    ; set scroll, what pixel of the NT should be on the left top of the screen
     lda scroll_x
     sta PPUSCRL
     lda scroll_y
@@ -393,6 +565,70 @@ nmi_handler:
 irq_handler:
     rti
 
+
+;
+; handle input
+;
+handle_input:
+    ; first latch buttons to be able to poll input
+    lda #$01            ; fill input from buttons currently held
+    sta JOYPAD1 
+    lda #$00            ; return to serial mode wait for bits to be read out
+    sta JOYPAD1
+
+    ldx #$00
+    ; we don't process those yet, need to be executed in correct order
+    ; check if magic flag is set for this button and store direction indicator 
+
+
+    lda JOYPAD1         ; Player 1 - A
+    and #$01
+    beq :+
+    txa
+    ora #INCREASE_SPEED
+    tax
+
+:   lda JOYPAD1         ; Player 1 - B
+    and #$01
+    beq :+
+    txa
+    ora #DECREASE_SPEED
+    tax
+
+:   lda JOYPAD1         ; Player 1 - Select
+    lda JOYPAD1         ; Player 1 - Start
+
+    lda JOYPAD1         ; Player 1 - Up
+    and #$01
+    beq :+
+    txa
+    ora #MOVE_UP
+    tax
+
+ :  lda JOYPAD1         ; Player 1 - Down
+    and #$01
+    beq :+
+    txa
+    ora #MOVE_DOWN
+    tax
+
+:   lda JOYPAD1         ; Player 1 - Left
+    and #$01
+    beq :+
+    txa
+    ora #MOVE_LEFT
+    tax
+
+:   lda JOYPAD1         ; Player 1 - Right
+    and #$01
+    beq :+
+    txa
+    ora #MOVE_RIGHT
+    tax
+
+:   txa
+    sta player_direction
+    rts
 
 ;
 ; Interrupt handler vectors (pointers).
