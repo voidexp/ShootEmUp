@@ -1,13 +1,9 @@
 .include "nes.asm"
 .include "globals.asm"
+.include "color_settings.asm"
+
 
 .import copy_to_vram
-
-BGCOLOR =  $0d          ; Overall background color index
-BGR_PAL0 = $103020      ; Background 0 tiles palette indices
-PLCOLOR0 =  $022232     ; Player palette color indices
-PLCOLOR1 =  $162637     ; Player palette color indices
-
 
 ;
 ; iNES header for the emulators.
@@ -144,32 +140,26 @@ ready:
 ; IMPORTANT! Writes to the PPU RAM afterwards should occur only during VBlank!
 ;
 ppusetup:
-    ;
-    ; Set universal background color
-    ;
-    ; set PPUADDR
+    ; First set the universal background color
     lda #>VRAM_BGCOLOR
     sta PPUADDR
     lda #<VRAM_BGCOLOR
     sta PPUADDR
-    ; write the color index
-    lda #BGCOLOR
+
+    lda #BG_COLOR
     sta PPUDATA
 
     ;
-    ; Set background-0 palette
+    ; Set ppu data pointer to the address of the background palette 0
+    ; and fill all following color palettes
     ;
     lda #>VRAM_BGR_PAL0
     sta PPUADDR
     lda #<VRAM_BGR_PAL0
     sta PPUADDR
-    ; write the color indices
-    lda #(BGR_PAL0 >> 16)
-    sta PPUDATA
-    lda #(BGR_PAL0 >> 8) & $ff
-    sta PPUDATA
-    lda #(BGR_PAL0 & $ff)
-    sta PPUDATA
+
+    ; write the background palette color indices
+    jsr load_background_palettes
 
     ;
     ; Populate nametable-0 with starfield1 stored in PRG-ROM
@@ -230,30 +220,8 @@ ppusetup:
     lda #<VRAM_SPR_PAL0
     sta PPUADDR
 
-    ; write the color indices
-    lda #(PLCOLOR0 >> 16)
-    sta PPUDATA
-    lda #(PLCOLOR0 >> 8) & $ff
-    sta PPUDATA
-    lda #(PLCOLOR0 & $ff)
-    sta PPUDATA
-
-    ;
-    ; Set sprite-1 palette
-    ;
-    ; set PPUADDR destination address to Sprite Palette 0 ($3F11)
-    lda #>VRAM_SPR_PAL1
-    sta PPUADDR
-    lda #<VRAM_SPR_PAL1
-    sta PPUADDR
-
-    ; write the color indices
-    lda #(PLCOLOR1 >> 16)
-    sta PPUDATA
-    lda #(PLCOLOR1 >> 8) & $ff
-    sta PPUDATA
-    lda #(PLCOLOR1 & $ff)
-    sta PPUDATA
+    ; load all 4 sprite palettes into the ppu memory
+    jsr load_sprite_color_palettes
 
     ;
     ; Clear PPU status and scroll registers
