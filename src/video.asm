@@ -1,7 +1,3 @@
-.include "nes.asm"
-
-.export copy_to_vram
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Copy given memory region to VRAM
 ;
@@ -13,7 +9,7 @@
 ;   SIZE_HI     - Most significant size byte
 ;   SIZE_LO     - Least significant size byte
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-.proc copy_to_vram
+copy_to_vram:
     ; pop from X-stack VRAM hi and lo address parts and write them to PPUADDR
     inx         ; X => VRAM_HI
     lda $00,X
@@ -71,4 +67,3 @@
     inx
 
     rts
-.endproc

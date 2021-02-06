@@ -1,9 +1,9 @@
 .include "nes.asm"
 .include "globals.asm"
 .include "color_settings.asm"
+.include "video.asm"
+.include "enemy.asm"
 
-
-.import copy_to_vram
 
 ;
 ; iNES header for the emulators.
@@ -36,7 +36,6 @@
     starfield2: .incbin "../build/levels/starfield2.lvl"
     starfield2_end:
 
-;
 ; Zero-page RAM.
 ;
 .zeropage
@@ -55,6 +54,11 @@
     ; draw flags
     update_flags:       .res 1 ; flags what to update (0000 000 UPDATE_POSITIONS)
     draw_flags:  	    .res 1 ; flags what to draw in the next frame (0000 000 DRAW_FLAME)
+
+    ; enemy variables
+    enemy_pos_y:        .res 1
+    enemy_pos_x:        .res 1
+    current_animatiom_frame: .res 1
 
 ;
 ; PPU Object Attribute Memory - shadow RAM which holds rendering attributes
@@ -132,6 +136,8 @@ ready:
 
     lda #$74
     sta player_pos_y
+
+    jsr init_enemy_animation
 
 ;
 ; Here we setup the PPU for drawing by writing apropriate memory-mapped
@@ -474,13 +480,13 @@ flame_x_pos_set:
     txa
     sta oam,Y
     iny
-    
+
+    jsr play_enemy_idle_animation
 return_to_main:
     lda #$ff
     sta $0e
     
     jmp main
-
 
     
 ;

@@ -11,6 +11,7 @@ BIN_DIR = 'assets'
 OUT_DIR = 'build'
 ROM = 'game.nes'
 LINKER_CFG = 'rom.cfg'
+MAIN = 'main.asm'
 
 ASSEMBLER = 'ca65.exe'
 LINKER = 'ld65.exe'
@@ -118,21 +119,20 @@ def main():
                 success = False
                 break
 
-    # collect asm files and compile them
+    # compile main asm file
     if success:
-        for asm_file in pathlib.Path(SRC_DIR).glob('*.asm'):
-            o_file = pathlib.Path(OUT_DIR).joinpath(f'{asm_file.stem}.o')
+        asm_file = pathlib.Path(SRC_DIR).joinpath(MAIN)
+        o_file = pathlib.Path(OUT_DIR).joinpath(f'{asm_file.stem}.o')
 
-            try:
-                run_assembler(assembler, asm_file, o_file).check_returncode()
-            except sp.CalledProcessError as err:
-                msg = (err.stdout or err.stderr).decode('utf8').strip()
-                print(f'{asm_file}: {msg}')
-                success = False
-            except FileNotFoundError:
-                print(f'{assembler} not found')
-                success = False
-                break
+        try:
+            run_assembler(assembler, asm_file, o_file).check_returncode()
+        except sp.CalledProcessError as err:
+            msg = (err.stdout or err.stderr).decode('utf8').strip()
+            print(f'{asm_file}: {msg}')
+            success = False
+        except FileNotFoundError:
+            print(f'{assembler} not found')
+            success = False
 
     if success:
         obj_files = pathlib.Path(OUT_DIR).glob('*.o')
