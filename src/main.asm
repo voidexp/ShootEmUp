@@ -2,7 +2,6 @@
 .include "globals.asm"
 .include "color_settings.asm"
 .include "video.asm"
-.include "enemy.asm"
 
 
 ;
@@ -55,10 +54,17 @@
     update_flags:       .res 1 ; flags what to update (0000 000 UPDATE_POSITIONS)
     draw_flags:  	    .res 1 ; flags what to draw in the next frame (0000 000 DRAW_FLAME)
 
-    ; enemy variables
-    enemy_pos_y:        .res 1
-    enemy_pos_x:        .res 1
-    current_animatiom_frame: .res 1
+    ; enemy
+    enemy_anim_addr:    .res 2  ; address pointer of current animation
+
+    ; tmp variables
+    temp_1:             .res 1
+    temp_2:             .res 1
+    temp_3:             .res 1
+
+    addr_ptr:           .res 2
+
+.include "enemy.asm"
 
 ;
 ; PPU Object Attribute Memory - shadow RAM which holds rendering attributes
@@ -131,10 +137,10 @@ ready:
     ldx #$ff
 
     ; setup initial player position
-    lda #$74
+    lda #$80
     sta player_pos_x
 
-    lda #$74
+    lda #$80
     sta player_pos_y
 
     jsr init_enemy_animation
@@ -154,15 +160,6 @@ ppusetup:
 
     lda #BG_COLOR
     sta PPUDATA
-
-    ;
-    ; Set ppu data pointer to the address of the background palette 0
-    ; and fill all following color palettes
-    ;
-    lda #>VRAM_BGR_PAL0
-    sta PPUADDR
-    lda #<VRAM_BGR_PAL0
-    sta PPUADDR
 
     ; write the background palette color indices
     jsr load_background_palettes
@@ -216,15 +213,6 @@ ppusetup:
     dex
 
     jsr copy_to_vram
-
-    ;
-    ; Set sprite-0 palette
-    ;
-    ; set PPUADDR destination address to Sprite Palette 0 ($3F11)
-    lda #>VRAM_SPR_PAL0
-    sta PPUADDR
-    lda #<VRAM_SPR_PAL0
-    sta PPUADDR
 
     ; load all 4 sprite palettes into the ppu memory
     jsr load_sprite_color_palettes
@@ -481,7 +469,7 @@ flame_x_pos_set:
     sta oam,Y
     iny
 
-    jsr play_enemy_idle_animation
+    jsr draw_enemies
 return_to_main:
     lda #$ff
     sta $0e

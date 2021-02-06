@@ -22,13 +22,20 @@ sprite_palettes:
     .byte $04, $14, $24, $0d
 
 
-PPU_DATA_STORAGE = $2007
-
 load_sprite_color_palettes:
+    ;
+    ; Set sprite-0 palette
+    ;
+    ; set PPUADDR destination address to Sprite Palette 0 ($3F11)
+    lda #>VRAM_SPR_PAL0
+    sta PPUADDR
+    lda #<VRAM_SPR_PAL0
+    sta PPUADDR
+
     ldx #$00
 @sprite_palette_load_loop:
     lda sprite_palettes, x                  ; first color palettes
-    sta PPU_DATA_STORAGE                    ; write the color indices
+    sta PPUDATA                    ; write the color indices
     inx
     cpx #$10                                ; load all 4 sprite palettes
     bne @sprite_palette_load_loop
@@ -36,10 +43,19 @@ load_sprite_color_palettes:
 
 
 load_background_palettes:
+    ;
+    ; Set ppu data pointer to the address of the background palette 0
+    ; and fill all following color palettes
+    ;
+    lda #>VRAM_BGR_PAL0
+    sta PPUADDR
+    lda #<VRAM_BGR_PAL0
+    sta PPUADDR
+
     ldx #$00
 @bg_palette_load_loop:
     lda background_palettes, x              ; first color palettes
-    sta PPU_DATA_STORAGE                    ; write the color indices
+    sta PPUDATA                    ; write the color indices
     inx
     cpx #$10                                ; load all 4 sprite palettes
     bne @bg_palette_load_loop
