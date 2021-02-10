@@ -51,11 +51,13 @@
     scroll_x:           .res 1
 
     ; draw flags
-    update_flags:       .res 1 ; flags what to update (0000 000 UPDATE_POSITIONS)
-    draw_flags:  	    .res 1 ; flags what to draw in the next frame (0000 000 DRAW_FLAME)
+    update_flags:       .res 1  ; flags what to update (0000 000 UPDATE_POSITIONS)
+    draw_flags:  	    .res 1  ; flags what to draw in the next frame (0000 000 DRAW_FLAME)
+    update_animations:  .res 1  ; update animations
 
     ; enemy
-    enemy_anim_addr:    .res 2  ; address pointer of current animation
+    enemy_addr:         .res 2   ; address pointer of current animation
+    enemy_anim_addr:    .res 2  ; adress of enemy animation
 
     ; tmp variables
     temp_1:             .res 1
@@ -142,6 +144,9 @@ ready:
 
     lda #$80
     sta player_pos_y
+
+    lda #$00
+    sta update_animations
 
     jsr init_enemy_animation
 
@@ -493,6 +498,8 @@ nmi_handler:
 
     lda #$01
     sta update_flags
+
+    inc update_animations
 
     ; scroll up the Y axis
     lda scroll_y

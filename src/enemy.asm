@@ -1,10 +1,3 @@
-enemy:
-    .byte $00                   ; animation address
-    .byte $20                   ; y-position
-    .byte $20                   ; x-position
-    .byte $00                  
-
-
 ;
 ; Animation settings
 ;
@@ -14,34 +7,41 @@ enemy_idle_animation:
     .byte $04                   ; length frames
     .byte $02                   ; attribute set
 
+
+; TODO: add different settings for different states
+squady:
+    .addr enemy_idle_animation          ; HI Ivan!         ;  idle animation
+    ; .byte $00                  
+
+
 ; todo: add padding
+
+.code
+small_squad_army:
+    .addr squady                 ; type of enemy         PS: are you suffering already
+    .byte $40, $10              ; x position, y position  PPS: now? :*
+    .addr squady
+    .byte $c0, $10
+    .addr squady
+    .byte $58, $32
+    .addr squady
+    .byte $a8, $32
+    .addr squady
+    .byte $40, $50
+    .addr squady
+    .byte $c0, $50                
+
+.segment "RAM"
+
+
+; 6 enemies, 5 bytes each
+; TODO: add (health) state
+current_enemy_set:  .res 30 ; 2 byte enemy address, 2 byte address, 1 byte anim state
 
 
 NUM_ENEMIES = 6
 
-;
-; list of enemies
-;
-;.segment "RAM"
-enemy_set:
-    .addr enemy_idle_animation  ; address of animation setting
-    .byte $40, $10              ; x position, y position
-    .byte $00                   ; current animation frame
-    .addr enemy_idle_animation
-    .byte $c0, $10
-    .byte $00
-    .addr enemy_idle_animation
-    .byte $58, $32
-    .byte $00   
-    .addr enemy_idle_animation
-    .byte $a8, $32
-    .byte $00
-    .addr enemy_idle_animation
-    .byte $40, $50
-    .byte $00
-    .addr enemy_idle_animation
-    .byte $c0, $50                
-    .byte $00
+ANIMATION_SPEED = 4
 
 ;
 ; initialize enemy data
@@ -50,7 +50,46 @@ enemy_set:
 init_enemy_animation:
     lda #$00
     sta temp_1
-    rts    
+
+    ldy #$00        ; loading offset
+    ldx #$00        ; storing offset
+@load_enemy:
+    ; cpy to ram
+
+    ; get the address of the animation setting
+    lda small_squad_army, Y            ; Get lobyte
+	sta current_enemy_set, X
+    inx
+    iny
+    lda small_squad_army, Y            ; Get lobyte
+	sta current_enemy_set, X 
+    inx
+    iny 
+    ; store initial position
+    lda small_squad_army, Y            ; x
+	sta current_enemy_set, X 
+    inx
+    iny 
+    lda small_squad_army, Y            ; y
+	sta current_enemy_set, X 
+    inx
+    iny 
+    ; set initial frame
+    lda #$00
+    sta current_enemy_set, X 
+    inx
+
+    ; check if there are more enemies to load
+    inc temp_1
+    lda temp_1
+    cmp #NUM_ENEMIES
+    bmi @load_enemy
+    rts
+
+
+init_enemies:
+    ; load enemy set and store current set in RAM
+    ; 
 
 draw_enemies:
     ; iterate over enemies
@@ -67,29 +106,44 @@ draw_enemies:
 
     ldy #$00
 @draw_enemy:
-    ; get the address of the animation setting
-    lda enemy_set, Y            ; Get lobyte
-	sta enemy_anim_addr
+    ; get the address of the enemy setting
+    lda current_enemy_set, y            ; Get lobyte
+	sta enemy_addr
     iny
-    lda enemy_set, Y            ; Get lobyte
+    lda current_enemy_set, y            ; Get lobyte
+	sta enemy_addr + 1
+    iny
+
+    ; push y to stack
+    tya 
+    pha 
+    ldy #$00
+    ; get the address of the enemy animation
+    lda (enemy_addr), Y
+    sta enemy_anim_addr
+    iny
+    lda (enemy_addr), Y           ; Get lobyte
 	sta enemy_anim_addr + 1
-    iny
+
+    ; get y from stack
+    pla 
+    tay
 
     ; get the x position of the enemy, push it to stack
     ; sprite attrs
-    lda enemy_set, y
+    lda current_enemy_set, y
     pha
     iny
 
     ; get the y position of enemy
-    lda enemy_set, y
+    lda current_enemy_set, y
     sta oam, x
     inx
     iny
 
-    ; get the current animation tile id
-    ;lda enemy_set, y
-    ;sta temp_1
+    ; get the current animation frame (tile id)
+    lda current_enemy_set, y
+    sta temp_1
 
     ; put current y on stack as we need it to accessing the sprite data
     tya 
@@ -104,9 +158,14 @@ draw_enemies:
     inx
     iny
 
+
+    lda update_animations  ; check if the last frame was drawn then update the position for the next one
+    cmp #ANIMATION_SPEED
+    bmi :+
+
     inc temp_1                     ; increase current frame in animation
     ; get length of animation and check if the animation should restart
-    lda (enemy_anim_addr), y
+ :  lda (enemy_anim_addr), y
     cmp temp_1
     bne :+                         ; last frame of animation reached -> reset animation
     lda #$00
@@ -126,7 +185,7 @@ draw_enemies:
 
     ; store current animation frame
     lda temp_1
-    sta enemy_set, y
+    sta current_enemy_set, y
     iny
 
     ; X coord
@@ -141,7 +200,14 @@ draw_enemies:
     bmi @draw_enemy
 
     ; set oam offset again to y
-    txa
+    
+    lda update_animations
+    cmp #ANIMATION_SPEED
+    bmi :+
+    lda #$00
+    sta update_animations
+ 
+ :  txa
     tay
     rts
 
