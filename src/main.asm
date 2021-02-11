@@ -55,16 +55,17 @@
     draw_flags:  	    .res 1  ; flags what to draw in the next frame (0000 000 DRAW_FLAME)
     update_animations:  .res 1  ; update animations
 
-    ; enemy
-    enemy_addr:         .res 2   ; address pointer of current animation
-    enemy_anim_addr:    .res 2  ; adress of enemy animation
-
     ; tmp variables
     temp_1:             .res 1
     temp_2:             .res 1
     temp_3:             .res 1
 
-    addr_ptr:           .res 2
+    ; enemy
+    enemy_addr:         .res 2   ; address pointer of current animation
+    enemy_anim_addr:    .res 2  ; adress of enemy animation
+
+
+
 
 .include "enemy.asm"
 

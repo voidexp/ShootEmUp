@@ -18,7 +18,7 @@ background_palettes:
 sprite_palettes:
     .byte $02, $22, $32, $0d
     .byte $16, $26, $37, $0d
-    .byte $04, $14, $24, $0d
+    .byte $04, $15, $35, $0d
     .byte $04, $14, $24, $0d
 
 
