@@ -21,42 +21,42 @@ sprite_palettes:
     .byte $04, $15, $35, $0d
     .byte $04, $14, $24, $0d
 
-
-load_sprite_color_palettes:
-    ;
-    ; Set sprite-0 palette
-    ;
-    ; set PPUADDR destination address to Sprite Palette 0 ($3F11)
-    lda #>VRAM_SPR_PAL0
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; load sprite palettes
+;
+; X-stack arguments:
+;   NUM_COLORS           - num colors to read out from the palette (default 16)
+;   VRAM_PAL_ADDR_HI     - Palette PPU destination address high part
+;   VRAM_PAL_ADDR_LO     - Palette PPU destination address low part
+;   PALETTE_ADDR_LO      - Palette address high part
+;   PALETTE_ADDR_HI      - Palette adress address low part
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+load_color_palettes:             
+    inx                                 ; load number of colors to load and store it in y
+    ldy $00,X
+                            
+    ; set PPUADDR destination address to Palette
+    inx                                 ; X => VRAM_PAL_ADDR_HI
+    lda $00,X
     sta PPUADDR
-    lda #<VRAM_SPR_PAL0
+
+    inx                                 ; X => VRAM_PAL_ADDR_LO
+    lda $00,X
     sta PPUADDR
 
-    ldx #$00
-@sprite_palette_load_loop:
-    lda sprite_palettes, x                  ; first color palettes
-    sta PPUDATA                    ; write the color indices
+    inx                                 ; X => PALETTE_ADDR_LO
+@palette_load_loop:
+    lda ($00,X)                         ; X points to PALETTE_ADDR_LO, therfore loads lo, hi
+    sta PPUDATA                         ; write the color indices
+    inc $00,X                           ; increase the low address part -> point to next color
+
+    bne :+                              ; check for overflow (ff -> 00)
+    inx                                 
+    inc $00,X                           ; increase the address of the high pointer PALETTE_ADDR_HI
+    dex                                 ; go back to lo pointer X to PALETTE_ADDR_LO
+
+:   dey
+    cpy #$00                           ; check if all colors are loaded, if not, continue
+    bne @palette_load_loop
     inx
-    cpx #$10                                ; load all 4 sprite palettes
-    bne @sprite_palette_load_loop
-    rts
-
-
-load_background_palettes:
-    ;
-    ; Set ppu data pointer to the address of the background palette 0
-    ; and fill all following color palettes
-    ;
-    lda #>VRAM_BGR_PAL0
-    sta PPUADDR
-    lda #<VRAM_BGR_PAL0
-    sta PPUADDR
-
-    ldx #$00
-@bg_palette_load_loop:
-    lda background_palettes, x              ; first color palettes
-    sta PPUDATA                    ; write the color indices
-    inx
-    cpx #$10                                ; load all 4 sprite palettes
-    bne @bg_palette_load_loop
     rts

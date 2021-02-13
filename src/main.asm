@@ -60,8 +60,8 @@
     temp_2:             .res 1
     temp_3:             .res 1
 
-    ; enemy
-    enemy_addr:         .res 2   ; address pointer of current animation
+    ; temp_address
+    temp_address:         .res 2   ; address pointer of current animation
     enemy_anim_addr:    .res 2  ; adress of enemy animation
 
 
@@ -168,7 +168,40 @@ ppusetup:
     sta PPUDATA
 
     ; write the background palette color indices
-    jsr load_background_palettes
+    lda #>background_palettes   ; PALETTE_ADDR_HI
+    sta $00,X
+    dex
+    lda #<background_palettes   ; PALETTE_ADDR_LO
+    sta $00,X
+    dex
+    lda #<VRAM_BGR_PAL0         ; VRAM_PAL_ADDR_LO
+    sta $00,X
+    dex
+    lda #>VRAM_BGR_PAL0         ; VRAM_PAL_ADDR_HI
+    sta $00,X
+    dex
+    lda #$10                    ; NUM_COLORS
+    sta $00,X
+    dex
+    jsr load_color_palettes
+
+    ; write the sprite palette color indices
+    lda #>sprite_palettes       ; PALETTE_ADDR_HI
+    sta $00,X
+    dex
+    lda #<sprite_palettes       ; PALETTE_ADDR_LO
+    sta $00,X
+    dex
+    lda #<VRAM_SPR_PAL0         ; VRAM_PAL_ADDR_LO
+    sta $00,X
+    dex
+    lda #>VRAM_SPR_PAL0         ; VRAM_PAL_ADDR_HI
+    sta $00,X
+    dex
+    lda #$10                    ; NUM_COLORS
+    sta $00,X
+    dex
+    jsr load_color_palettes
 
     ;
     ; Populate nametable-0 with starfield1 stored in PRG-ROM
@@ -192,7 +225,6 @@ ppusetup:
     lda #>VRAM_NAMETABLE0   ; VRAM_HI
     sta $00,X
     dex
-
     jsr copy_to_vram
 
     ;
@@ -219,9 +251,6 @@ ppusetup:
     dex
 
     jsr copy_to_vram
-
-    ; load all 4 sprite palettes into the ppu memory
-    jsr load_sprite_color_palettes
 
     ;
     ; Clear PPU status and scroll registers
