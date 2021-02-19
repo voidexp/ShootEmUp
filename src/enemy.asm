@@ -11,7 +11,7 @@ squady_idle_animation:
 octi_idle_anim:
     .byte $04                   ; length frames
     .byte $04                   ; starting tile ID
-    .byte $00                   ; attribute set
+    .byte $03                   ; attribute set
     .byte $02                   ; padding x, z -> 2 tiles wide and high
 
 
@@ -43,7 +43,7 @@ small_squad_army:
 .segment "RAM"
 ; 6 enemies, 5 bytes each
 ; TODO: add (health) state
-current_enemy_set:  .res 30 ; 2 byte enemy address, 2 byte address, 1 byte anim state
+current_enemy_set:  .res 40 ; 2 byte enemy address, 2 byte address, 1 byte anim state
 
 tile_data: .res 4 ; posy, tile id, attribute id, posx
 
@@ -108,6 +108,81 @@ init_enemy_animation:
     rts
 
 ;tick_animations
+tick_enemies:
+    tya
+    pha ; push oam offset y on hw stack
+
+    lda update_animations
+    cmp #ANIMATION_SPEED
+    bpl end_of_anims          ; should we tick anims? - if not return to end ... else tick!
+
+    lda #$00
+    sta update_animations
+
+    lda #NUM_ENEMIES
+    sta temp_3  
+
+    ldy #$00
+tick_object:
+    lda current_enemy_set, y            ; Get lo byte
+	sta temp_address
+    iny
+
+    lda current_enemy_set, y            ; Get hi byte
+	sta temp_address + 1
+    iny
+
+    ; steps:
+    ; get current frame
+    ; increase current frame
+    ; if current frame exceeds bounds reset
+
+    lda current_enemy_set, y            ; animation frame
+    clc                 
+    adc #$01
+    sta temp_2                          ; increase anim frame
+
+    tya
+    pha ; push y on hw stack
+
+    ldy #$00
+    ; UNECESSARY?
+    ; get the address of the enemy animation setting
+    lda (temp_address), Y
+    sta enemy_anim_addr
+    iny
+    lda (temp_address), Y
+	sta enemy_anim_addr + 1 
+
+    ldy #$00                                ; 00 is anim length
+    lda (enemy_anim_addr), Y                ; load anim length
+
+    cmp temp_2
+
+    bne :+
+    lda #$00
+    sta temp_2
+
+:   
+    pla ;pull y from hw stack
+    tay
+    lda temp_2
+    sta current_enemy_set, y
+    iny
+    iny ; xpos 
+    iny ; ypos
+
+    dec temp_3  ; check if there are enemies left to draw
+    lda temp_3
+    cmp #$00
+    beq end_of_anims
+    jmp tick_object
+end_of_anims:
+
+    pla
+    tay ; oam offset from stack
+    rts
+
 
 ; draw .. yay
 draw_enemies:
@@ -133,20 +208,20 @@ draw_enemy_object:
     iny
 
     lda current_enemy_set, y            ; animation frame
+    sta temp_2
     iny
 
     txa
     pha
 
-
     ldx #$00
     lda current_enemy_set, y            ; xpos
-    sta tile_data, X                 ; in tile data
+    sta tile_data, X                    ; in tile data
     inx
     iny
 
     lda current_enemy_set, y            ; ypos
-    sta tile_data, X                 ; in tile data
+    sta tile_data, X                    ; in tile data
     iny
     inx
 
@@ -170,18 +245,27 @@ draw_enemy_object:
 
     ; todo load length and tick the animation
 
+    ; height, length
+    ldy #$03
+    lda (enemy_anim_addr), Y
+    sta temp_4
+
+    multA temp_2, temp_4, temp_5
 
     ; tile id
     ldy #$01 ; 00 is length
     ldx #$02
     lda (enemy_anim_addr), Y 
+    ; add animframe
+
+    clc
+    adc temp_5
     sta tile_data, x
     inx
     iny
 
     ; attribute
     lda (enemy_anim_addr), Y 
-    ;sta $00, X                     ; tile id in stack in virtual stack!
     sta tile_data, x
     iny
 

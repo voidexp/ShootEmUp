@@ -265,7 +265,7 @@ ppusetup:
     ; clear player direction
     sta player_direction
 
-    lda #$01
+    lda #$02
     sta player_speed
 
     ; Clear OAMDATA address
@@ -290,10 +290,12 @@ main:
 
     jsr handle_input ; process input and reposition the ship
 
+    jsr tick_enemies  ; tick enemy object animations
+
     ; 
     ; update position of player
     ; check if one of the position bits is set if so, update the position of the player
-    jmp return_to_main
+    ;jmp return_to_main
 update_player_position:
     ; check how often to increase the player position, depending on the speed
     lda #%00000001
@@ -507,11 +509,12 @@ flame_x_pos_set:
     txa
     sta oam,Y
     iny
-
-
-return_to_main:
+enemies:
     ldx #$ff
     jsr draw_enemies
+
+return_to_main:
+
 
     lda #$ff
     sta $0e

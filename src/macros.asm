@@ -46,3 +46,28 @@
     pla
     sta m1
 .endmacro
+
+; first address
+; second address
+; third address
+.macro multA m1, m2, output
+    lda m1
+    pha 
+    lda m2
+    pha
+    lda #$00
+    sta output
+:
+    lda output
+    clc
+    adc m2
+    sta output
+    dec m1
+    lda m1
+    cmp #$00
+    bne :-
+    pla
+    sta m2
+    pla
+    sta m1
+.endmacro
