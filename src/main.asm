@@ -2,7 +2,7 @@
 .include "globals.asm"
 .include "color_settings.asm"
 .include "video.asm"
-
+.include "macros.asm"
 
 ;
 ; iNES header for the emulators.
@@ -59,6 +59,8 @@
     temp_1:             .res 1
     temp_2:             .res 1
     temp_3:             .res 1
+    temp_4:             .res 1
+    temp_5:             .res 1
 
     ; temp_address
     temp_address:         .res 2   ; address pointer of current animation
@@ -291,6 +293,7 @@ main:
     ; 
     ; update position of player
     ; check if one of the position bits is set if so, update the position of the player
+    jmp return_to_main
 update_player_position:
     ; check how often to increase the player position, depending on the speed
     lda #%00000001
@@ -369,6 +372,7 @@ end_of_player_move:
     lda #$00
     sta player_direction
     sta update_flags
+
 
 draw_player:
     ;
@@ -504,8 +508,11 @@ flame_x_pos_set:
     sta oam,Y
     iny
 
-    jsr draw_enemies
+
 return_to_main:
+    ldx #$ff
+    jsr draw_enemies
+
     lda #$ff
     sta $0e
     
