@@ -29,7 +29,7 @@
 ; first address
 ; second constant
 ; third address
-.macro mult m1, m2, output
+.macro mult_constant m1, m2, output
     lda m1
     pha 
     lda #$00
@@ -50,7 +50,7 @@
 ; first address
 ; second address
 ; third address
-.macro multA m1, m2, output
+.macro mult_variables m1, m2, output
     lda m1
     pha 
     lda m2
