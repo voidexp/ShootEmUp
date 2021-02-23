@@ -16,6 +16,10 @@ ASSEMBLER = 'ca65.exe'
 LINKER = 'ld65.exe'
 
 
+def run(args):
+    return sp.run(args, capture_output=True, env=os.environ)
+
+
 def executable_path(path):
     p = pathlib.Path(path)
     if not p.exists():
@@ -33,7 +37,7 @@ def run_assembler(assembler, src, dst):
         str(src),
     ]
     print(' '.join(args))
-    return sp.run(args, capture_output=True)
+    return run(args)
 
 
 def run_linker(linker, cfg_file, input_files, out_file):
@@ -44,27 +48,27 @@ def run_linker(linker, cfg_file, input_files, out_file):
     ]
     args.extend([str(i) for i in input_files])
     print(' '.join(args))
-    return sp.run(args, capture_output=True)
+    return run(args)
 
 
 def run_bmp2chr(tool, src, dst):
     args = [
-        'py', '-3', str(tool),
+        'python', str(tool),
         str(src),
         str(dst),
     ]
     print(' '.join(args))
-    return sp.run(args, capture_output=True)
+    return run(args)
 
 
 def run_bmp2lvl(tool, src, dst):
     args = [
-        'py', '-3', str(tool),
+        'python', str(tool),
         str(src),
         str(dst),
     ]
     print(' '.join(args))
-    return sp.run(args, capture_output=True)
+    return run(args)
 
 
 
