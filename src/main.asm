@@ -61,14 +61,34 @@
     temp_3:             .res 1
     temp_4:             .res 1
     temp_5:             .res 1
+    temp_6:             .res 1
+
+    var_1:              .res 1
+    var_2:              .res 1
+    var_3:              .res 1
+    var_4:              .res 1
+    var_5:              .res 1
+    var_6:              .res 1
+    var_7:              .res 1
+    var_8:              .res 1
+    var_9:              .res 1
+    var_10:             .res 1
 
     ; temp_address
-    temp_address:         .res 2   ; address pointer of current animation
-    enemy_anim_addr:    .res 2  ; adress of enemy animation
+    address_1:          .res 2
+    address_2:          .res 2  
+    address_3:          .res 2
+    address_4:          .res 2
+    address_5:          .res 2
+    address_6:          .res 2
+    address_7:          .res 2
+    address_8:          .res 2
+    address_9:          .res 2
+    address_10:         .res 2
 
 
 
-
+.include "animation.asm"
 .include "enemy.asm"
 
 ;
@@ -151,7 +171,8 @@ ready:
     lda #$00
     sta update_animations
 
-    jsr init_enemy_animation
+    ldx #$ff
+    jsr load_enemies
 
 ;
 ; Here we setup the PPU for drawing by writing apropriate memory-mapped
@@ -290,7 +311,8 @@ main:
 
     jsr handle_input ; process input and reposition the ship
 
-    jsr tick_enemies  ; tick enemy object animations
+    ; update enemy animations
+    ;jsr update_enemies
 
     ; 
     ; update position of player
@@ -510,14 +532,10 @@ flame_x_pos_set:
     sta oam,Y
     iny
 enemies:
-    ldx #$ff
+
     jsr draw_enemies
 
 return_to_main:
-
-
-    lda #$ff
-    sta $0e
     
     jmp main
 

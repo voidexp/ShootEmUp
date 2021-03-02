@@ -71,3 +71,26 @@
     pla
     sta m1
 .endmacro
+
+.macro copy_x_bytes_zp src, offset_src, dst, offset_dst, num
+    lda offset_src
+    clc
+    adc num
+    tay ; store offset at y .. start with highest element to put on stack
+
+:
+    dey
+    lda (src), y
+    pha
+    cpy offset_src
+    bne :-
+    ldx num
+    ldy offset_dst
+:
+    dex
+    pla
+    sta (dst), y
+    iny
+    cpx #$00
+    bne :-
+.endmacro

@@ -35,3 +35,8 @@ VRAM_ATTRTABLE3 = $2fc0 ; Attribute table 3
 ;
 JOYPAD1 = $4016
 JOYPAD2 = $4017
+
+; 
+; VIDEO STUFF
+; 
+PIXELS_PER_TILE = 8
