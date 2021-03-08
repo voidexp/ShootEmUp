@@ -15,13 +15,13 @@ projectile_anim_config:
     .addr projectile_default_anim
 
 
-bullet_properties_config:
-    .byte $10                               ; damage points
+;bullet_properties_config:
+;    .byte $10                               ; damage points
 
 
-PROJECTILE_SIZE = 12                         ; BYTES
+;PROJECTILE_SIZE = 12                         ; BYTES
 
-MAX_PROJECTILES_IN_BUFFER = 5
+MAX_PROJECTILES_IN_BUFFER = 3
 
 .segment "RAM"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -82,6 +82,34 @@ init_projectile_components:
 ; FILL PROJECTILE POOL
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 create_player_projectile:
+    lda #$ff                                ; xPos
+    sta var_1
+    lda #$32                                ; yPos
+    sta var_2
+    lda #$00                                ; xDir
+    sta var_3
+    lda #$01                                ; yDir
+    clc
+    eor #$ff
+    adc #$01
+    sta var_4
+
+    jsr spawn_projectile
+
+    lda #$ff                                ; xPos
+    sta var_1
+    lda #$32                                ; yPos
+    sta var_2
+    lda #$00                                ; xDir
+    sta var_3
+    lda #$01                                ; yDir
+    clc
+    eor #$ff
+    adc #$01
+    sta var_4
+
+    jsr spawn_projectile
+    
     lda #$ff                                ; xPos
     sta var_1
     lda #$32                                ; yPos

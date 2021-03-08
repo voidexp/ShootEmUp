@@ -93,7 +93,8 @@
 .include "components/sprite.asm"
 .include "entities/entity.asm"
 .include "entities/projectile.asm"
-.include "enemy.asm"
+.include "entities/enemy.asm"
+;.include "enemy.asm"
 
 ;
 ; PPU Object Attribute Memory - shadow RAM which holds rendering attributes
@@ -175,11 +176,12 @@ ready:
     lda #$00
     sta update_animations
 
-    ldx #$ff
-    jsr load_enemies
-
     jsr initialize_entities
     jsr create_player_projectile
+    
+    jsr spawn_squady
+    jsr spawn_spacetopus
+
 ;
 ; Here we setup the PPU for drawing by writing apropriate memory-mapped
 ; registers and specific memory locations.
@@ -292,7 +294,7 @@ ppusetup:
     ; clear player direction
     sta player_direction
 
-    lda #$02
+    lda #$01
     sta player_speed
 
     ; Clear OAMDATA address
@@ -316,19 +318,14 @@ main:
     ldy #$00 ; byte offset
 
     jsr handle_input ; process input and reposition the ship
-
-    ; update enemy animations
-    ;jsr update_enemies
-
     ; 
     ; update position of player
     ; check if one of the position bits is set if so, update the position of the player
-    ;jmp return_to_main
 update_player_position:
     ; check how often to increase the player position, depending on the speed
-    lda #%00000001
+    lda #$03
     cmp update_flags  ; check if the last frame was drawn then update the position for the next one
-    bne draw_player
+    bmi update_anim_components
 
     ; UPDATE COMPONENTS
     jsr update_movement_components 
@@ -360,7 +357,6 @@ shoot:
     sta var_4
 
     jsr spawn_projectile
-
 
     ; cap the max speed at 8px
     ;lda player_speed
@@ -421,13 +417,21 @@ end_of_player_move:
     sta player_direction
     sta update_flags
 
+update_anim_components:
+    lda update_animations
+    cmp #ANIMATION_SPEED
+    bne draw_player
     jsr update_sprite_components
+    lda #$00
+    sta update_animations
+ 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; START RENDERING SET OAM OFFSET TO 0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ldy #$00
+
 draw_player:
+    ldy #$00
     ;
     ; Player ship is made up of 4 sprites in a 2x2 box, as below following:
     ; +--+--+
@@ -562,9 +566,8 @@ flame_x_pos_set:
     iny
 enemies:
 
-    jsr draw_enemies
 
-;components:
+components:
     jsr draw_sprite_components
 
 return_to_main:
@@ -586,8 +589,7 @@ nmi_handler:
     ; increment the frame counter
     inc frame_counter
 
-    lda #$01
-    sta update_flags
+    inc update_flags
 
     inc update_animations
 

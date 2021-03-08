@@ -24,7 +24,9 @@ test_data_address = $0330
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 initialize_test:
     jsr initialize_entities
-    jsr test_spawn_projectile
+    ; jsr test_spawn_projectile
+    jsr spawn_squady
+    jsr spawn_spacetopus
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -39,7 +41,7 @@ execute_test:
     ; jsr test_num_bits_set_in_mask_macro
     ; jsr test_address_offset_macro
     ; jsr test_memcpy_macro
-    ; jsr spawn_projectile_test
+    ;jsr spawn_projectile_test
     jsr test_update_components
     rts
 
@@ -51,8 +53,13 @@ test_update_components:
     jsr update_movement_components
     lda #$00
     sta update_flags
-:   jsr update_sprite_components
-    ldy #$00
+:   lda update_animations
+    cmp #ANIMATION_SPEED
+    bne :+
+    jsr update_sprite_components
+    lda #$00
+    sta update_animations
+:   ldy #$00
     jsr draw_sprite_components
     rts
 
@@ -60,9 +67,8 @@ test_update_components:
 ; TEST SPAWN_PROJECTILE
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 spawn_projectile_test:
-    jsr initialize_entities
 
-    jsr test_spawn_projectile
+    ;jsr test_spawn_projectile
     rts
 
 

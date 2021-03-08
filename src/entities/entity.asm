@@ -21,7 +21,7 @@ ENTITY_ENEMY_BIG                            = 2
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 .segment "RAM"
-entity_container:       .res 60             ; contains .. entities
+entity_container:       .res 100             ; contains .. entities
 num_current_entities:   .res 1
 
 .code

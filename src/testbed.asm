@@ -92,6 +92,7 @@
 .include "components/sprite.asm"
 .include "entities/entity.asm"
 .include "entities/projectile.asm"
+.include "entities/enemy.asm"
 
 .include "testbed_config.asm"
 
