@@ -63,13 +63,35 @@
     temp_5:             .res 1
     temp_6:             .res 1
 
-    ; temp_address
-    address_1:          .res 2   ; address pointer of current animation
-    address_2:          .res 2  ; adress of enemy animation
-    address_3:          .res 2  ; adress of enemy animation
-    address_4:          .res 2  ; adress of enemy animation
-    address_5:          .res 2  ; adress of enemy animation
+    var_1:              .res 1
+    var_2:              .res 1
+    var_3:              .res 1
+    var_4:              .res 1
+    var_5:              .res 1
+    var_6:              .res 1
+    var_7:              .res 1
+    var_8:              .res 1
+    var_9:              .res 1
+    var_10:             .res 1
 
+    ; temp_address
+    address_1:          .res 2
+    address_2:          .res 2  
+    address_3:          .res 2
+    address_4:          .res 2
+    address_5:          .res 2
+    address_6:          .res 2
+    address_7:          .res 2
+    address_8:          .res 2
+    address_9:          .res 2
+    address_10:         .res 2
+
+.include "animation.asm"
+.include "components/health.asm"
+.include "components/movement.asm"
+.include "components/sprite.asm"
+.include "entities/entity.asm"
+.include "entities/projectile.asm"
 
 .include "testbed_config.asm"
 
@@ -149,6 +171,8 @@ ready:
 
     lda #$80
     sta player_pos_y
+
+    jsr initialize_test
 
     lda #$00
     sta update_animations
@@ -263,12 +287,6 @@ ppusetup:
     lda #$00
     sta PPUSCRL
     sta PPUSCRL
-
-    ; clear player direction
-    sta player_direction
-
-    lda #$02
-    sta player_speed
 
     ; Clear OAMDATA address
     lda #$00

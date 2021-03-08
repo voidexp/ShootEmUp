@@ -12,9 +12,12 @@ OUT_DIR = 'build'
 ROM = 'game.nes'
 LINKER_CFG = 'rom.cfg'
 MAIN = 'main.asm'
+TESTBED = 'testbed.asm'
 
 ASSEMBLER = 'ca65.exe'
 LINKER = 'ld65.exe'
+
+LOAD_TESTBED = False
 
 
 def executable_path(path):
@@ -68,7 +71,6 @@ def run_bmp2lvl(tool, src, dst):
     return sp.run(args, capture_output=True)
 
 
-
 def prepare_folder_structure(out_dir):
     out_dir_path = pathlib.Path(out_dir)
     if out_dir_path.exists():
@@ -109,7 +111,8 @@ def main():
     # collect level files and convert them to CHR files
     if success:
         for bmp_file in pathlib.Path(BIN_DIR).joinpath('levels').glob('*.bmp'):
-            o_file = pathlib.Path(OUT_DIR).joinpath('levels', f'{bmp_file.stem}.lvl')
+            o_file = pathlib.Path(OUT_DIR).joinpath(
+                'levels', f'{bmp_file.stem}.lvl')
 
             try:
                 run_bmp2lvl(bmp2lvl, bmp_file, o_file).check_returncode()
@@ -121,7 +124,7 @@ def main():
 
     # compile main asm file
     if success:
-        asm_file = pathlib.Path(SRC_DIR).joinpath(MAIN)
+        asm_file = pathlib.Path(SRC_DIR).joinpath(TESTBED if LOAD_TESTBED else MAIN)
         o_file = pathlib.Path(OUT_DIR).joinpath(f'{asm_file.stem}.o')
 
         try:
@@ -139,7 +142,8 @@ def main():
         cfg_file = pathlib.Path('.').joinpath(LINKER_CFG)
         rom_file = pathlib.Path(OUT_DIR).joinpath(ROM)
         try:
-            run_linker(linker, cfg_file, obj_files, rom_file).check_returncode()
+            run_linker(linker, cfg_file, obj_files,
+                       rom_file).check_returncode()
         except sp.CalledProcessError as err:
             msg = (err.stdout or err.stderr).decode('utf8').strip()
             print(f'{rom_file}: {msg}')

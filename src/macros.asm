@@ -29,21 +29,22 @@
 ; first address
 ; second constant
 ; third address
-.macro mult_constant m1, m2, output
+.macro mult_with_constant m1, m2, output
     lda m1
     pha 
     lda #$00
     sta output
 :
+    lda m1
+    cmp #$00
+    beq :+
     lda output
     clc
     adc m2
     sta output
     dec m1
-    lda m1
-    cmp #$00
-    bne :-
-    pla
+    jmp :-
+:   pla
     sta m1
 .endmacro
 
@@ -58,15 +59,16 @@
     lda #$00
     sta output
 :
+    lda m1
+    cmp #$00
+    beq :+
     lda output
     clc
     adc m2
     sta output
     dec m1
-    lda m1
-    cmp #$00
-    bne :-
-    pla
+    jmp :-
+:   pla
     sta m2
     pla
     sta m1
@@ -93,4 +95,49 @@
     iny
     cpx #$00
     bne :-
+.endmacro
+
+.macro calc_address_with_offset address, offset, target
+    lda #<address              ; low byte
+    sta target
+
+    lda #>address              ; high byte
+    sta target + 1
+
+    ldy offset
+    cpy #$00
+    beq @continue
+    ldx #$00
+    @loop:
+        dey                 ; decrease remaining steps
+        inc target,X        ; increase the low address part
+
+        bne  @continue      ; advance page on overflow, else skip to @declosize
+
+        inx                 ; let X point to SRC_HI
+        inc target,X        ; increase SRC_HI, ignore overflow 
+        dex                 ; restore X to SRC_LO
+
+    @continue:
+        cpy #$00
+        bne @loop           ; go over again
+.endmacro
+
+.macro get_num_of_bits_set_in_mask mask, num
+    ; push mask value to stack
+    lda #$00
+    sta num
+    ldy #$08
+@loop:
+    LDA #$01
+    BIT mask
+    BEQ :+
+    INC num
+:
+    lda mask
+    lsr
+    sta mask
+    dey
+    cpy #$00
+    bne @loop
 .endmacro

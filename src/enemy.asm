@@ -18,7 +18,7 @@ octi_idle_anim:
     .byte $04                               ; length frames
     .byte $08                               ; speed
     .byte $04                               ; starting tile ID
-    .byte $03                               ; attribute set
+    .byte $02                               ; attribute set
     .byte $02                               ; padding x, z -> 2 tiles wide and high
 
 
@@ -53,7 +53,6 @@ small_squad_army:
 ;
 NUM_ENEMIES = 6
 
-ANIMATION_SPEED = 8
 
 OFFSET_PADDING = 1
 OFFSET_TILE_ID = 2

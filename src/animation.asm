@@ -1,6 +1,8 @@
+.rodata
+ANIMATION_SPEED = 8
+
+
 .code
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; load animation config 
 ; ARGS:
@@ -108,7 +110,7 @@ tick_object:
     pla                                     ; pull y from hw stack
     tay
     lda var_2
-    ;sta (address_1), y
+    sta (address_1), y
     iny
 
     dec var_1                              ; check if there are enemies left to draw
@@ -140,15 +142,15 @@ end_of_anims:
 update_animation:
     inc var_2                               ; increase anim frame
 
-    ldy #$00
-    lda (address_2), Y
-    sta address_3
-    iny
-    lda (address_2), Y
-	sta address_3 + 1 
+    ;ldy #$00
+    ;lda (address_2), Y
+    ;sta address_3
+    ;iny
+    ;lda (address_2), Y
+	;sta address_3 + 1 
 
     ldy #$00                                ; 00 is anim length
-    lda (address_3), Y                      ; load anim length
+    lda (address_2), Y                      ; load anim length
 
     cmp var_2
 
@@ -360,7 +362,7 @@ draw_object:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 draw_tile:
 
-    mult_constant var_2, #PIXELS_PER_TILE, var_4
+    mult_with_constant var_2, #PIXELS_PER_TILE, var_4
 
     lda var_6
     clc
@@ -379,7 +381,7 @@ draw_tile:
     sta oam, Y
     iny
 
-    mult_constant var_1, #PIXELS_PER_TILE, var_4
+    mult_with_constant var_1, #PIXELS_PER_TILE, var_4
 
     lda var_5                               ; set x position
     clc
