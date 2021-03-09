@@ -24,9 +24,10 @@ test_data_address = $0330
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 initialize_test:
     jsr initialize_entities
-    ; jsr test_spawn_projectile
-    jsr spawn_squady
-    jsr spawn_spacetopus
+    jsr test_spawn_projectile
+    jsr test_spawn_squady
+    ; jsr spawn_squady
+    ; jsr spawn_spacetopus
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -45,12 +46,15 @@ execute_test:
     jsr test_update_components
     rts
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; UPDATE ALL THE COMPONENTS
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 test_update_components:
     lda #%00000001
     cmp update_flags  ; check if the last frame was drawn then update the position for the next one
     bne :+
     jsr update_movement_components
+    jsr update_collision_components
     lda #$00
     sta update_flags
 :   lda update_animations
@@ -63,12 +67,46 @@ test_update_components:
     jsr draw_sprite_components
     rts
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; TEST SPAWN_PROJECTILE
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-spawn_projectile_test:
 
-    ;jsr test_spawn_projectile
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; spawn a squad enemy
+; ARGS:
+;   var_1           - xPos
+;   var_2           - yPos     
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;                          
+test_spawn_squady:
+    lda #$40                                ; xPos
+    sta var_1
+    lda #$10                                ; yPos
+    sta var_2
+
+    jsr spawn_static_squad_enemy
+
+    ;rts
+    lda #$62                                ; xPos
+    sta var_1
+    lda #$ab                                ; yPos
+    sta var_2
+
+    jsr spawn_static_squad_enemy
+
+    lda #$c0                                ; xPos
+    sta var_1
+    lda #$50                                ; yPos
+    sta var_2
+
+    jsr spawn_static_squad_enemy
+
+    lda #$a8
+    sta var_1
+    lda #$36
+    sta var_2
+    lda #$c4                                ; xPos
+    sta var_1
+    lda #$50                                ; yPos
+    sta var_2
+
+    jsr spawn_static_squad_enemy
     rts
 
 

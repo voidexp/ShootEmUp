@@ -18,7 +18,7 @@ MOVE_COMP_SIZE = 5
 ; addresses or data? -> addresses
 
 .segment "RAM"
-movement_component_container: .res 50
+movement_component_container: .res 150
 
 num_movement_components: .res 1
 

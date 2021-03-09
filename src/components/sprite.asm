@@ -9,7 +9,7 @@
 SPRITE_COMP_SIZE = 5
 
 .segment "RAM"
-sprite_component_container: .res 50
+sprite_component_container: .res 150
 
 num_sprite_components: .res 1
 

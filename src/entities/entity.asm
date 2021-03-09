@@ -11,7 +11,11 @@ ENTITY_ENEMY_BIG                            = 2
 ; 2         - COLLISION
 ; 3         - HEALTH
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+MOVEMENT_CMP        = 1
+SPRITE_CMP          = 2
+COLLISION_CMP       = 3
+HEALTH_CMP          = 4
+ENEMY_CMP           = 8
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; entity:
@@ -28,9 +32,11 @@ num_current_entities:   .res 1
 initialize_entities:
     lda #$00
     sta num_current_entities
-    sta init_movement_components
-    sta init_sprite_components
-    sta init_projectile_components
+    jsr init_movement_components
+    jsr init_sprite_components
+    jsr init_projectile_components
+    jsr init_collision_components 
+    jsr init_enemy_components
     rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Creates the entity by calculating the storage address of the entity, setting

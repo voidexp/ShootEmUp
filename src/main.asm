@@ -86,11 +86,17 @@
     address_9:          .res 2
     address_10:         .res 2
 
+    ; game mode stuff
+    kill_count:         .res 1
+
+
 
 .include "animation.asm"
 .include "components/health.asm"
 .include "components/movement.asm"
 .include "components/sprite.asm"
+.include "components/collision.asm"
+.include "components/enemy_cmp.asm"
 .include "entities/entity.asm"
 .include "entities/projectile.asm"
 .include "entities/enemy.asm"
@@ -163,9 +169,6 @@ vblankwait2:
 
 
 ready:
-    ; init the X-stack to the end of the zeropage RAM
-    ldx #$ff
-
     ; setup initial player position
     lda #$80
     sta player_pos_x
@@ -175,6 +178,9 @@ ready:
 
     lda #$00
     sta update_animations
+
+    lda #$00
+    sta kill_count
 
     jsr initialize_entities
     jsr create_player_projectile
@@ -323,12 +329,16 @@ main:
     ; check if one of the position bits is set if so, update the position of the player
 update_player_position:
     ; check how often to increase the player position, depending on the speed
-    lda #$03
+    lda #$0a
     cmp update_flags  ; check if the last frame was drawn then update the position for the next one
     bmi update_anim_components
 
     ; UPDATE COMPONENTS
     jsr update_movement_components 
+    jsr update_collision_components
+
+    jsr enemy_cmp_process_cd_results
+
 
     ; reset draw flags, set them one by one for the elements
     lda #$00
@@ -529,6 +539,24 @@ draw_player:
     lda player_pos_x
     clc
     adc #$08
+    sta oam,Y
+    iny
+draw_kill_count:
+    lda #$0c
+    sta oam,Y
+    iny
+    ; sprite id
+    lda #$30
+    clc
+    adc kill_count
+    sta oam,Y
+    iny
+    ; sprite attrs
+    lda #$02
+    sta oam,Y
+    iny
+    ; X coord
+    lda #$0a
     sta oam,Y
     iny
     

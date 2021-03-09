@@ -6,7 +6,7 @@ projectile_default_anim:
     .byte $01                               ; length frames
     .byte $00                               ; speed
     .byte $13                               ; starting tile ID
-    .byte $03                               ; attribute set
+    .byte $01                               ; attribute set
     .byte $01                               ; padding x, z -> 2 tiles wide and high
 
 
@@ -21,7 +21,7 @@ projectile_anim_config:
 
 ;PROJECTILE_SIZE = 12                         ; BYTES
 
-MAX_PROJECTILES_IN_BUFFER = 3
+MAX_PROJECTILES_IN_BUFFER = 2
 
 .segment "RAM"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -41,7 +41,7 @@ test_spawn_projectile:
     sta var_2
     lda #$00                                ; xDir
     sta var_3
-    lda #$01                                ; yDir
+    lda #$00                                ; yDir
     clc
     eor #$ff
     adc #$01
@@ -49,7 +49,7 @@ test_spawn_projectile:
 
     jsr spawn_projectile
 
-    rts 
+    ;rts    
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; RETURN
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -60,7 +60,31 @@ test_spawn_projectile:
     sta var_2
     lda #$00
     sta var_3
-    lda #$01
+    lda #$00
+    sta var_4
+
+    jsr spawn_projectile
+
+    lda #$a8
+    sta var_1
+    lda #$32
+    sta var_2
+    lda #$00
+    sta var_3
+    lda #$00
+    sta var_4
+
+    jsr spawn_projectile
+
+
+    lda #$c4                                ; xPos
+    sta var_1
+    lda #$50                                ; yPos
+    sta var_2
+
+    lda #$00
+    sta var_3
+    lda #$00
     sta var_4
 
     jsr spawn_projectile
@@ -95,6 +119,8 @@ create_player_projectile:
     sta var_4
 
     jsr spawn_projectile
+
+
 
     lda #$ff                                ; xPos
     sta var_1
@@ -152,7 +178,10 @@ spawn_projectile:
     lda var_3
     pha                                     ; push var_3 (xDir) to stack
 
-    lda #%00000011                          ; load component mask: sprite &&  movement component mask
+    lda #$00                          ; load component mask: sprite &&  movement component mask
+    ora #MOVEMENT_CMP
+    ora #SPRITE_CMP
+    ora #COLLISION_CMP
     sta var_3
 
     ; 1. Create Entity
@@ -193,6 +222,36 @@ spawn_projectile:
     iny
 
     lda address_3 + 1
+    sta (address_1), y
+    iny
+
+    ; 6. Create COLLISON component
+    ; set collision mask
+    lda #$00
+    ora #ENEMY_LYR
+    ora #PLAYER_LYR
+    sta var_1
+
+    ; set collision layer
+    lda #$00
+    ora #PROJECTILE_LYR
+    sta var_2
+
+    ; get width and height from animation for the AABB
+    ldy #$04
+    lda (address_2), y
+    sta var_3
+    sta var_4
+
+    jsr create_collision_component             ; arguments (var_1: mask, var_2: layer, var_3: w, var_4:h ) => return address_2 of component
+    
+    ; 7. Store collision component address in entity component buffer
+    ldy #$07
+    lda address_2
+    sta (address_1), y
+    iny
+
+    lda address_2 + 1
     sta (address_1), y
     iny
 

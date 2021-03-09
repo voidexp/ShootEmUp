@@ -3,7 +3,7 @@ squady_idle_animation:
     .byte $04                               ; length frames
     .byte $08                               ; speed
     .byte $20                               ; starting tile ID
-    .byte $02                               ; attribute set
+    .byte $03                               ; attribute set
     .byte $01                               ; padding x, z -> 1 tiles wide and high
 
 octi_idle_anim:
@@ -13,6 +13,12 @@ octi_idle_anim:
     .byte $02                               ; attribute set
     .byte $02                               ; padding x, z -> 2 tiles wide and high
 
+dead_enemy_animation:
+    .byte $01                               ; length frames
+    .byte $08                               ; speed
+    .byte $25                               ; starting tile ID
+    .byte $03                               ; attribute set
+    .byte $01                               ; padding x, z -> 1 tiles wide and high
 
 .code
 spawn_static_squad_enemy:
@@ -107,7 +113,7 @@ spawn_spacetopus:
 ;   var_2           - yPosition
 ;   var_3           - xDir
 ;   var_4           - yDir, now one byte will be reduced
-;   address_2       - enemy sprite config
+;   address_7       - enemy sprite config
 ;
 ; RETURN:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -118,7 +124,11 @@ spawn_enemy:
     lda var_3
     pha                                     ; push var_3 (xDir) to stack
 
-    lda #%00000011                          ; load component mask: sprite &&  movement component mask
+    lda #$00                          ; load component mask: sprite &&  movement component mask
+    ora #MOVEMENT_CMP
+    ora #SPRITE_CMP
+    ora #COLLISION_CMP
+    ora #ENEMY_CMP
     sta var_3
 
     ; 1. Create Entity
@@ -160,6 +170,55 @@ spawn_enemy:
 
     lda address_3 + 1
     sta (address_1), y
-    ;iny
+    iny
+
+    ; 6. Create COLLISON component
+    ; set collision mask
+    lda #$00
+    ora #PROJECTILE_LYR
+    ora #PLAYER_LYR
+    sta var_1
+
+    ; set collision layer
+    lda #$00
+    ora #ENEMY_LYR
+    sta var_2
+
+    ; get width and height from animation for the AABB
+    ldy #$04
+    lda (address_2), y
+    sta var_3
+    sta var_4
+
+    jsr create_collision_component             ; arguments (var_1: mask, var_2: layer, var_3: w, var_4:h ) => return address_2 of component
+    
+    ; 5. Store sprite component address in entity component buffer
+    ldy #$07
+    lda address_2
+    sta (address_1), y
+    iny
+
+    lda address_2 + 1
+    sta (address_1), y
+    iny
+
+    ldy #$05
+    lda (address_1), y
+    sta address_2
+
+    sta (address_1), y
+    sta address_2 + 1
+
+    jsr create_enemy_component             ; arguments (address_1: owner, address_2: sprite component) => return address_3 of component
+    
+    ; 5. Store sprite component address in entity component buffer
+    ldy #$09
+    lda address_3
+    sta (address_1), y
+    iny
+
+    lda address_3 + 1
+    sta (address_1), y
+    iny
 
     rts

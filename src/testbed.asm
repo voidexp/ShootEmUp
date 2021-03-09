@@ -90,6 +90,8 @@
 .include "components/health.asm"
 .include "components/movement.asm"
 .include "components/sprite.asm"
+.include "components/collision.asm"
+.include "components/enempy_cmp.asm"
 .include "entities/entity.asm"
 .include "entities/projectile.asm"
 .include "entities/enemy.asm"
