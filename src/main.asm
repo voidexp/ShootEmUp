@@ -185,7 +185,7 @@ ready:
     jsr initialize_entities
     jsr create_player_projectile
     
-    jsr spawn_squady
+    ; jsr spawn_squady
     jsr spawn_spacetopus
 
 ;

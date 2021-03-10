@@ -144,7 +144,7 @@ spawn_enemy:
     jsr create_movement_component           ; arguments (address_1: owner, var_1-4: config) => return address_2 of component
 
     ; 3. store address of movement component in entity component buffer
-    ldy #$03
+    ldy #$04
     lda address_2
     sta (address_1), y
     iny
@@ -163,7 +163,7 @@ spawn_enemy:
     jsr create_sprite_component             ; arguments (address_1: owner, address_2: sprite config) => return address_3 of component
     
     ; 5. Store sprite component address in entity component buffer
-    ldy #$05
+    ldy #$06
     lda address_3
     sta (address_1), y
     iny
@@ -192,17 +192,17 @@ spawn_enemy:
 
     jsr create_collision_component             ; arguments (var_1: mask, var_2: layer, var_3: w, var_4:h ) => return address_2 of component
     
-    ; 5. Store sprite component address in entity component buffer
-    ldy #$07
+    ; 5. Store collision component address in entity component buffer
+    ldy #$08
     lda address_2
     sta (address_1), y
     iny
 
     lda address_2 + 1
     sta (address_1), y
-    iny
+    
 
-    ldy #$05
+    ldy #$06
     lda (address_1), y
     sta address_2
 
@@ -211,8 +211,8 @@ spawn_enemy:
 
     jsr create_enemy_component             ; arguments (address_1: owner, address_2: sprite component) => return address_3 of component
     
-    ; 5. Store sprite component address in entity component buffer
-    ldy #$09
+    ; 5. Store enemy component address in entity component buffer
+    ldy #$0a
     lda address_3
     sta (address_1), y
     iny

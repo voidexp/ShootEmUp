@@ -142,28 +142,80 @@ update_movement_components:
     pha
 
     ; mult_variables var_5, var_4, var_7      ; calculate offset in x direction
-
+    ldx #$00
     ldy #$00
     lda var_2
+    sta var_8
     clc
     adc var_5
-    ;lda var_7
     sta (address_2), y                      ; store new x pos
+    sta var_7
 
-    ;mult_variables var_6, var_4, var_7      ; calculate offset in y direction
+    lda var_5
+    sta var_9
+    ;jsr check_for_overflow
     
     iny
     lda var_3
+    sta var_8
     clc
     adc var_6
-    ;lda var_7
-    sta (address_2), y                     ; store new y pos
+    sta var_7
 
+    lda var_6
+    sta var_9
+    ldx #$00
+    jsr check_for_overflow
+
+    cpx #$01
+    bcc :+
+    lda var_3
+    sta var_7
+ :  lda var_7
+    sta (address_2), y                     ; store new y pos
+  
     pla
     tay
 
-    dec var_1
+    ; if outside of screen stop the projectile by setting the direction to zero
+    cpx #$01
+    bcc :+
+    dey
+    lda var_9
+    clc
+    eor #$ff
+    adc #$01
+    sta (address_1), Y                      ; overwrite yDir
+    dey 
+    lda #$00
+    sta (address_1), Y                      ; overwrite xDir
+    iny
+    iny  
+
+:   dec var_1
     lda var_1
     cmp #$00
     bne @update_mov_comp
     rts
+
+
+; var_7                 : new value
+; var_8                 : old value
+; var_9                 : dif
+; var_10                : result
+check_for_overflow:
+    lda var_9
+    bmi @check_negative_val
+
+    lda var_7                               ; new value is bigger then old value -> carry set .. return
+    cmp var_8
+    bcs @return
+    inx
+
+@check_negative_val:
+    lda var_8   ; direction is negative .. old value needs to be bigger than new value
+    cmp var_7  ;var_8
+    bcs @return
+    inx
+@return:
+   rts

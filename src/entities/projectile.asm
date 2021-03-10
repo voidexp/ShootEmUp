@@ -21,7 +21,7 @@ projectile_anim_config:
 
 ;PROJECTILE_SIZE = 12                         ; BYTES
 
-MAX_PROJECTILES_IN_BUFFER = 2
+MAX_PROJECTILES_IN_BUFFER = 1
 
 .segment "RAM"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -121,7 +121,6 @@ create_player_projectile:
     jsr spawn_projectile
 
 
-
     lda #$ff                                ; xPos
     sta var_1
     lda #$32                                ; yPos
@@ -134,7 +133,7 @@ create_player_projectile:
     adc #$01
     sta var_4
 
-    jsr spawn_projectile
+    ;jsr spawn_projectile
     
     lda #$ff                                ; xPos
     sta var_1
@@ -148,7 +147,7 @@ create_player_projectile:
     adc #$01
     sta var_4
 
-    jsr spawn_projectile
+    ;jsr spawn_projectile
 
     rts 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -166,7 +165,7 @@ spawn_projectile:
 
     lda num_current_entities
     cmp #MAX_PROJECTILES_IN_BUFFER
-    bmi :+
+    bcc :+
     ; in case the projectile buffer is already full .. just take one projectile of this buffer and update it with the most recent
     ; data
     jsr update_projectile_position
@@ -197,7 +196,7 @@ spawn_projectile:
     jsr create_movement_component           ; arguments (address_1: owner, var_1-4: config) => return address_2 of component
 
     ; 3. store address of movement component in entity component buffer
-    ldy #$03
+    ldy #$04
     lda address_2
     sta (address_1), y
     iny
@@ -216,7 +215,7 @@ spawn_projectile:
     jsr create_sprite_component             ; arguments (address_1: owner, address_2: sprite config) => return address_3 of component
     
     ; 5. Store sprite component address in entity component buffer
-    ldy #$05
+    ldy #$06
     lda address_3
     sta (address_1), y
     iny
@@ -246,7 +245,7 @@ spawn_projectile:
     jsr create_collision_component             ; arguments (var_1: mask, var_2: layer, var_3: w, var_4:h ) => return address_2 of component
     
     ; 7. Store collision component address in entity component buffer
-    ldy #$07
+    ldy #$08
     lda address_2
     sta (address_1), y
     iny
@@ -280,6 +279,7 @@ spawn_projectile:
 ;   var_2           - yPosition
 ;   var_3           - xDir
 ;   var_4           - yDir, now one byte will be reduced
+;   var_5           - speed
 ;
 ; RETURN:
 ;   None
@@ -292,9 +292,10 @@ update_projectile_position:
     lda #>projectile_component_container
     sta address_1 + 1
 
-    mult_with_constant last_updated_projectile, #2, var_5
+    mult_with_constant last_updated_projectile, #2, var_6
 
-    ldy var_5
+
+    ldy var_6
     lda (address_1), y
     sta address_2
 
@@ -309,6 +310,24 @@ update_projectile_position:
 
     lda var_2
     sta (address_2), Y
+
+    ; offset to movement_component
+    ldy #$04
+    lda (address_2), Y
+    sta address_3
+    iny
+
+    lda (address_2), Y
+    sta address_3 + 1
+
+    ldy #$03
+    lda var_3                               ; xDir
+    sta (address_3), Y
+
+    iny
+    lda var_4                                ; yDir
+    sta (address_3), Y
+
 
     inc last_updated_projectile
     lda last_updated_projectile

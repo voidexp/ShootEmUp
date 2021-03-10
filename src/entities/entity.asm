@@ -21,6 +21,7 @@ ENEMY_CMP           = 8
 ; entity:
 ;    .byte posX, posY
 ;    .byte component_mask
+;    .byte active_components_mask
 ;    .byte component_list
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -68,6 +69,9 @@ create_entity:
     sta (address_1), y
     iny
 
+    sta (address_1), Y              ; active components
+    iny
+
     inc num_current_entities
 
     rts
@@ -104,6 +108,7 @@ get_current_entity_buffer_offset:
     lda (address_1), Y                      ; get component mask
     sta var_3
 
+    iny                                     ; get over active components
     tya
     pha                                     ; push y on stack
 
@@ -154,5 +159,23 @@ update_entity_position:
     lda var_2
     sta (address_1), Y
     iny
+
+    rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Deactivates a certain component
+;
+; ARGS:
+;  address_1            - entity address
+;  var_1                - component to disable
+;
+; RETURN:
+;   None
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+disable_entity_component: 
+    ldy #$03                                ; jump over position and mask
+    lda (address_1), Y
+    EOR var_1
+    sta (address_1), Y                      ; store nw mask again
 
     rts

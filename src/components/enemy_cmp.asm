@@ -110,7 +110,7 @@ enemy_cmp_process_cd_results:
     sta var_4
     iny
 
-    iny
+    iny                                     ; go over sprite component address
     iny
 
 

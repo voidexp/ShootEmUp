@@ -170,6 +170,24 @@ update_collision_components:
     lda #$ff
     sta (address_3), Y                      ; set xpos to nirvana -> hide entity
     sta (address_4), y
+    iny
+    lda #$fe
+    sta (address_3), Y                      ; set ypos to nirvana -> hide entity
+    sta (address_4), y
+
+    lda address_3
+    sta address_1
+    lda address_3 + 1
+    sta address_1 + 1
+    lda #COLLISION_CMP
+    jsr disable_entity_component                ; disable collision for entities
+
+    lda address_4
+    sta address_1
+    lda address_4 + 1
+    sta address_1 + 1
+    lda #COLLISION_CMP
+    jsr disable_entity_component                ; disable collision for entities
 
     pla
     tay
@@ -237,8 +255,19 @@ detect_collisions:
 
     lda (address_2), y
     sta var_2                               ; !var_2 => y pos
+    iny
 
-    pla                                     ; get collision offset from buffer
+    iny                                     ; check if this component is active or not
+    lda (address_2), Y
+    sta var_3
+    lda #COLLISION_CMP
+    and var_3
+    bne :+
+
+    dec var_10
+    jmp @first_loop
+
+ :  pla                                     ; get collision offset from buffer
     tay
 
     lda (address_1), y                      ; collision mask   
