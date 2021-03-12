@@ -584,7 +584,7 @@ draw_kill_count:
     sta oam,Y
     iny
     ; sprite attrs
-    lda #$03
+    lda #$01
     sta oam,Y
     iny
     ; X coord
@@ -602,7 +602,7 @@ draw_kill_count:
     sta oam,Y
     iny
     ; sprite attrs
-    lda #$03
+    lda #$01
     sta oam,Y
     iny
     ; X coord
