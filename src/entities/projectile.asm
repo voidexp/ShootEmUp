@@ -28,70 +28,12 @@ MAX_PROJECTILES_IN_BUFFER = 1
 ; PROJECTILE:
 ;    .addr entity
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;    
-projectile_component_container:     .res 10             ; 5 Projectiles (2x5)
+projectile_component_container:     .res 20             ; 5 Projectiles (2x5)
 
 num_current_projectiles:            .res 1
 last_updated_projectile:            .res 1
 
 .code
-test_spawn_projectile:
-    lda #$58                                ; xPos
-    sta var_1
-    lda #$32                                ; yPos
-    sta var_2
-    lda #$00                                ; xDir
-    sta var_3
-    lda #$00                                ; yDir
-    clc
-    eor #$ff
-    adc #$01
-    sta var_4
-
-    jsr spawn_projectile
-
-    ;rts    
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; RETURN
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-    lda #$64
-    sta var_1
-    lda #$ab
-    sta var_2
-    lda #$00
-    sta var_3
-    lda #$00
-    sta var_4
-
-    jsr spawn_projectile
-
-    lda #$a8
-    sta var_1
-    lda #$32
-    sta var_2
-    lda #$00
-    sta var_3
-    lda #$00
-    sta var_4
-
-    jsr spawn_projectile
-
-
-    lda #$c4                                ; xPos
-    sta var_1
-    lda #$50                                ; yPos
-    sta var_2
-
-    lda #$00
-    sta var_3
-    lda #$00
-    sta var_4
-
-    jsr spawn_projectile
-
-
-    rts
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; INIT CODE .. reset all variables
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -112,11 +54,12 @@ create_player_projectile:
     sta var_2
     lda #$00                                ; xDir
     sta var_3
-    lda #$01                                ; yDir
+    lda #$02                                ; yDir
     clc
     eor #$ff
     adc #$01
     sta var_4
+
 
     jsr spawn_projectile
 
@@ -133,7 +76,7 @@ create_player_projectile:
     adc #$01
     sta var_4
 
-    ;jsr spawn_projectile
+    jsr spawn_projectile
     
     lda #$ff                                ; xPos
     sta var_1
@@ -147,7 +90,7 @@ create_player_projectile:
     adc #$01
     sta var_4
 
-    ;jsr spawn_projectile
+    jsr spawn_projectile
 
     rts 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -310,6 +253,13 @@ update_projectile_position:
 
     lda var_2
     sta (address_2), Y
+    iny 
+    iny                                     ; go over component mask
+    lda (address_2), Y
+    ora #MOVEMENT_CMP
+    ora #SPRITE_CMP
+    ora #COLLISION_CMP
+    sta (address_2), Y
 
     ; offset to movement_component
     ldy #$04
@@ -328,11 +278,10 @@ update_projectile_position:
     lda var_4                                ; yDir
     sta (address_3), Y
 
-
     inc last_updated_projectile
     lda last_updated_projectile
     cmp #MAX_PROJECTILES_IN_BUFFER
-    bne :+
+    bcc :+
     lda #$00
     sta last_updated_projectile
  :  rts

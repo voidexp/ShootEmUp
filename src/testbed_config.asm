@@ -109,7 +109,63 @@ test_spawn_squady:
     jsr spawn_static_squad_enemy
     rts
 
+test_spawn_projectile:
+    lda #$58                                ; xPos
+    sta var_1
+    lda #$32                                ; yPos
+    sta var_2
+    lda #$00                                ; xDir
+    sta var_3
+    lda #$00                                ; yDir
+    clc
+    eor #$ff
+    adc #$01
+    sta var_4
 
+    jsr spawn_projectile
+
+    ;rts    
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; RETURN
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    lda #$64
+    sta var_1
+    lda #$ab
+    sta var_2
+    lda #$00
+    sta var_3
+    lda #$00
+    sta var_4
+
+    jsr spawn_projectile
+
+    lda #$a8
+    sta var_1
+    lda #$32
+    sta var_2
+    lda #$00
+    sta var_3
+    lda #$00
+    sta var_4
+
+    jsr spawn_projectile
+
+
+    lda #$c4                                ; xPos
+    sta var_1
+    lda #$50                                ; yPos
+    sta var_2
+
+    lda #$00
+    sta var_3
+    lda #$00
+    sta var_4
+
+    jsr spawn_projectile
+
+
+    rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; TEST MULT_WITH_CONSTANT MACRO
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

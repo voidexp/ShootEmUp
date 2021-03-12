@@ -26,15 +26,16 @@ init_enemy_components:
 ; create enemy components
 ; ARGS:
 ;   address_1           - owner
+;   address_2           - sprite config
 ;
 ; RETURN:
-;   address_2           - address of movement_component
+;   address_3           - address of movement_component
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 create_enemy_component:
     ; calculate offset in current component buffer
     mult_with_constant num_enemy_components, #ENEMY_COMP_SIZE, var_5
 
-    calc_address_with_offset enemy_component_container, var_5, address_3 ; use address_2 as address_3 is return address
+    calc_address_with_offset enemy_component_container, var_5, address_3 ; address_3 is return address
 
     ldy #$00                                ; owner lo
     lda address_1
@@ -51,7 +52,6 @@ create_enemy_component:
 
     lda address_2 + 1
     sta (address_3), y
-    iny
 
     inc num_enemy_components
     rts
@@ -147,7 +147,7 @@ enemy_cmp_process_cd_results:
     rts
 
 @reset_sprite:
-    jmp @process_enemy_coll_cmp
+    ;jmp @process_enemy_coll_cmp
 
     ; TBC
     ; get address of sprite component

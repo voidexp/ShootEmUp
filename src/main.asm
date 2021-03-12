@@ -32,7 +32,7 @@
     starfield1: .incbin "../build/levels/starfield.lvl"
     starfield1_end:
 
-    starfield2: .incbin "../build/levels/starfield2.lvl"
+    starfield2: .incbin "../build/levels/starfield.lvl"
     starfield2_end:
 
 ; Zero-page RAM.
@@ -88,6 +88,7 @@
 
     ; game mode stuff
     kill_count:         .res 1
+    shoot_cooldown:     .res 1
 
 
 
@@ -181,6 +182,7 @@ ready:
 
     lda #$00
     sta kill_count
+    sta shoot_cooldown
 
     jsr initialize_entities
     jsr create_player_projectile
@@ -333,6 +335,12 @@ update_player_position:
     cmp update_flags  ; check if the last frame was drawn then update the position for the next one
     bmi update_anim_components
 
+;    lda shoot_cooldown
+;    cmp #$00
+;    bcs :+
+;    dec shoot_cooldown
+;:
+
     ; UPDATE COMPONENTS
     jsr update_movement_components 
     jsr update_collision_components
@@ -354,6 +362,10 @@ shoot:
     bit player_direction
     beq decrease_speed
 
+    ;lda shoot_cooldown
+    ;cmp #$00
+    ;bcs decrease_speed
+
     lda player_pos_x                        ; xPos
     sta var_1
     lda player_pos_y                        ; yPos
@@ -367,6 +379,9 @@ shoot:
     sta var_4
 
     jsr spawn_projectile
+
+    ; lda #$0f
+    ;sta shoot_cooldown
 
     ; cap the max speed at 8px
     ;lda player_speed
@@ -430,7 +445,7 @@ end_of_player_move:
 update_anim_components:
     lda update_animations
     cmp #ANIMATION_SPEED
-    bne draw_player
+    bcc draw_player
     jsr update_sprite_components
     lda #$00
     sta update_animations
@@ -542,13 +557,30 @@ draw_player:
     sta oam,Y
     iny
 draw_kill_count:
+    lda #$0a        ; sprite xpos
+    sta var_2
+    lda kill_count
+    sta var_1
+    cmp #$0a
+
+    bcc :+
+
+    lda var_1
+    sec
+    sbc #$0a
+    sta var_1
+
+    ; move xpos for second tile
+    lda var_2
+    clc
+    adc #$08
+    sta var_2
+
     lda #$0c
     sta oam,Y
     iny
     ; sprite id
-    lda #$30
-    clc
-    adc kill_count
+    lda #$31
     sta oam,Y
     iny
     ; sprite attrs
@@ -557,6 +589,24 @@ draw_kill_count:
     iny
     ; X coord
     lda #$0a
+    sta oam,Y
+    iny
+
+:   lda #$0c
+    sta oam,Y
+    iny
+    ; sprite id
+    lda #$30
+    clc
+    adc var_1
+    sta oam,Y
+    iny
+    ; sprite attrs
+    lda #$03
+    sta oam,Y
+    iny
+    ; X coord
+    lda var_2
     sta oam,Y
     iny
     

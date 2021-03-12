@@ -20,6 +20,21 @@ dead_enemy_animation:
     .byte $03                               ; attribute set
     .byte $01                               ; padding x, z -> 1 tiles wide and high
 
+ufo_idle_animation:
+    .byte $04                               ; length frames
+    .byte $08                               ; speed
+    .byte $40                               ; starting tile ID
+    .byte $03                               ; attribute set
+    .byte $02                               ; padding x, z -> 1 tiles wide and high
+
+
+ufo_2_idle_animation:
+    .byte $04                               ; length frames
+    .byte $08                               ; speed
+    .byte $48                               ; starting tile ID
+    .byte $03                               ; attribute set
+    .byte $02                               ; padding x, z -> 1 tiles wide and high
+
 .code
 spawn_static_squad_enemy:
     lda #$00                                ; xDir
@@ -47,6 +62,40 @@ spawn_static_spacetopus_enemy:
     sta address_7
 
     lda #>octi_idle_anim
+    sta address_7 + 1
+
+    jsr spawn_enemy
+
+    rts
+
+
+spawn_static_ufo_enemy:
+    lda #$00                                ; xDir
+    sta var_3
+    lda #$00                                ; yDir
+    sta var_4
+
+    lda #<ufo_idle_animation
+    sta address_7
+
+    lda #>ufo_idle_animation
+    sta address_7 + 1
+
+    jsr spawn_enemy
+
+    rts
+
+
+spawn_static_ufo_2_enemy:
+    lda #$00                                ; xDir
+    sta var_3
+    lda #$00                                ; yDir
+    sta var_4
+
+    lda #<ufo_2_idle_animation
+    sta address_7
+
+    lda #>ufo_2_idle_animation
     sta address_7 + 1
 
     jsr spawn_enemy
@@ -92,10 +141,10 @@ spawn_squady:
 spawn_spacetopus:
     lda #$30                                ; xPos
     sta var_1
-    lda #$20                                ; yPos
+    lda #$10                                ; yPos
     sta var_2
 
-    jsr spawn_static_spacetopus_enemy
+    jsr spawn_static_ufo_2_enemy
 
     lda #$65                                ; xPos
     sta var_1
@@ -113,22 +162,23 @@ spawn_spacetopus:
 
     lda #$c0                                ; xPos
     sta var_1
-    lda #$20                                ; yPos
+    lda #$10                                ; yPos
     sta var_2
 
+    jsr spawn_static_ufo_enemy
 
-    jsr spawn_static_spacetopus_enemy
+
 
     lda #$48                                ; xPos
     sta var_1
     lda #$42                                ; yPos
     sta var_2
 
-    jsr spawn_static_spacetopus_enemy
+    jsr spawn_static_ufo_enemy
 
     lda #$18                                ; xPos
     sta var_1
-    lda #$42                                ; yPos
+    lda #$52                                ; yPos
     sta var_2
 
     jsr spawn_static_spacetopus_enemy
@@ -138,44 +188,44 @@ spawn_spacetopus:
     lda #$42                                ; yPos
     sta var_2
 
-    jsr spawn_static_spacetopus_enemy
+    jsr spawn_static_ufo_2_enemy
 
         
     lda #$d8                                ; xPos
     sta var_1
-    lda #$42                                ; yPos
+    lda #$52                                ; yPos
     sta var_2
-
 
     jsr spawn_static_spacetopus_enemy
 
     lda #$30                                ; xPos
     sta var_1
-    lda #$60                                ; yPos
+    lda #$80                                ; yPos
     sta var_2
 
-    jsr spawn_static_spacetopus_enemy
+    jsr spawn_static_ufo_2_enemy
 
     lda #$65                                ; xPos
     sta var_1
-    lda #$60                                ; yPos
+    lda #$70                                ; yPos
     sta var_2
 
     jsr spawn_static_spacetopus_enemy
 
     lda #$8e                                ; xPos
     sta var_1
-    lda #$60                                ; yPos
+    lda #$70                                ; yPos
     sta var_2
-
+    ; rts
     jsr spawn_static_spacetopus_enemy
-    
+
+   
     lda #$c0                                ; xPos
     sta var_1
-    lda #$60                                ; yPos
+    lda #$80                                ; yPos
     sta var_2
 
-    jsr spawn_static_spacetopus_enemy
+    jsr spawn_static_ufo_enemy
     rts
 
 
@@ -197,7 +247,7 @@ spawn_enemy:
     lda var_3
     pha                                     ; push var_3 (xDir) to stack
 
-    lda #$00                          ; load component mask: sprite &&  movement component mask
+    lda #$00                                ; load component mask: sprite &&  movement component mask
     ora #MOVEMENT_CMP
     ora #SPRITE_CMP
     ora #COLLISION_CMP

@@ -13,9 +13,9 @@ ENTITY_ENEMY_BIG                            = 2
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 MOVEMENT_CMP        = 1
 SPRITE_CMP          = 2
-COLLISION_CMP       = 3
-HEALTH_CMP          = 4
-ENEMY_CMP           = 8
+COLLISION_CMP       = 4
+HEALTH_CMP          = 8
+ENEMY_CMP           = 16
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; entity:
@@ -52,9 +52,15 @@ initialize_entities:
 ;   address_1           - address of the entity config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 create_entity:   
+    lda var_3
+    pha 
+
     jsr get_current_entity_buffer_offset    ; (None -> var_4: address offset)
 
     calc_address_with_offset entity_container, var_4, address_1
+
+    pla
+    sta var_3
 
     ldy #$00
     lda var_1
@@ -178,4 +184,19 @@ disable_entity_component:
     EOR var_1
     sta (address_1), Y                      ; store nw mask again
 
+    rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Deactivates all components
+;
+; ARGS:
+;  address_1            - entity address
+;
+; RETURN:
+;   None
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+disable_all_entity_components: 
+    lda #$00
+    ldy #$03                                ; jump over position and mask
+    sta (address_1), y
     rts

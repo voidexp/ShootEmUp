@@ -188,6 +188,12 @@ draw_sprite_components:
     lda (address_2), y
     sta var_6
 
+    iny 
+    iny     
+    lda (address_2), Y                      ; get mask of active components
+    sta var_9
+
+
     pla                                     ; get y offset from stack again
     tay
 
@@ -226,7 +232,16 @@ draw_sprite_components:
     adc var_3                               ; add multiplied animframe
     sta var_7                               ; tile id
 
-    iny
+    ; if component is disabled set tile_id to something invisible
+    lda #SPRITE_CMP
+    bit var_9
+    bne :+
+
+    lda #$0c
+    sta var_7
+
+
+:   iny
     lda (address_3), Y 
     sta var_8                               ; attribute
     iny

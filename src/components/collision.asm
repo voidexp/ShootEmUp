@@ -1,13 +1,7 @@
 ;collision_component_container:
 ; list of all collision components
 .rodata
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; collision_component:
-;    .byte collision_mask
-;    .byte collision_layer
-;    .byte width
-;    .byte height
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 COLL_COMP_SIZE = 8
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -137,7 +131,6 @@ update_collision_components:
     ; no collision found
     rts
 :
-    sta var_1
     ldy #$00
 
     lda #<collision_results
@@ -146,7 +139,7 @@ update_collision_components:
     lda #>collision_results
     sta address_2 + 1
     ; process collision
-:
+
     lda (address_2), Y                      ; Get first entity address lo byte     
 	sta address_3
     iny
@@ -163,36 +156,19 @@ update_collision_components:
     sta address_4 + 1
     iny 
 
-    tya 
-    pha
-
-    ldy #$00
-    lda #$ff
-    sta (address_3), Y                      ; set xpos to nirvana -> hide entity
-    sta (address_4), y
-    iny
-    lda #$fe
-    sta (address_3), Y                      ; set ypos to nirvana -> hide entity
-    sta (address_4), y
-
     lda address_3
     sta address_1
+
     lda address_3 + 1
     sta address_1 + 1
-    lda #COLLISION_CMP
-    jsr disable_entity_component                ; disable collision for entities
+    jsr disable_all_entity_components
 
     lda address_4
     sta address_1
+
     lda address_4 + 1
     sta address_1 + 1
-    lda #COLLISION_CMP
-    jsr disable_entity_component                ; disable collision for entities
-
-    pla
-    tay
-
-    dec var_1
+    jsr disable_all_entity_components
 
     rts
 
@@ -261,7 +237,7 @@ detect_collisions:
     lda (address_2), Y
     sta var_3
     lda #COLLISION_CMP
-    and var_3
+    bit var_3
     bne :+
 
     dec var_10
@@ -359,11 +335,28 @@ detect_collisions:
 
     lda (address_3), y
     sta var_8                               ; var_2 => y pos
+    iny
+
+    iny                                     ; check if this component is active or not
+    lda (address_3), Y
+    sta temp_2
 
     pla                                     ; get collision offset from buffer
     tay
 
-    jmp @achje_jmp
+    lda #COLLISION_CMP
+    bit temp_2
+    bne :+
+    tya
+    clc
+    adc #$05                                ; increase y by 3
+    tay
+    dec var_9   
+    jmp @second_loop
+    dec var_9   
+    jmp @second_loop
+
+ :  jmp @achje_jmp
 @inbetween_jump:
     jmp @second_loop
 @achje_jmp:
@@ -412,9 +405,9 @@ detect_collisions:
     iny
     lda var_1                               ; var_1 => sprite1.yMin
     cmp temp_2
-    bcs :+                                  ; carry set if sprite1.yMin > sprite2.yMax
+    bcs @continue_2nd_loop                                  ; carry set if sprite1.yMin > sprite2.yMax
     inc temp_1
-:   ; finito : if one of those checks was successfull, we don't have a collision and can continue
+@continue_2nd_loop:   ; finito : if one of those checks was successfull, we don't have a collision and can continue
     dec var_9
     lda temp_1
     cmp #$04
@@ -443,7 +436,6 @@ detect_collisions:
 
     lda address_3 +1
     sta (address_4), y
-
 
     inc num_collision_results
     jmp @inbetween_jump
