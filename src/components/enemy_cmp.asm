@@ -117,7 +117,7 @@ enemy_cmp_process_cd_results:
     pha
 
     ; go over all collision results
-    lda #$00
+    mult_with_constant num_collision_results, #2, var_5 
     sta var_5
 @process_coll:
     mult_with_constant var_5, #2, var_6     ; get offset in result buffer for current 
@@ -133,12 +133,12 @@ enemy_cmp_process_cd_results:
     bne @jump_to_next_result
 
     inc kill_count
-    jmp @reset_sprite       ; change sprite component
+    jmp @reset_sprite                       ; change sprite component
 
 @jump_to_next_result:
-    inc var_5
+    dec var_5
     lda var_5
-    cmp num_collision_results
+    cmp #$00
     bne @process_coll
     jmp @process_enemy_coll_cmp
     
