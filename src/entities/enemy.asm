@@ -90,16 +90,89 @@ spawn_squady:
     rts
 
 spawn_spacetopus:
-    lda #$58                                ; xPos
+    lda #$30                                ; xPos
     sta var_1
-    lda #$32                                ; yPos
+    lda #$20                                ; yPos
     sta var_2
 
     jsr spawn_static_spacetopus_enemy
 
+    lda #$65                                ; xPos
+    sta var_1
+    lda #$20                                ; yPos
+    sta var_2
+
+    jsr spawn_static_spacetopus_enemy
+    
+    lda #$8e                                ; xPos
+    sta var_1
+    lda #$20                                ; yPos
+    sta var_2
+
+    jsr spawn_static_spacetopus_enemy
+
+    lda #$c0                                ; xPos
+    sta var_1
+    lda #$20                                ; yPos
+    sta var_2
+
+
+    jsr spawn_static_spacetopus_enemy
+
+    lda #$48                                ; xPos
+    sta var_1
+    lda #$42                                ; yPos
+    sta var_2
+
+    jsr spawn_static_spacetopus_enemy
+
+    lda #$18                                ; xPos
+    sta var_1
+    lda #$42                                ; yPos
+    sta var_2
+
+    jsr spawn_static_spacetopus_enemy
+    
     lda #$a8                                ; xPos
     sta var_1
-    lda #$32                                ; yPos
+    lda #$42                                ; yPos
+    sta var_2
+
+    jsr spawn_static_spacetopus_enemy
+
+        
+    lda #$d8                                ; xPos
+    sta var_1
+    lda #$42                                ; yPos
+    sta var_2
+
+
+    jsr spawn_static_spacetopus_enemy
+
+    lda #$30                                ; xPos
+    sta var_1
+    lda #$60                                ; yPos
+    sta var_2
+
+    jsr spawn_static_spacetopus_enemy
+
+    lda #$65                                ; xPos
+    sta var_1
+    lda #$60                                ; yPos
+    sta var_2
+
+    jsr spawn_static_spacetopus_enemy
+
+    lda #$8e                                ; xPos
+    sta var_1
+    lda #$60                                ; yPos
+    sta var_2
+
+    jsr spawn_static_spacetopus_enemy
+    
+    lda #$c0                                ; xPos
+    sta var_1
+    lda #$60                                ; yPos
     sta var_2
 
     jsr spawn_static_spacetopus_enemy

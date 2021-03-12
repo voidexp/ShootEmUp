@@ -113,7 +113,6 @@ enemy_cmp_process_cd_results:
     iny                                     ; go over sprite component address
     iny
 
-
     tya 
     pha
 

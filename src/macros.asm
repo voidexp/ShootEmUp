@@ -112,7 +112,7 @@
         dey                 ; decrease remaining steps
         inc target,X        ; increase the low address part
 
-        bne  @continue      ; advance page on overflow, else skip to @declosize
+        bne  @continue      ; advance page on overflow, else skip to @continue
 
         inx                 ; let X point to SRC_HI
         inc target,X        ; increase SRC_HI, ignore overflow 

@@ -173,7 +173,7 @@ ready:
     lda #$80
     sta player_pos_x
 
-    lda #$80
+    lda #$b0
     sta player_pos_y
 
     lda #$00
@@ -552,7 +552,7 @@ draw_kill_count:
     sta oam,Y
     iny
     ; sprite attrs
-    lda #$02
+    lda #$03
     sta oam,Y
     iny
     ; X coord

@@ -154,9 +154,20 @@ update_movement_components:
     lda var_5
     sta var_9
     ;jsr check_for_overflow
+
+    ;cpx #$01
+    ;bcc :+
+    ;lda var_3
+    ;sta var_7
+ ;:  lda var_7
+    ;sta (address_2), y                     ; store new x pos
+
+    ;txa 
+    ;pha
+    ldx #$00
     
     iny
-    lda var_3
+    lda var_3                               ; add speed to previous position
     sta var_8
     clc
     adc var_6
@@ -173,6 +184,12 @@ update_movement_components:
     sta var_7
  :  lda var_7
     sta (address_2), y                     ; store new y pos
+
+    ;pla                                    ; get the overflow indicator for x value from stack
+    ;cmp #$00                               ; if it was >= zero .. increase x
+    ;bcs :+
+    ;inx
+    ;:
   
     pla
     tay

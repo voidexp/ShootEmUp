@@ -250,11 +250,11 @@ detect_collisions:
 
     ldy #$00                                ; get x, y position from the entity
     lda (address_2), y
-    sta var_1                               ; !var_1 => x pos
+    sta var_1                               ; var_1 => x pos
     iny
 
     lda (address_2), y
-    sta var_2                               ; !var_2 => y pos
+    sta var_2                               ; var_2 => y pos
     iny
 
     iny                                     ; check if this component is active or not
@@ -290,13 +290,13 @@ detect_collisions:
     sta var_6
     iny 
 
-    lda (address_1), Y                      ; xMax => xMaxOffset + xPos =>      var_1
+    lda (address_1), Y                      ; yMin => yMaxOffset + yPos =>      var_1
     clc 
     adc var_2
     sta var_1
     iny 
     
-    lda (address_1), Y                      ; xMax => xMaxOffset + xPos =>      var_2
+    lda (address_1), Y                      ; yMax => yMaxOffset + yPos =>      var_2
     clc 
     adc var_2
     sta var_2
@@ -354,11 +354,11 @@ detect_collisions:
 
     ldy #$00                                ; get x, y position from the entity
     lda (address_3), y
-    sta var_7                               ; !var_1 => x pos
+    sta var_7                               ; var_1 => x pos
     iny
 
     lda (address_3), y
-    sta var_8                               ; !var_2 => y pos
+    sta var_8                               ; var_2 => y pos
 
     pla                                     ; get collision offset from buffer
     tay
@@ -367,51 +367,54 @@ detect_collisions:
 @inbetween_jump:
     jmp @second_loop
 @achje_jmp:
-    ; get the actual collision checks
+    ; do the actual collision checks, check for the cases where you DON'T have a collision
+    ; less instructions -> faster
     lda #$00 
     sta temp_1                              ; use temp_1 for the result -> 1 coll .. 0 not
 
     iny 
-    lda (address_1), Y                      ; xMin
-    ; sprite2.x > sprite1.x2
+    ;1: sprite2.xMin > sprite1.xMax
+    lda (address_1), Y                      ; sprite2.xMin
+
     clc
     adc var_7
-    cmp var_6                               ; var_6 => xMax
-    bcs :+ ; bcs -> sprite2.xMin > sprite1.xMax
+    cmp var_6                               ; var_6 => sprite1.xMax
+    bcs :+                                  ; cary set if sprite2.xMin > sprite1.xMax
     inc temp_1
 : 
     iny 
-    lda (address_1), Y                      ; xMax
+    ;2: sprite1.xMin > sprite2.xMax
+    lda (address_1), Y                      ; sprite2.xMax
     clc
     adc var_7
     sta temp_2
-    lda var_5                               ; var_5 => xMin
+    lda var_5                               ; var_5 => sprite1.xMin
     cmp temp_2
-    ; sprite1.xMin > sprite2.xMax
-    bcs :+ ; carry should be set s1xMin >= s2xMax
+
+    bcs :+                                  ; carry set if sprite2.xMin >= sprite2.xMax
     inc temp_1
 :
-    ; sprite2.y > sprite1.y2
+    ;3: sprite2.y > sprite1.y2
     iny 
-    lda (address_1), Y                      ; yMin
+    lda (address_1), Y                      ; sprite2.yMin
     clc
     adc var_8
-    cmp var_2                      
-    bcs :+  ; s2min > s1max
+    cmp var_2                               ; var_2 => sprite1.yMax 
+    bcs :+                                  ; s2min > s1max
     inc temp_1
 :
-    ; sprite1.y > sprite2.y2
+    ;4: sprite1.y > sprite2.y2
     iny 
     lda (address_1), Y
     clc
     adc var_8
-    sta temp_2                              ; s2 yMax
+    sta temp_2                              ; sprite2.yMax
     iny
-    lda var_1
+    lda var_1                               ; var_1 => sprite1.yMin
     cmp temp_2
-    bcs :+
+    bcs :+                                  ; carry set if sprite1.yMin > sprite2.yMax
     inc temp_1
-:   ;finito
+:   ; finito : if one of those checks was successfull, we don't have a collision and can continue
     dec var_9
     lda temp_1
     cmp #$04
