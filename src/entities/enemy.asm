@@ -167,7 +167,7 @@ spawn_spacetopus:
 
     jsr spawn_static_ufo_enemy
 
-
+    
 
     lda #$48                                ; xPos
     sta var_1

@@ -86,12 +86,17 @@
     address_9:          .res 2
     address_10:         .res 2
 
+    ; game mode stuff
+    kill_count:         .res 1
+    shoot_cooldown:     .res 1
+    num_enemies_alive:  .res 1
+
 .include "animation.asm"
 .include "components/health.asm"
 .include "components/movement.asm"
 .include "components/sprite.asm"
 .include "components/collision.asm"
-.include "components/enempy_cmp.asm"
+.include "components/enemy_cmp.asm"
 .include "entities/entity.asm"
 .include "entities/projectile.asm"
 .include "entities/enemy.asm"

@@ -89,6 +89,7 @@
     ; game mode stuff
     kill_count:         .res 1
     shoot_cooldown:     .res 1
+    num_enemies_alive:  .res 1
 
 
 
@@ -101,6 +102,7 @@
 .include "entities/entity.asm"
 .include "entities/projectile.asm"
 .include "entities/enemy.asm"
+.include "entities/rainbow.asm"
 ;.include "enemy.asm"
 
 ;
@@ -183,12 +185,16 @@ ready:
     lda #$00
     sta kill_count
     sta shoot_cooldown
+    sta num_rainbows
 
     jsr initialize_entities
     jsr create_player_projectile
     
     ; jsr spawn_squady
     jsr spawn_spacetopus
+
+    lda num_enemy_components
+    sta num_enemies_alive
 
 ;
 ; Here we setup the PPU for drawing by writing apropriate memory-mapped
@@ -454,9 +460,9 @@ update_anim_components:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; START RENDERING SET OAM OFFSET TO 0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+ldy #$00
 draw_player:
-    ldy #$00
+
     ;
     ; Player ship is made up of 4 sprites in a 2x2 box, as below following:
     ; +--+--+
@@ -557,6 +563,10 @@ draw_player:
     sta oam,Y
     iny
 draw_kill_count:
+
+    lda num_enemies_alive
+    cmp #$02
+    bcc draw_flame
     lda #$0a        ; sprite xpos
     sta var_2
     lda kill_count
@@ -642,11 +652,22 @@ flame_x_pos_set:
     txa
     sta oam,Y
     iny
-enemies:
-
-
 components:
     jsr draw_sprite_components
+draw_rainbow: ;endgame screen
+
+    lda num_enemies_alive
+    cmp #$02
+    bcs return_to_main
+    
+    tya
+    pha
+    jsr create_rainbow
+    pla
+    tay
+    jsr draw_end_text
+
+    
 
 return_to_main:
     

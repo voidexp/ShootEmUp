@@ -133,6 +133,7 @@ enemy_cmp_process_cd_results:
     bne @jump_to_next_result
 
     inc kill_count
+    dec num_enemies_alive
     jmp @reset_sprite                       ; change sprite component
 
 @jump_to_next_result:
