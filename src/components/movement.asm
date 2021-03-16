@@ -17,7 +17,7 @@ MOVE_COMP_SIZE = 5
 ; container for 25 movement components
 ; addresses or data? -> addresses
 
-.segment "RAM"
+.segment "BSS"
 movement_component_container: .res 150
 
 num_movement_components: .res 1

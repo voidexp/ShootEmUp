@@ -10,7 +10,7 @@ test_data:
 LOOPS = 3
 BYTES_PER_LOOP = 4
 
-.segment "RAM"
+.segment "BSS"
 test_data_copy:     .res 12
 
 test_data_address = $0330

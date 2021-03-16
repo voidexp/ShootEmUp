@@ -15,7 +15,7 @@ TBD_2_LYR           = 16
 TBD_3_LYR           = 32
 
 
-.segment "RAM"
+.segment "BSS"
 collision_component_container:  .res 160
 
 num_collision_components:       .res 1

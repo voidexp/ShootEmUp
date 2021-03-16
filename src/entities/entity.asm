@@ -25,7 +25,7 @@ ENEMY_CMP           = 16
 ;    .byte component_list
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-.segment "RAM"
+.segment "BSS"
 entity_container:       .res 100             ; contains .. entities
 num_current_entities:   .res 1
 

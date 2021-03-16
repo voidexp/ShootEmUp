@@ -7,7 +7,7 @@ ENEMY_COMP_SIZE = 4
 ;    .addr sprite_component     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-.segment "RAM"
+.segment "BSS"
 enemy_component_container: .res 150
 
 num_enemy_components: .res 1

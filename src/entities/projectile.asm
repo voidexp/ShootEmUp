@@ -23,7 +23,7 @@ projectile_anim_config:
 
 MAX_PROJECTILES_IN_BUFFER = 1
 
-.segment "RAM"
+.segment "BSS"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; PROJECTILE:
 ;    .addr entity

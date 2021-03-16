@@ -8,7 +8,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 SPRITE_COMP_SIZE = 5
 
-.segment "RAM"
+.segment "BSS"
 sprite_component_container: .res 150
 
 num_sprite_components: .res 1
@@ -45,8 +45,7 @@ create_sprite_component:
     lda address_1 + 1                        ; owner hi
     sta (address_3), y
     iny
-    
-                              
+                                
     lda address_2                           ; sprite address lo
     sta (address_3), y
     iny
@@ -57,8 +56,7 @@ create_sprite_component:
 
     lda #$00                                ; current anim frame
     sta (address_3), Y
-                                  
-    
+                                     
     inc num_sprite_components
     rts
 
@@ -160,7 +158,6 @@ draw_sprite_components:
     tya
     tax                                     ; oam_offset to x
 
-
     ldy #$00                                ; reset y
     
     lda num_sprite_components
@@ -193,12 +190,10 @@ draw_sprite_components:
     lda (address_2), Y                      ; get mask of active components
     sta var_9
 
-
     pla                                     ; get y offset from stack again
     tay
 
     ; get the address of the object animation setting
-    ; TODO: extend with choosing anim according to state
     lda (address_1), Y
     sta address_3
     iny
@@ -214,8 +209,7 @@ draw_sprite_components:
     tya 
     pha                                     ; sprite component buffer offset to stack
 
-    ; Hi future gabi, if you ever reconsider ticking the animation in the draw loop, do it here
-
+    ; Hi future: if you ever reconsider ticking the animation in the draw loop, do it here
     ; height, length
     ; offset to height and length
     ldy #$04
@@ -239,7 +233,6 @@ draw_sprite_components:
 
     lda #$0c
     sta var_7
-
 
 :   iny
     lda (address_3), Y 
