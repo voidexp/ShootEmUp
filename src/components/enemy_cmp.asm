@@ -8,7 +8,7 @@ ENEMY_COMP_SIZE = 4
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 .segment "BSS"
-enemy_component_container: .res 150
+enemy_component_container: .res 80
 
 num_enemy_components: .res 1
 
@@ -58,7 +58,6 @@ create_enemy_component:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; update movement components
 ; process collision detection result:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 enemy_cmp_process_cd_results:
@@ -169,7 +168,6 @@ enemy_cmp_process_cd_results:
     tya 
     pha
 
-
     lda #<dead_enemy_animation
     sta address_4
 
@@ -184,8 +182,6 @@ enemy_cmp_process_cd_results:
     lda address_4 + 1
     sta (address_3), Y
     iny 
-
-
 
     lda #$00
     sta (address_3), y

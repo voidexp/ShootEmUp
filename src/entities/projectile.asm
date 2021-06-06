@@ -60,9 +60,7 @@ create_player_projectile:
     adc #$01
     sta var_4
 
-
     jsr spawn_projectile
-
 
     lda #$ff                                ; xPos
     sta var_1
@@ -227,56 +225,61 @@ spawn_projectile:
 ; RETURN:
 ;   None
 ; TODO: also update movement dir
+; MODIFIES:
+;   address_10, address_9, address_8
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 update_projectile_position:
     lda #<projectile_component_container
-    sta address_1
+    sta address_10
 
     lda #>projectile_component_container
-    sta address_1 + 1
+    sta address_10 + 1
 
     mult_with_constant last_updated_projectile, #2, var_6
 
-
     ldy var_6
-    lda (address_1), y
-    sta address_2
+    lda (address_10), y
+    sta address_9
 
     iny
-    lda (address_1), Y
-    sta address_2 + 1
+    lda (address_10), Y
+    sta address_9 + 1
 
     ldy #$00
-    lda var_1
-    sta (address_2), Y
+    lda var_1                               ; store x and y pos
+    sta (address_9), Y
     iny
 
     lda var_2
-    sta (address_2), Y
-    iny 
-    iny                                     ; go over component mask
-    lda (address_2), Y
+    sta (address_9), Y
+
+    ; update active component mask
+    ldy #$03                                ; go over component mask
+    lda (address_9), Y
     ora #MOVEMENT_CMP
     ora #SPRITE_CMP
     ora #COLLISION_CMP
-    sta (address_2), Y
+    sta (address_9), Y
 
     ; offset to movement_component
-    ldy #$04
-    lda (address_2), Y
-    sta address_3
+    lda var_6
+    clc
+    adc #$04
+    tay
+    lda (address_9), Y
+    sta address_8
     iny
 
-    lda (address_2), Y
-    sta address_3 + 1
+    lda (address_9), Y
+    sta address_8 + 1
 
     ldy #$03
-    lda var_3                               ; xDir
-    sta (address_3), Y
+    lda var_3
+    sta (address_8), y                              ; xDir
 
     iny
-    lda var_4                                ; yDir
-    sta (address_3), Y
+    lda var_4                                       ; yDir
+    sta (address_8), Y
 
     inc last_updated_projectile
     lda last_updated_projectile

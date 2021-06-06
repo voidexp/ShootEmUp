@@ -43,8 +43,7 @@
     ; moving player
     player_speed:       .res 1  ; current player speed
     player_direction:   .res 1  ; current direction bit set  (0000 LEFT DOWN RIGHT UP)
-    player_pos_x:       .res 1  ; Player start X coord
-    player_pos_y:       .res 1  ; Player start Y coord
+    player_entity_adr:  .res 2  ; Player entity address
 
     ; scroll
     scroll_y:           .res 1
@@ -99,10 +98,15 @@
 .include "components/sprite.asm"
 .include "components/collision.asm"
 .include "components/enemy_cmp.asm"
+.include "components/actor_cmp.asm"
+.include "entities/player.asm"
 .include "entities/entity.asm"
 .include "entities/projectile.asm"
 .include "entities/enemy.asm"
 .include "entities/rainbow.asm"
+.include "entities/flame.asm"
+
+; .include "controller/player_controller.asm"
 ;.include "enemy.asm"
 
 ;
@@ -172,13 +176,7 @@ vblankwait2:
 
 
 ready:
-    ; setup initial player position
-    lda #$80
-    sta player_pos_x
-
-    lda #$b0
-    sta player_pos_y
-
+    ; initialize settings
     lda #$00
     sta update_animations
 
@@ -189,6 +187,42 @@ ready:
 
     jsr initialize_entities
     jsr create_player_projectile
+
+    ; create flame entity
+    lda #$84                                ; x-Pos
+    sta var_1
+
+    lda #$bc                                ; y-Pos
+    sta var_2
+
+    jsr create_flame
+
+    ; store flame address in address 2 so it can be correctly linked to the player actor component
+    lda address_1 
+    sta address_4
+
+    lda address_1 + 1
+    sta address_4 + 1
+
+    lda #$80
+    sta var_1
+
+    lda #$b0
+    sta var_2
+
+    lda #$00
+    sta var_3
+    lda #$00
+    sta var_4
+
+    jsr create_player
+
+    lda address_1
+    sta player_entity_adr
+
+    iny
+    lda address_1 + 1
+    sta player_entity_adr + 1
     
     ; jsr spawn_squady
     jsr spawn_spacetopus
@@ -305,9 +339,6 @@ ppusetup:
     sta PPUSCRL
     sta PPUSCRL
 
-    ; clear player direction
-    sta player_direction
-
     lda #$01
     sta player_speed
 
@@ -331,21 +362,17 @@ main:
     ldx #$00 ; character index
     ldy #$00 ; byte offset
 
-    jsr handle_input ; process input and reposition the ship
+    ; jsr handle_input ; process input and reposition the ship
     ; 
     ; update position of player
     ; check if one of the position bits is set if so, update the position of the player
 update_player_position:
     ; check how often to increase the player position, depending on the speed
-    lda #$0a
-    cmp update_flags  ; check if the last frame was drawn then update the position for the next one
-    bmi update_anim_components
+    lda update_flags
+    cmp #$01  ; check if the last frame was drawn then update the position for the next one
+    bcc update_anim_components
 
-;    lda shoot_cooldown
-;    cmp #$00
-;    bcs :+
-;    dec shoot_cooldown
-;:
+    jsr update_actor_components             ; process_controller_input
 
     ; UPDATE COMPONENTS
     jsr update_movement_components 
@@ -354,219 +381,25 @@ update_player_position:
     jsr enemy_cmp_process_cd_results
 
 
-    ; reset draw flags, set them one by one for the elements
-    lda #$00
-    sta draw_flags  
-
-    lda player_direction  ; check if the player is currently in high speed mode
-    cmp #$01
-    bmi shoot
-
-    inc draw_flags  ; set the draw flag for the flame 
-shoot:
-    lda #INCREASE_SPEED
-    bit player_direction
-    beq decrease_speed
-
-    ;lda shoot_cooldown
-    ;cmp #$00
-    ;bcs decrease_speed
-
-    lda player_pos_x                        ; xPos
-    sta var_1
-    lda player_pos_y                        ; yPos
-    sta var_2
-    lda #$00                                ; xDir
-    sta var_3
-    lda #$01                                ; yDir
-    clc
-    eor #$ff
-    adc #$01
-    sta var_4
-
-    jsr spawn_projectile
-
-    ; lda #$0f
-    ;sta shoot_cooldown
-
-    ; cap the max speed at 8px
-    ;lda player_speed
-    ;cmp #$08            
-    ;bpl decrease_speed
-    ;inc player_speed
-decrease_speed:
-    lda #DECREASE_SPEED
-    bit player_direction
-    beq move_up
-
-    ; cap the min speed at 1px
-    lda player_speed
-    cmp #$02
-    bmi move_up
-    dec player_speed
-move_up:
-    lda #MOVE_UP
-    bit player_direction
-    beq move_down
-    ; move up
-    lda player_pos_y
-    sec 
-    sbc player_speed
-    sta player_pos_y
-move_down:
-    lda #MOVE_DOWN
-    bit player_direction
-    beq move_left 
-    ; move down
-    lda player_pos_y
-    clc 
-    adc player_speed
-    sta player_pos_y
-move_left:
-    lda #MOVE_LEFT
-    bit player_direction
-    beq move_right
-    ; move left
-    lda player_pos_x
-    sec
-    sbc player_speed
-    sta player_pos_x
-move_right:
-    lda #MOVE_RIGHT
-    bit player_direction
-    beq end_of_player_move
-    ; move right
-    lda player_pos_x
-    clc
-    adc player_speed
-    sta player_pos_x
-
-end_of_player_move:
-    ; reset frame counter and player direction and update the position in the next second
-    ; so that the next time 
-    lda #$00
-    sta player_direction
-    sta update_flags
-
 update_anim_components:
     lda update_animations
     cmp #ANIMATION_SPEED
-    bcc draw_player
+    bcc start_rendering
     jsr update_sprite_components
     lda #$00
     sta update_animations
  
-
+start_rendering:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; START RENDERING SET OAM OFFSET TO 0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-ldy #$00
-draw_player:
+    ldy #$00
 
-    ;
-    ; Player ship is made up of 4 sprites in a 2x2 box, as below following:
-    ; +--+--+
-    ; |00|01|
-    ; +--+--+
-    ; |10|11|
-    ; +--+--+
-
-    ;;; TODO: rework this into some kind of loop ;;;
-    ;
-    ; Sprite $00
-    ;
-    ; Y coord
-    txa
-    lda player_pos_y
-    sta oam,Y
-    iny
-    ; sprite id
-    lda #$01
-    sta oam,Y
-    iny
-    ; sprite attrs
-    lda #$00
-    sta oam,Y
-    iny
-    ; X coord
-    lda player_pos_x
-    sta oam,Y
-    iny
-
-    ;
-    ; sprite $01
-    ;
-    ; Y coord
-    txa
-    lda player_pos_y
-    sta oam,Y
-    iny
-    ; sprite id
-    lda #$02
-    sta oam,Y
-    iny
-    ; sprite attrs
-    lda #$00
-    sta oam,Y
-    iny
-    ; X coord
-    lda player_pos_x 
-    clc
-    adc #$08
-    sta oam,Y
-    iny
-
-    ;
-    ; sprite $10
-    ;
-    ; Y coord
-    txa
-    lda player_pos_y
-    clc
-    adc #$08
-    sta oam,Y
-    iny
-    ; sprite id
-    lda #$11
-    sta oam,Y
-    iny
-    ; sprite attrs
-    lda #$00
-    sta oam,Y
-    iny
-    ; X coord
-    lda player_pos_x
-    sta oam,Y
-    iny
-
-	;
-    ; sprite $11
-    ;
-    ; Y coord
-    txa
-    lda player_pos_y
-    adc #$08
-    sta oam,Y
-    iny
-    ; sprite id
-    lda #$12
-    sta oam,Y
-    iny
-    ; sprite attrs
-    lda #$00
-    sta oam,Y
-    iny
-    ; X coord
-    lda player_pos_x
-    clc
-    adc #$08
-    sta oam,Y
-    iny
 draw_kill_count:
 
     lda num_enemies_alive
     cmp #$02
-    bcc draw_flame
+    bcc check_game_state
     lda #$0a        ; sprite xpos
     sta var_2
     lda kill_count
@@ -619,50 +452,18 @@ draw_kill_count:
     lda var_2
     sta oam,Y
     iny
-    
-draw_flame:
-	;
-    ; sprite $03
-    ;
-    ; Y coord
-    lda player_pos_y
 
-    adc #$0f
-    sta oam,Y
-    iny
-    ; sprite id
-    lda #$03
-    sta oam,Y
-    iny
-    ; sprite attrs
-    lda #$01
-    sta oam,Y
-    iny
-
-    ; X coord
-    lda player_pos_x
-    adc #$04
-    tax 
-    lda #%00000001 
-
-    bit draw_flags
-    bne flame_x_pos_set
-    ldx #$ff
-flame_x_pos_set:
-    txa
-    sta oam,Y
-    iny
 components:
     jsr draw_sprite_components
-draw_rainbow: ;endgame screen
-
+    jmp return_to_main
+check_game_state: 
     lda num_enemies_alive
     cmp #$02
     bcs return_to_main
     
     tya
     pha
-    jsr create_rainbow
+    ; jsr create_rainbow
     pla
     tay
     jsr draw_end_text
@@ -730,64 +531,6 @@ irq_handler:
 ; handle input
 ;
 handle_input:
-    ; first latch buttons to be able to poll input
-    lda #$01            ; fill input from buttons currently held
-    sta JOYPAD1 
-    lda #$00            ; return to serial mode wait for bits to be read out
-    sta JOYPAD1
-
-    ldx #$00
-    ; we don't process those yet, need to be executed in correct order
-    ; check if magic flag is set for this button and store direction indicator 
-
-
-    lda JOYPAD1         ; Player 1 - A
-    and #$01
-    beq :+
-    txa
-    ora #INCREASE_SPEED
-    tax
-
-:   lda JOYPAD1         ; Player 1 - B
-    and #$01
-    beq :+
-    txa
-    ora #DECREASE_SPEED
-    tax
-
-:   lda JOYPAD1         ; Player 1 - Select
-    lda JOYPAD1         ; Player 1 - Start
-
-    lda JOYPAD1         ; Player 1 - Up
-    and #$01
-    beq :+
-    txa
-    ora #MOVE_UP
-    tax
-
- :  lda JOYPAD1         ; Player 1 - Down
-    and #$01
-    beq :+
-    txa
-    ora #MOVE_DOWN
-    tax
-
-:   lda JOYPAD1         ; Player 1 - Left
-    and #$01
-    beq :+
-    txa
-    ora #MOVE_LEFT
-    tax
-
-:   lda JOYPAD1         ; Player 1 - Right
-    and #$01
-    beq :+
-    txa
-    ora #MOVE_RIGHT
-    tax
-
-:   txa
-    sta player_direction
     rts
 
 ;

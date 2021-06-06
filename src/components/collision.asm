@@ -16,7 +16,7 @@ TBD_3_LYR           = 32
 
 
 .segment "BSS"
-collision_component_container:  .res 160
+collision_component_container:  .res 120
 
 num_collision_components:       .res 1
 
@@ -405,7 +405,7 @@ detect_collisions:
     iny
     lda var_1                               ; var_1 => sprite1.yMin
     cmp temp_2
-    bcs @continue_2nd_loop                                  ; carry set if sprite1.yMin > sprite2.yMax
+    bcs @continue_2nd_loop                  ; carry set if sprite1.yMin > sprite2.yMax
     inc temp_1
 @continue_2nd_loop:   ; finito : if one of those checks was successfull, we don't have a collision and can continue
     dec var_9

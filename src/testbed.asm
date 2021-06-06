@@ -43,8 +43,6 @@
     ; moving player
     player_speed:       .res 1  ; current player speed
     player_direction:   .res 1  ; current direction bit set  (0000 LEFT DOWN RIGHT UP)
-    player_pos_x:       .res 1  ; Player start X coord
-    player_pos_y:       .res 1  ; Player start Y coord
 
     ; scroll
     scroll_y:           .res 1
@@ -172,13 +170,6 @@ vblankwait2:
 ready:
     ; init the X-stack to the end of the zeropage RAM
     ldx #$ff
-
-    ; setup initial player position
-    lda #$80
-    sta player_pos_x
-
-    lda #$80
-    sta player_pos_y
 
     jsr initialize_test
 
@@ -395,14 +386,14 @@ handle_input:
     and #$01
     beq :+
     txa
-    ora #INCREASE_SPEED
+    ora #PRESS_A
     tax
 
 :   lda JOYPAD1         ; Player 1 - B
     and #$01
     beq :+
     txa
-    ora #DECREASE_SPEED
+    ora #PRESS_B
     tax
 
 :   lda JOYPAD1         ; Player 1 - Select

@@ -9,7 +9,7 @@
 SPRITE_COMP_SIZE = 5
 
 .segment "BSS"
-sprite_component_container: .res 150
+sprite_component_container: .res 250
 
 num_sprite_components: .res 1
 

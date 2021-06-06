@@ -16,6 +16,7 @@ SPRITE_CMP          = 2
 COLLISION_CMP       = 4
 HEALTH_CMP          = 8
 ENEMY_CMP           = 16
+ACTOR_CMP           = 32
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; entity:
@@ -38,6 +39,7 @@ initialize_entities:
     jsr init_projectile_components
     jsr init_collision_components 
     jsr init_enemy_components
+    jsr init_flame_entities
     rts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Creates the entity by calculating the storage address of the entity, setting
@@ -75,7 +77,7 @@ create_entity:
     sta (address_1), y
     iny
 
-    sta (address_1), Y              ; active components
+    sta (address_1), Y                      ; active components
     iny
 
     inc num_current_entities
@@ -169,24 +171,6 @@ update_entity_position:
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Deactivates a certain component
-;
-; ARGS:
-;  address_1            - entity address
-;  var_1                - component to disable
-;
-; RETURN:
-;   None
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-disable_entity_component: 
-    ldy #$03                                ; jump over position and mask
-    lda (address_1), Y
-    EOR var_1
-    sta (address_1), Y                      ; store nw mask again
-
-    rts
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Deactivates all components
 ;
 ; ARGS:
@@ -199,4 +183,72 @@ disable_all_entity_components:
     lda #$00
     ldy #$03                                ; jump over position and mask
     sta (address_1), y
+    rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Deactivates a certain component
+;
+; ARGS:
+;  address_10            - entity address
+;  temp_1                - component id
+;
+; RETURN:
+;   None
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+disable_one_entity_component: 
+    lda #$ff
+    sec
+    sbc temp_1
+    sta temp_2
+    ldy #$03                                ; jump over position and mask
+    lda (address_10), y
+    and temp_2
+    sta (address_10), y
+    rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Deactivates a certain component
+;
+; ARGS:
+;  address_10            - entity address
+;  temp_1                - component id
+;
+; RETURN:
+;   None
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+enable_one_entity_component: 
+    ldy #$03                                ; jump over position and mask
+    lda (address_10), y
+    ora temp_1
+    sta (address_10), y
+    rts
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Update direction
+;
+; ARGS:
+;  address_10            - entity address
+;  temp_1                - dirX
+;  temp_2                - dirY
+;
+; RETURN:
+;   None
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+update_movement_direction:
+    ldy #$04
+    lda (address_10), y                      ; fetch address of the movement component
+    sta address_9
+    iny
+
+    lda (address_10), Y
+    sta address_9 + 1
+
+    ldy #$03                                ; offset to xDir
+    lda temp_1
+    sta (address_9), y
+
+    iny                                     ; yDir
+    lda temp_2
+    sta (address_9), y 
     rts
