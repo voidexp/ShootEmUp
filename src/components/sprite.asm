@@ -11,7 +11,8 @@ SPRITE_COMP_SIZE = 5
 .segment "BSS"
 sprite_component_container: .res 250
 
-num_sprite_components: .res 1
+num_sprite_components:      .res 1
+num_drawn_sprites:          .res 1
 
 .code
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -20,6 +21,7 @@ num_sprite_components: .res 1
 init_sprite_components:
     lda #$00
     sta num_sprite_components
+    sta num_drawn_sprites
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -56,7 +58,7 @@ create_sprite_component:
 
     lda #$00                                ; current anim frame
     sta (address_3), Y
-                                     
+        
     inc num_sprite_components
     rts
 
@@ -77,6 +79,7 @@ update_sprite_components:
     lda #>sprite_component_container
     sta address_1 + 1
 
+    ldy #$45
     ldy #$00
     lda num_sprite_components
     sta var_1
@@ -153,7 +156,10 @@ draw_sprite_components:
     lda #>sprite_component_container
     sta address_1 + 1
 
-    lda num_sprite_components
+    lda #$00
+    sta num_drawn_sprites
+
+    lda num_sprite_components               ; #NUM_SPRITES
     sta var_10
     tya
     tax                                     ; oam_offset to x
@@ -162,7 +168,7 @@ draw_sprite_components:
     
     lda num_sprite_components
     cmp #$00
-    bne  @process_sprite_object         ; early out if list is empty
+    bne @process_sprite_object         ; early out if list is empty
     txa
     tay                                     ; oam offset from x to y
     rts
@@ -193,6 +199,15 @@ draw_sprite_components:
     pla                                     ; get y offset from stack again
     tay
 
+     ; if component is disabled go to the next sprite component
+    lda #SPRITE_CMP
+    bit var_9
+    bne :+
+    iny                                     ; set the correct offset to the next sprite component
+    iny
+    iny 
+    jmp @check_for_more_sprite_components
+:
     ; get the address of the object animation setting
     lda (address_1), Y
     sta address_3
@@ -227,14 +242,14 @@ draw_sprite_components:
     sta var_7                               ; tile id
 
     ; if component is disabled set tile_id to something invisible
-    lda #SPRITE_CMP
-    bit var_9
-    bne :+
+    ;lda #SPRITE_CMP
+    ;bit var_9
+    ;bne :+
 
-    lda #$0c
-    sta var_7
+    ;lda #$0c
+    ;sta var_7
 
-:   iny
+    iny
     lda (address_3), Y 
     sta var_8                               ; attribute
     iny
@@ -251,12 +266,35 @@ draw_sprite_components:
     pla                                     ; get animation buffer offset
     tay
 
-    dec var_10                              ; check if there are enemies left to draw
+@check_for_more_sprite_components:
+    dec var_10                              ; check if there are sprite components left to draw
     lda var_10
     cmp #$00
     beq :+
     jmp @process_sprite_object
 
-:   txa
+:   
+    txa
     tay                                     ; oam offset from x to y
+    jmp draw_empty_objects
+    rts
+
+
+draw_empty_objects:   
+    ; take empty sprite id and set it to the id of all remaining empty sprites
+@empty_sprite_loop:
+    lda num_drawn_sprites
+    cmp #NUM_SPRITES
+    bcs @back_to_main_loop
+
+    iny
+    lda #$0c
+    sta oam, Y                              ; just overwrite tile id
+    iny 
+    iny
+    iny
+
+    inc num_drawn_sprites
+    jmp @empty_sprite_loop
+@back_to_main_loop:
     rts

@@ -27,7 +27,7 @@ ACTOR_CMP           = 32
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 .segment "BSS"
-entity_container:       .res 100             ; contains .. entities
+entity_container:       .res 300             ; contains .. entities
 num_current_entities:   .res 1
 
 .code

@@ -61,34 +61,8 @@ create_player_projectile:
     sta var_4
 
     jsr spawn_projectile
+    jsr disable_all_entity_components
 
-    lda #$ff                                ; xPos
-    sta var_1
-    lda #$32                                ; yPos
-    sta var_2
-    lda #$00                                ; xDir
-    sta var_3
-    lda #$01                                ; yDir
-    clc
-    eor #$ff
-    adc #$01
-    sta var_4
-
-    jsr spawn_projectile
-    
-    lda #$ff                                ; xPos
-    sta var_1
-    lda #$32                                ; yPos
-    sta var_2
-    lda #$00                                ; xDir
-    sta var_3
-    lda #$01                                ; yDir
-    clc
-    eor #$ff
-    adc #$01
-    sta var_4
-
-    jsr spawn_projectile
 
     rts 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -100,11 +74,12 @@ create_player_projectile:
 ;   var_4           - yDir, now one byte will be reduced
 ;
 ; RETURN:
+;   address_1       - projectile entity
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 spawn_projectile:
     ; get offset in projectile buffer for new projectile
 
-    lda num_current_entities
+    lda num_current_projectiles
     cmp #MAX_PROJECTILES_IN_BUFFER
     bcc :+
     ; in case the projectile buffer is already full .. just take one projectile of this buffer and update it with the most recent

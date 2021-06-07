@@ -158,4 +158,5 @@ draw_tile:
     sta oam, y
     iny
 
+    inc num_drawn_sprites
     rts

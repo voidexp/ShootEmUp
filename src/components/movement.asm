@@ -99,12 +99,12 @@ update_movement_components:
     
     ldy #$00
 
-    lda num_movement_components
-    cmp #$00
-    bne @update_mov_comp                    ; early out if list is empty
-    rts
 @update_mov_comp:
-    lda (address_1), y                      ; Get entity address lo byte
+    lda var_1
+    cmp #$00
+    bne :+
+    rts                                     ; return if no components are left
+:   lda (address_1), y                      ; Get entity address lo byte
 	sta address_2
     iny
 
@@ -122,11 +122,25 @@ update_movement_components:
 
     lda (address_2), y
     sta var_3
+    iny
+    iny                                     ; jump over components
+
+    lda (address_2), Y                      ; check if movement component is active 
+    sta var_5
 
     pla                                     ; get y offset from stack again
     tay
 
-    lda (address_1), y                      
+    lda #MOVEMENT_CMP
+    bit var_5
+    bne :+                                  ; jump to next vomponent
+    iny
+    iny
+    iny
+    dec var_1
+    jmp @update_mov_comp
+
+:   lda (address_1), y                      
     sta var_4                               ; speed
     iny
 
@@ -153,19 +167,7 @@ update_movement_components:
 
     lda var_5
     sta var_9
-    ;jsr check_for_overflow
 
-    ;cpx #$01
-    ;bcc :+
-    ;lda var_3
-    ;sta var_7
- ;:  lda var_7
-    ;sta (address_2), y                     ; store new x pos
-
-    ;txa 
-    ;pha
-    ldx #$00
-    
     iny
     lda var_3                               ; add speed to previous position
     sta var_8
@@ -184,12 +186,6 @@ update_movement_components:
     sta var_7
  :  lda var_7
     sta (address_2), y                     ; store new y pos
-
-    ;pla                                    ; get the overflow indicator for x value from stack
-    ;cmp #$00                               ; if it was >= zero .. increase x
-    ;bcs :+
-    ;inx
-    ;:
   
     pla
     tay
@@ -209,11 +205,8 @@ update_movement_components:
     iny
     iny  
 
-:   dec var_1
-    lda var_1
-    cmp #$00
-    bne @update_mov_comp
-    rts
+:   dec var_1 
+    jmp @update_mov_comp
 
 
 ; var_7                 : new value
