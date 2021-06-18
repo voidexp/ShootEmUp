@@ -4,6 +4,7 @@ import subprocess as sp
 import pathlib
 import os
 import shutil
+import sys
 
 
 SRC_DIR = 'src'
@@ -53,21 +54,21 @@ def run_linker(linker, cfg_file, input_files, out_file):
 
 def run_bmp2chr(tool, src, dst):
     args = [
-        'py', '-3', str(tool),
+        sys.executable, str(tool),
         str(src),
         str(dst),
     ]
-    print(' '.join(args))
+    print(' '.join(args[1:]))
     return sp.run(args, capture_output=True)
 
 
 def run_bmp2lvl(tool, src, dst):
     args = [
-        'py', '-3', str(tool),
+        sys.executable, str(tool),
         str(src),
         str(dst),
     ]
-    print(' '.join(args))
+    print(' '.join(args[1:]))
     return sp.run(args, capture_output=True)
 
 
