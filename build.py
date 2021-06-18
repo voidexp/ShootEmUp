@@ -21,6 +21,10 @@ LINKER = 'ld65.exe'
 LOAD_TESTBED = False
 
 
+def run(args):
+    return sp.run(args, capture_output=True, env=os.environ)
+
+
 def executable_path(path):
     p = pathlib.Path(path)
     if not p.exists():
@@ -38,7 +42,7 @@ def run_assembler(assembler, src, dst):
         str(src),
     ]
     print(' '.join(args))
-    return sp.run(args, capture_output=True)
+    return run(args)
 
 
 def run_linker(linker, cfg_file, input_files, out_file):
@@ -49,7 +53,7 @@ def run_linker(linker, cfg_file, input_files, out_file):
     ]
     args.extend([str(i) for i in input_files])
     print(' '.join(args))
-    return sp.run(args, capture_output=True)
+    return run(args)
 
 
 def run_bmp2chr(tool, src, dst):
