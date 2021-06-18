@@ -4,6 +4,7 @@ import subprocess as sp
 import pathlib
 import os
 import shutil
+import sys
 
 
 SRC_DIR = 'src'
@@ -11,9 +12,13 @@ BIN_DIR = 'assets'
 OUT_DIR = 'build'
 ROM = 'game.nes'
 LINKER_CFG = 'rom.cfg'
+MAIN = 'main.asm'
+TESTBED = 'testbed.asm'
 
 ASSEMBLER = 'ca65.exe'
 LINKER = 'ld65.exe'
+
+LOAD_TESTBED = False
 
 
 def run(args):
@@ -53,23 +58,22 @@ def run_linker(linker, cfg_file, input_files, out_file):
 
 def run_bmp2chr(tool, src, dst):
     args = [
-        'python', str(tool),
+        sys.executable, str(tool),
         str(src),
         str(dst),
     ]
-    print(' '.join(args))
-    return run(args)
+    print(' '.join(args[1:]))
+    return sp.run(args, capture_output=True)
 
 
 def run_bmp2lvl(tool, src, dst):
     args = [
-        'python', str(tool),
+        sys.executable, str(tool),
         str(src),
         str(dst),
     ]
-    print(' '.join(args))
-    return run(args)
-
+    print(' '.join(args[1:]))
+    return sp.run(args, capture_output=True)
 
 
 def prepare_folder_structure(out_dir):
@@ -112,7 +116,8 @@ def main():
     # collect level files and convert them to CHR files
     if success:
         for bmp_file in pathlib.Path(BIN_DIR).joinpath('levels').glob('*.bmp'):
-            o_file = pathlib.Path(OUT_DIR).joinpath('levels', f'{bmp_file.stem}.lvl')
+            o_file = pathlib.Path(OUT_DIR).joinpath(
+                'levels', f'{bmp_file.stem}.lvl')
 
             try:
                 run_bmp2lvl(bmp2lvl, bmp_file, o_file).check_returncode()
@@ -122,28 +127,28 @@ def main():
                 success = False
                 break
 
-    # collect asm files and compile them
+    # compile main asm file
     if success:
-        for asm_file in pathlib.Path(SRC_DIR).glob('*.asm'):
-            o_file = pathlib.Path(OUT_DIR).joinpath(f'{asm_file.stem}.o')
+        asm_file = pathlib.Path(SRC_DIR).joinpath(TESTBED if LOAD_TESTBED else MAIN)
+        o_file = pathlib.Path(OUT_DIR).joinpath(f'{asm_file.stem}.o')
 
-            try:
-                run_assembler(assembler, asm_file, o_file).check_returncode()
-            except sp.CalledProcessError as err:
-                msg = (err.stdout or err.stderr).decode('utf8').strip()
-                print(f'{asm_file}: {msg}')
-                success = False
-            except FileNotFoundError:
-                print(f'{assembler} not found')
-                success = False
-                break
+        try:
+            run_assembler(assembler, asm_file, o_file).check_returncode()
+        except sp.CalledProcessError as err:
+            msg = (err.stdout or err.stderr).decode('utf8').strip()
+            print(f'{asm_file}: {msg}')
+            success = False
+        except FileNotFoundError:
+            print(f'{assembler} not found')
+            success = False
 
     if success:
         obj_files = pathlib.Path(OUT_DIR).glob('*.o')
         cfg_file = pathlib.Path('.').joinpath(LINKER_CFG)
         rom_file = pathlib.Path(OUT_DIR).joinpath(ROM)
         try:
-            run_linker(linker, cfg_file, obj_files, rom_file).check_returncode()
+            run_linker(linker, cfg_file, obj_files,
+                       rom_file).check_returncode()
         except sp.CalledProcessError as err:
             msg = (err.stdout or err.stderr).decode('utf8').strip()
             print(f'{rom_file}: {msg}')

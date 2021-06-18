@@ -32,7 +32,7 @@
     starfield1: .incbin "../build/levels/starfield.lvl"
     starfield1_end:
 
-    starfield2: .incbin "../build/levels/starfield.lvl"
+    starfield2: .incbin "../build/levels/starfield2.lvl"
     starfield2_end:
 
 ; Zero-page RAM.
@@ -43,7 +43,6 @@
     ; moving player
     player_speed:       .res 1  ; current player speed
     player_direction:   .res 1  ; current direction bit set  (0000 LEFT DOWN RIGHT UP)
-    player_entity_adr:  .res 2  ; Player entity address
 
     ; scroll
     scroll_y:           .res 1
@@ -90,24 +89,17 @@
     shoot_cooldown:     .res 1
     num_enemies_alive:  .res 1
 
-
-
 .include "animation.asm"
 .include "components/health.asm"
 .include "components/movement.asm"
 .include "components/sprite.asm"
 .include "components/collision.asm"
 .include "components/enemy_cmp.asm"
-.include "components/actor_cmp.asm"
-.include "entities/player.asm"
 .include "entities/entity.asm"
 .include "entities/projectile.asm"
 .include "entities/enemy.asm"
-.include "entities/rainbow.asm"
-.include "entities/flame.asm"
 
-; .include "controller/player_controller.asm"
-;.include "enemy.asm"
+.include "testbed_config.asm"
 
 ;
 ; PPU Object Attribute Memory - shadow RAM which holds rendering attributes
@@ -176,59 +168,15 @@ vblankwait2:
 
 
 ready:
-    ; initialize settings
+    ; init the X-stack to the end of the zeropage RAM
+    ldx #$ff
+
+    jsr initialize_test
+
     lda #$00
     sta update_animations
 
-    lda #$00
-    sta kill_count
-    sta shoot_cooldown
-    sta num_rainbows
-
-    jsr initialize_entities
-    jsr create_player_projectile
-
-    ; create flame entity
-    lda #$84                                ; x-Pos
-    sta var_1
-
-    lda #$bc                                ; y-Pos
-    sta var_2
-
-    jsr create_flame
-
-    ; store flame address in address 2 so it can be correctly linked to the player actor component
-    lda address_1 
-    sta address_4
-
-    lda address_1 + 1
-    sta address_4 + 1
-
-    lda #$80
-    sta var_1
-
-    lda #$b0
-    sta var_2
-
-    lda #$00
-    sta var_3
-    lda #$00
-    sta var_4
-
-    jsr create_player
-
-    lda address_1
-    sta player_entity_adr
-
-    iny
-    lda address_1 + 1
-    sta player_entity_adr + 1
-    
-    ; jsr spawn_squady
-    jsr spawn_spacetopus
-
-    lda num_enemy_components
-    sta num_enemies_alive
+    ldx #$ff
 
 ;
 ; Here we setup the PPU for drawing by writing apropriate memory-mapped
@@ -339,9 +287,6 @@ ppusetup:
     sta PPUSCRL
     sta PPUSCRL
 
-    lda #$01
-    sta player_speed
-
     ; Clear OAMDATA address
     lda #$00
     sta OAMADDR 
@@ -362,113 +307,7 @@ main:
     ldx #$00 ; character index
     ldy #$00 ; byte offset
 
-    ; jsr handle_input ; process input and reposition the ship
-    ; 
-    ; update position of player
-    ; check if one of the position bits is set if so, update the position of the player
-update_player_position:
-    ; check how often to increase the player position, depending on the speed
-    lda update_flags
-    cmp #$01  ; check if the last frame was drawn then update the position for the next one
-    bcc update_anim_components
-
-    jsr update_actor_components             ; process_controller_input
-
-    ; UPDATE COMPONENTS
-    jsr update_movement_components 
-    jsr update_collision_components
-
-    jsr enemy_cmp_process_cd_results
-
-
-update_anim_components:
-    lda update_animations
-    cmp #ANIMATION_SPEED
-    bcc start_rendering
-    jsr update_sprite_components
-    lda #$00
-    sta update_animations
- 
-start_rendering:
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; START RENDERING SET OAM OFFSET TO 0
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ldy #$00
-
-draw_kill_count:
-
-    lda num_enemies_alive
-    cmp #$02
-    bcc check_game_state
-    lda #$0a        ; sprite xpos
-    sta var_2
-    lda kill_count
-    sta var_1
-    cmp #$0a
-
-    bcc :+
-
-    lda var_1
-    sec
-    sbc #$0a
-    sta var_1
-
-    ; move xpos for second tile
-    lda var_2
-    clc
-    adc #$08
-    sta var_2
-
-    lda #$0c
-    sta oam,Y
-    iny
-    ; sprite id
-    lda #$31
-    sta oam,Y
-    iny
-    ; sprite attrs
-    lda #$01
-    sta oam,Y
-    iny
-    ; X coord
-    lda #$0a
-    sta oam,Y
-    iny
-
-:   lda #$0c
-    sta oam,Y
-    iny
-    ; sprite id
-    lda #$30
-    clc
-    adc var_1
-    sta oam,Y
-    iny
-    ; sprite attrs
-    lda #$01
-    sta oam,Y
-    iny
-    ; X coord
-    lda var_2
-    sta oam,Y
-    iny
-
-components:
-    jsr draw_sprite_components
-    jmp return_to_main
-check_game_state: 
-    lda num_enemies_alive
-    cmp #$02
-    bcs return_to_main
-    
-    tya
-    pha
-    ; jsr create_rainbow
-    pla
-    tay
-    jsr draw_end_text
-
-    
+    jsr execute_test
 
 return_to_main:
     
@@ -489,7 +328,8 @@ nmi_handler:
     ; increment the frame counter
     inc frame_counter
 
-    inc update_flags
+    lda #$01
+    sta update_flags
 
     inc update_animations
 
@@ -531,6 +371,64 @@ irq_handler:
 ; handle input
 ;
 handle_input:
+    ; first latch buttons to be able to poll input
+    lda #$01            ; fill input from buttons currently held
+    sta JOYPAD1 
+    lda #$00            ; return to serial mode wait for bits to be read out
+    sta JOYPAD1
+
+    ldx #$00
+    ; we don't process those yet, need to be executed in correct order
+    ; check if magic flag is set for this button and store direction indicator 
+
+
+    lda JOYPAD1         ; Player 1 - A
+    and #$01
+    beq :+
+    txa
+    ora #PRESS_A
+    tax
+
+:   lda JOYPAD1         ; Player 1 - B
+    and #$01
+    beq :+
+    txa
+    ora #PRESS_B
+    tax
+
+:   lda JOYPAD1         ; Player 1 - Select
+    lda JOYPAD1         ; Player 1 - Start
+
+    lda JOYPAD1         ; Player 1 - Up
+    and #$01
+    beq :+
+    txa
+    ora #MOVE_UP
+    tax
+
+ :  lda JOYPAD1         ; Player 1 - Down
+    and #$01
+    beq :+
+    txa
+    ora #MOVE_DOWN
+    tax
+
+:   lda JOYPAD1         ; Player 1 - Left
+    and #$01
+    beq :+
+    txa
+    ora #MOVE_LEFT
+    tax
+
+:   lda JOYPAD1         ; Player 1 - Right
+    and #$01
+    beq :+
+    txa
+    ora #MOVE_RIGHT
+    tax
+
+:   txa
+    sta player_direction
     rts
 
 ;
