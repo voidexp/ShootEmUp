@@ -79,11 +79,12 @@ def run_bmp2lvl(tool, src, dst):
 
 def prepare_folder_structure(out_dir):
     out_dir_path = pathlib.Path(out_dir)
-    if out_dir_path.exists():
-        shutil.rmtree(out_dir_path)
+    out_dir_path.mkdir(exist_ok=True, parents=True)
+    out_dir_path.joinpath('levels').mkdir(exist_ok=True, parents=True)
 
-    os.mkdir(out_dir_path)
-    os.mkdir(out_dir_path.joinpath('levels'))
+
+def is_up_to_date(src: pathlib.Path, dst: pathlib.Path()):
+    return dst.exists() and dst.stat().st_mtime >= src.stat().st_mtime
 
 
 @click.command()
@@ -98,13 +99,18 @@ def build(linker, assembler):
     bmp2lvl = pathlib.Path('.').joinpath('.', 'tools', 'bmp2lvl.py')
 
     success = True
+    relink = False
 
     # collect bitmap files and convert them to CHR files
     for bmp_file in pathlib.Path(BIN_DIR).glob('*.bmp'):
         o_file = pathlib.Path(OUT_DIR).joinpath(f'{bmp_file.stem}.chr')
 
+        if is_up_to_date(bmp_file, o_file):
+            continue
+
         try:
             run_bmp2chr(bmp2chr, bmp_file, o_file).check_returncode()
+            relink = True
         except sp.CalledProcessError as err:
             msg = (err.stdout or err.stderr).decode('utf8').strip()
             print(f'{bmp_file}: {msg}')
@@ -117,8 +123,12 @@ def build(linker, assembler):
             o_file = pathlib.Path(OUT_DIR).joinpath(
                 'levels', f'{bmp_file.stem}.lvl')
 
+            if is_up_to_date(bmp_file, o_file):
+                continue
+
             try:
                 run_bmp2lvl(bmp2lvl, bmp_file, o_file).check_returncode()
+                relink = True
             except sp.CalledProcessError as err:
                 msg = (err.stdout or err.stderr).decode('utf8').strip()
                 print(f'{bmp_file}: {msg}')
@@ -134,8 +144,13 @@ def build(linker, assembler):
             prefix = pathlib.Path(OUT_DIR).joinpath(asm_file.parent)
             prefix.mkdir(parents=True, exist_ok=True)
             o_file = prefix.joinpath(f'{asm_file.stem}.o')
+
+            if is_up_to_date(asm_file, o_file):
+                continue
+
             try:
                 run_assembler(assembler, asm_file, o_file).check_returncode()
+                relink = True
             except sp.CalledProcessError as err:
                 msg = (err.stdout or err.stderr).decode('utf8').strip()
                 print(f'{asm_file}: {msg}')
@@ -144,7 +159,7 @@ def build(linker, assembler):
                 print(f'{assembler} not found')
                 success = False
 
-    if success:
+    if success and relink:
         obj_files = pathlib.Path(OUT_DIR).rglob('*.o')
         cfg_file = pathlib.Path('.').joinpath(LINKER_CFG)
         rom_file = pathlib.Path(OUT_DIR).joinpath(ROM)
@@ -159,7 +174,13 @@ def build(linker, assembler):
             print(f'{linker} not found')
             success = False
 
-    print('done' if success else 'failed')
+    if success:
+        if relink:
+            print('done')
+        else:
+            print('up to date')
+    else:
+        print('failed')
 
 
 if __name__ == '__main__':
