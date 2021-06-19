@@ -1,3 +1,18 @@
+.export init_projectile_components
+.export create_player_projectile
+.export spawn_projectile
+.export update_projectile_position
+
+.include "constants.asm"
+.include "globals.asm"
+.include "macros.asm"
+
+.import create_collision_component
+.import create_sprite_component
+.import create_movement_component
+.import create_entity
+.import disable_all_entity_components
+
 ;
 ; Projectile configuration
 ;
@@ -8,11 +23,6 @@ projectile_default_anim:
     .byte $13                               ; starting tile ID
     .byte $01                               ; attribute set
     .byte $01                               ; padding x, z -> 2 tiles wide and high
-
-
-projectile_anim_config:
-    .byte HEALTH_STATE_ALIVE
-    .addr projectile_default_anim
 
 
 ;bullet_properties_config:
@@ -27,7 +37,7 @@ MAX_PROJECTILES_IN_BUFFER = 1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; PROJECTILE:
 ;    .addr entity
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;    
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 projectile_component_container:     .res 20             ; 5 Projectiles (2x5)
 
 num_current_projectiles:            .res 1
@@ -37,17 +47,18 @@ last_updated_projectile:            .res 1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; INIT CODE .. reset all variables
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-init_projectile_components:
+.proc init_projectile_components
     lda #$00
     sta num_current_projectiles
     sta last_updated_projectile
     rts
+.endproc
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; FILL PROJECTILE POOL
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-create_player_projectile:
+.proc create_player_projectile
     lda #$ff                                ; xPos
     sta var_1
     lda #$32                                ; yPos
@@ -63,8 +74,10 @@ create_player_projectile:
     jsr spawn_projectile
     jsr disable_all_entity_components
 
+    rts
+.endproc
 
-    rts 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; spawn a projectile
 ; ARGS:
@@ -76,7 +89,7 @@ create_player_projectile:
 ; RETURN:
 ;   address_1       - projectile entity
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-spawn_projectile:
+.proc spawn_projectile
     ; get offset in projectile buffer for new projectile
 
     lda num_current_projectiles
@@ -102,7 +115,7 @@ spawn_projectile:
     ; 1. Create Entity
     jsr create_entity                       ; None -> address_1 entity address
 
-    pla 
+    pla
     sta var_3                               ; get xDir from stack, store to var_3 again
 
     pla
@@ -120,7 +133,7 @@ spawn_projectile:
     lda address_2 + 1
     sta (address_1), y
     iny
-    
+
     ; 4. Create SPRITE component
     lda #<projectile_default_anim
     sta address_2
@@ -129,7 +142,7 @@ spawn_projectile:
     sta address_2 + 1
 
     jsr create_sprite_component             ; arguments (address_1: owner, address_2: sprite config) => return address_3 of component
-    
+
     ; 5. Store sprite component address in entity component buffer
     ldy #$06
     lda address_3
@@ -159,7 +172,7 @@ spawn_projectile:
     sta var_4
 
     jsr create_collision_component             ; arguments (var_1: mask, var_2: layer, var_3: w, var_4:h ) => return address_2 of component
-    
+
     ; 7. Store collision component address in entity component buffer
     ldy #$08
     lda address_2
@@ -173,7 +186,7 @@ spawn_projectile:
     ; fill projectile buffer:
     ; store link to projectile entities in projectile buffer
     mult_with_constant num_current_projectiles, #2, var_1
-    calc_address_with_offset projectile_component_container, var_1, address_3 
+    calc_address_with_offset projectile_component_container, var_1, address_3
 
     ldy #$00                                ; owner lo
     lda address_1
@@ -187,6 +200,8 @@ spawn_projectile:
     inc num_current_projectiles
 
     rts
+.endproc
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Update an existing projectile with a new position information
@@ -203,7 +218,7 @@ spawn_projectile:
 ; MODIFIES:
 ;   address_10, address_9, address_8
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-update_projectile_position:
+.proc update_projectile_position
     lda #<projectile_component_container
     sta address_10
 
@@ -263,17 +278,4 @@ update_projectile_position:
     lda #$00
     sta last_updated_projectile
  :  rts
-
-create_projectile_component:
-    ;mult_with_constant num_current_projectiles, #PROJECTILE_SIZE, var_5 
-    ;inc var_5                               ; increase var_3 to have new address
-    ;calc_address_with_offset projectile_container var_5 address_1
-
-    rts
-   
-
-update_projectile_component:
-    rts
-
-
-    
+.endproc

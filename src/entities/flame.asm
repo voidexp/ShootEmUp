@@ -1,3 +1,14 @@
+.include "globals.asm"
+.include "constants.asm"
+
+.import create_sprite_component
+.import create_movement_component
+.import create_entity
+
+.export init_flame_entities
+.export create_flame
+
+
 .rodata
 flame_default_anim:
     .byte $01                               ; length frames
@@ -11,10 +22,11 @@ num_flames: .res 1
 
 .code
 
-init_flame_entities:
+.proc init_flame_entities
     lda #$00
     sta num_flames
     rts
+.endproc
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; setup flame entity
@@ -27,12 +39,12 @@ init_flame_entities:
 ; RETURN:
 ;   address_1       - address of flame entity
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-create_flame:
+.proc create_flame
     lda num_flames
     cmp #$01
     bcc :+
     rts
-:   
+:
 
     lda #$00                                ; load component mask: sprite &&  movement component mask
     ora #MOVEMENT_CMP
@@ -41,7 +53,7 @@ create_flame:
 
     ; 1. Create Entity
     jsr create_entity                       ; None -> address_1 entity address
-    
+
     lda #$00                                ; xDir
     sta var_3
     lda #$00                                ; yDir
@@ -68,7 +80,7 @@ create_flame:
     sta address_2 + 1
 
     jsr create_sprite_component             ; arguments (address_1: owner, address_2: sprite config) => return address_3 of component
-    
+
     ; 5. Store sprite component address in entity component buffer
     ldy #$06
     lda address_3
@@ -81,3 +93,4 @@ create_flame:
 
     inc num_flames
     rts
+.endproc

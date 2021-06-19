@@ -1,8 +1,29 @@
 .include "nes.asm"
-.include "globals.asm"
-.include "color_settings.asm"
-.include "video.asm"
+.include "constants.asm"
 .include "macros.asm"
+
+.import draw_end_text
+.import draw_sprite_components
+.import update_sprite_components
+.import enemy_cmp_process_cd_results
+.import update_collision_components
+.import update_movement_components
+.import update_actor_components
+.import copy_to_vram
+.import sprite_palettes
+.import load_color_palettes
+.import background_palettes
+.import num_enemy_components
+.import spawn_spacetopus
+.import create_player
+.import create_flame
+.import create_player_projectile
+.import initialize_entities
+.import num_rainbows
+
+
+; TODO: move this to sprite.asm
+ANIMATION_SPEED = 8
 
 ;
 ; iNES header for the emulators.
@@ -35,6 +56,7 @@
     starfield2: .incbin "../build/levels/starfield.lvl"
     starfield2_end:
 
+
 ; Zero-page RAM.
 ;
 .zeropage
@@ -51,7 +73,7 @@
 
     ; draw flags
     update_flags:       .res 1  ; flags what to update (0000 000 UPDATE_POSITIONS)
-    draw_flags:  	    .res 1  ; flags what to draw in the next frame (0000 000 DRAW_FLAME)
+    draw_flags:         .res 1  ; flags what to draw in the next frame (0000 000 DRAW_FLAME)
     update_animations:  .res 1  ; update animations
 
     ; tmp variables
@@ -75,7 +97,7 @@
 
     ; temp_address
     address_1:          .res 2
-    address_2:          .res 2  
+    address_2:          .res 2
     address_3:          .res 2
     address_4:          .res 2
     address_5:          .res 2
@@ -90,24 +112,11 @@
     shoot_cooldown:     .res 1
     num_enemies_alive:  .res 1
 
-
-
-.include "animation.asm"
-.include "components/health.asm"
-.include "components/movement.asm"
-.include "components/sprite.asm"
-.include "components/collision.asm"
-.include "components/enemy_cmp.asm"
-.include "components/actor_cmp.asm"
-.include "entities/player.asm"
-.include "entities/entity.asm"
-.include "entities/projectile.asm"
-.include "entities/enemy.asm"
-.include "entities/rainbow.asm"
-.include "entities/flame.asm"
-
-; .include "controller/player_controller.asm"
-;.include "enemy.asm"
+.exportzp temp_1, temp_2, temp_3, temp_4, temp_5, temp_6
+.exportzp var_1, var_2, var_3, var_4, var_5, var_6, var_7, var_8, var_9, var_10
+.exportzp address_1, address_2, address_3, address_4, address_5, address_6, address_7, address_8, address_9, address_10
+.exportzp update_flags, draw_flags
+.exportzp kill_count, num_enemies_alive
 
 ;
 ; PPU Object Attribute Memory - shadow RAM which holds rendering attributes
@@ -116,6 +125,7 @@
 .segment "OAM"
     oam: .res 256
 
+.export oam
 
 ;
 ; PRG-ROM, code.
@@ -198,7 +208,7 @@ ready:
     jsr create_flame
 
     ; store flame address in address 2 so it can be correctly linked to the player actor component
-    lda address_1 
+    lda address_1
     sta address_4
 
     lda address_1 + 1
@@ -223,7 +233,7 @@ ready:
     iny
     lda address_1 + 1
     sta player_entity_adr + 1
-    
+
     ; jsr spawn_squady
     jsr spawn_spacetopus
 
@@ -344,7 +354,7 @@ ppusetup:
 
     ; Clear OAMDATA address
     lda #$00
-    sta OAMADDR 
+    sta OAMADDR
 
     ; Enable sprite drawing
     lda #$1e
@@ -353,7 +363,7 @@ ppusetup:
     ; Ready to go, enable VBlank NMI, all subsequent writes should take place
     ; during VBlank, inside NMI handler.
     lda #$90
-	sta PPUCTRL
+    sta PPUCTRL
 
 main:
     ;
@@ -363,7 +373,7 @@ main:
     ldy #$00 ; byte offset
 
     ; jsr handle_input ; process input and reposition the ship
-    ; 
+    ;
     ; update position of player
     ; check if one of the position bits is set if so, update the position of the player
 update_player_position:
@@ -375,7 +385,7 @@ update_player_position:
     jsr update_actor_components             ; process_controller_input
 
     ; UPDATE COMPONENTS
-    jsr update_movement_components 
+    jsr update_movement_components
     jsr update_collision_components
 
     jsr enemy_cmp_process_cd_results
@@ -388,7 +398,7 @@ update_anim_components:
     jsr update_sprite_components
     lda #$00
     sta update_animations
- 
+
 start_rendering:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; START RENDERING SET OAM OFFSET TO 0
@@ -456,11 +466,11 @@ draw_kill_count:
 components:
     jsr draw_sprite_components
     jmp return_to_main
-check_game_state: 
+check_game_state:
     lda num_enemies_alive
     cmp #$02
     bcs return_to_main
-    
+
     tya
     pha
     ; jsr create_rainbow
@@ -468,13 +478,13 @@ check_game_state:
     tay
     jsr draw_end_text
 
-    
+
 
 return_to_main:
-    
+
     jmp main
 
-    
+
 ;
 ; Handle non-masked interrupts
 ;

@@ -1,3 +1,12 @@
+.export create_rainbow
+.export draw_end_text
+
+.include "constants.asm"
+.include "globals.asm"
+
+.import create_entity
+.import create_sprite_component
+
 .rodata
 rainbow_default_anim:
     .byte $01                               ; length frames
@@ -9,13 +18,15 @@ rainbow_default_anim:
 .segment "BSS"
 num_rainbows: .res 1
 
+.export num_rainbows
+
 .code
-create_rainbow:
+.proc create_rainbow
     lda num_rainbows
     cmp #$01
     bcc :+
     rts
-:   
+:
     lda #$79                                ; xPos
     sta var_1
     lda #$b4                                ; yPos
@@ -40,7 +51,7 @@ create_rainbow:
     sta address_2 + 1
 
     jsr create_sprite_component             ; arguments (address_1: owner, address_2: sprite config) => return address_3 of component
-    
+
     ; 5. Store sprite component address in entity component buffer
     ldy #$04
     lda address_3
@@ -53,8 +64,10 @@ create_rainbow:
 
     inc num_rainbows
     rts
+.endproc
 
-draw_end_text:
+
+.proc draw_end_text
     ; T
     lda #$d0
     sta oam,Y
@@ -90,7 +103,7 @@ draw_end_text:
     sta oam,Y
     iny
 
-    
+
     ; E
     lda #$d0
     sta oam,Y
@@ -162,3 +175,4 @@ draw_end_text:
     iny
 
     rts
+.endproc

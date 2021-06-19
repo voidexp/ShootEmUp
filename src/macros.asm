@@ -1,29 +1,29 @@
 ; split byte in two 4 bit values 2x 0-15
 .macro split_byte input, output1, output2
-	lda input
+    lda input
     and #$0f
-	sta output1
-	lda input
+    sta output1
+    lda input
     lsr
     lsr
     lsr
-	sta output2
+    sta output2
 .endmacro
 
 .macro extract_low input, output
-	lda input
+    lda input
     and #$0f
-	sta output1
+    sta output1
 .endmacro
 
 
 .macro extract_hi input, output
-	lda input
+    lda input
     and #$f0
     lsr
     lsr
     lsr
-	sta output2
+    sta output2
 .endmacro
 
 ; first address
@@ -31,7 +31,7 @@
 ; third address
 .macro mult_with_constant m1, m2, output
     lda m1
-    pha 
+    pha
     lda #$00
     sta output
 :
@@ -53,7 +53,7 @@
 ; third address
 .macro mult_variables m1, m2, output
     lda m1
-    pha 
+    pha
     lda m2
     pha
     lda #$00
@@ -115,7 +115,7 @@
         bne @continue      ; advance page on overflow, else skip to @continue
 
         inx                 ; let X point to SRC_HI
-        inc target,X        ; increase SRC_HI, ignore overflow 
+        inc target,X        ; increase SRC_HI, ignore overflow
         dex                 ; restore X to SRC_LO
 
     @continue:

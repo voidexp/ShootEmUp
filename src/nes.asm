@@ -2,8 +2,8 @@
 ; Memory-mapped PPU registers
 ;
 PPUCTRL = $2000         ; PPU control register (NMI enable, ..)
-PPUMASK = $2001         ; PPU mask register 
-PPUSTAT = $2002         ; PPU status register 
+PPUMASK = $2001         ; PPU mask register
+PPUSTAT = $2002         ; PPU status register
 OAMADDR = $2003         ; PPU OAM read/write adress
 PPUSCRL = $2005         ; PPU scroll register (x2 writes for X and Y)
 PPUADDR = $2006         ; VRAM write address register  (x2 most significant byte, least significant byte)
@@ -36,9 +36,9 @@ VRAM_ATTRTABLE3 = $2fc0 ; Attribute table 3
 JOYPAD1 = $4016
 JOYPAD2 = $4017
 
-; 
+;
 ; VIDEO STUFF
-; 
+;
 PIXELS_PER_TILE = 8
 
 ;

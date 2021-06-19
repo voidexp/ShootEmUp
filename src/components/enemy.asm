@@ -1,10 +1,27 @@
+.include "globals.asm"
+.include "macros.asm"
+
+.importzp kill_count, num_enemies_alive
+.import collision_results, num_collision_results
+
+.export create_enemy_component
+.export init_enemy_components
+.export enemy_cmp_process_cd_results
+
 .rodata
 ENEMY_COMP_SIZE = 4
+
+dead_enemy_animation:
+    .byte $01                               ; length frames
+    .byte $08                               ; speed
+    .byte $25                               ; starting tile ID
+    .byte $03                               ; attribute set
+    .byte $01                               ; padding x, z -> 1 tiles wide and high
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; enemy_component:
 ;    .addr owner                     ; entity -> contains x and y position
-;    .addr sprite_component     
+;    .addr sprite_component
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 .segment "BSS"
@@ -12,15 +29,19 @@ enemy_component_container: .res 80
 
 num_enemy_components: .res 1
 
+.export num_enemy_components
+
 
 .code
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; INIT CODE .. reset all variables
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-init_enemy_components:
+.proc init_enemy_components
     lda #$00
     sta num_enemy_components
     rts
+.endproc
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; create enemy components
@@ -31,7 +52,7 @@ init_enemy_components:
 ; RETURN:
 ;   address_3           - address of movement_component
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-create_enemy_component:
+.proc create_enemy_component
     ; calculate offset in current component buffer
     mult_with_constant num_enemy_components, #ENEMY_COMP_SIZE, var_5
 
@@ -55,12 +76,13 @@ create_enemy_component:
 
     inc num_enemy_components
     rts
+.endproc
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; process collision detection result:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-enemy_cmp_process_cd_results:
+.proc enemy_cmp_process_cd_results
     ; calculate max value and store it in var_1
     lda num_enemy_components
     sta var_1
@@ -76,7 +98,7 @@ enemy_cmp_process_cd_results:
 
     lda #>collision_results
     sta address_2 + 1
-    
+
     ldy #$00
     tya
     pha
@@ -105,21 +127,21 @@ enemy_cmp_process_cd_results:
     sta var_3
     iny
 
-    lda (address_1), y 
+    lda (address_1), y
     sta var_4
     iny
 
     iny                                     ; go over sprite component address
     iny
 
-    tya 
+    tya
     pha
 
     ; go over all collision results
-    mult_with_constant num_collision_results, #2, var_5 
+    mult_with_constant num_collision_results, #2, var_5
     sta var_5
 @process_coll:
-    mult_with_constant var_5, #2, var_6     ; get offset in result buffer for current 
+    mult_with_constant var_5, #2, var_6     ; get offset in result buffer for current
     lda var_6
     tay                                     ; use offset for accessing result buffer
     lda (address_2), Y                      ; compare entity lo-byte
@@ -141,9 +163,9 @@ enemy_cmp_process_cd_results:
     cmp #$00
     bne @process_coll
     jmp @process_enemy_coll_cmp
-    
+
 @return_to_main:
-    pla    
+    pla
     rts
 
 @reset_sprite:
@@ -163,9 +185,9 @@ enemy_cmp_process_cd_results:
 
     lda (address_1), y
     sta address_3 + 1
-    iny 
+    iny
 
-    tya 
+    tya
     pha
 
     lda #<dead_enemy_animation
@@ -181,9 +203,10 @@ enemy_cmp_process_cd_results:
 
     lda address_4 + 1
     sta (address_3), Y
-    iny 
+    iny
 
     lda #$00
     sta (address_3), y
-  
+
     jmp @process_enemy_coll_cmp
+.endproc

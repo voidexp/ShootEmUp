@@ -1,3 +1,14 @@
+.include "globals.asm"
+.include "constants.asm"
+
+.import create_enemy_component
+.import create_collision_component
+.import create_sprite_component
+.import create_movement_component
+.import create_entity
+
+.export spawn_spacetopus
+
 .rodata
 squady_idle_animation:
     .byte $04                               ; length frames
@@ -12,13 +23,6 @@ octi_idle_anim:
     .byte $04                               ; starting tile ID
     .byte $02                               ; attribute set
     .byte $02                               ; padding x, z -> 2 tiles wide and high
-
-dead_enemy_animation:
-    .byte $01                               ; length frames
-    .byte $08                               ; speed
-    .byte $25                               ; starting tile ID
-    .byte $03                               ; attribute set
-    .byte $01                               ; padding x, z -> 1 tiles wide and high
 
 ufo_idle_animation:
     .byte $04                               ; length frames
@@ -36,7 +40,7 @@ ufo_2_idle_animation:
     .byte $02                               ; padding x, z -> 1 tiles wide and high
 
 .code
-spawn_static_squad_enemy:
+.proc spawn_static_squad_enemy
     lda #$00                                ; xDir
     sta var_3
     lda #$00                                ; yDir
@@ -51,8 +55,10 @@ spawn_static_squad_enemy:
     jsr spawn_enemy
 
     rts
+.endproc
 
-spawn_static_spacetopus_enemy:
+
+.proc spawn_static_spacetopus_enemy
     lda #$00                                ; xDir
     sta var_3
     lda #$00                                ; yDir
@@ -67,9 +73,10 @@ spawn_static_spacetopus_enemy:
     jsr spawn_enemy
 
     rts
+.endproc
 
 
-spawn_static_ufo_enemy:
+.proc spawn_static_ufo_enemy
     lda #$00                                ; xDir
     sta var_3
     lda #$00                                ; yDir
@@ -84,9 +91,10 @@ spawn_static_ufo_enemy:
     jsr spawn_enemy
 
     rts
+.endproc
 
 
-spawn_static_ufo_2_enemy:
+.proc spawn_static_ufo_2_enemy
     lda #$00                                ; xDir
     sta var_3
     lda #$00                                ; yDir
@@ -101,14 +109,16 @@ spawn_static_ufo_2_enemy:
     jsr spawn_enemy
 
     rts
+.endproc
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; spawn a squad enemy
 ; ARGS:
 ;   var_1           - xPos
-;   var_2           - yPos     
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;                          
-spawn_squady:
+;   var_2           - yPos
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+.proc spawn_squady
     lda #$40                                ; xPos
     sta var_1
     lda #$10                                ; yPos
@@ -129,7 +139,7 @@ spawn_squady:
     sta var_2
 
     jsr spawn_static_squad_enemy
-    
+
     lda #$c0                                ; xPos
     sta var_1
     lda #$50                                ; yPos
@@ -137,8 +147,10 @@ spawn_squady:
 
     jsr spawn_static_squad_enemy
     rts
+.endproc
 
-spawn_spacetopus:
+
+.proc spawn_spacetopus
     lda #$30                                ; xPos
     sta var_1
     lda #$10                                ; yPos
@@ -152,7 +164,7 @@ spawn_spacetopus:
     sta var_2
 
     jsr spawn_static_spacetopus_enemy
-    
+
     lda #$8e                                ; xPos
     sta var_1
     lda #$20                                ; yPos
@@ -167,8 +179,6 @@ spawn_spacetopus:
 
     jsr spawn_static_ufo_enemy
 
-    
-
     lda #$48                                ; xPos
     sta var_1
     lda #$42                                ; yPos
@@ -182,7 +192,7 @@ spawn_spacetopus:
     sta var_2
 
     jsr spawn_static_spacetopus_enemy
-    
+
     lda #$a8                                ; xPos
     sta var_1
     lda #$42                                ; yPos
@@ -190,7 +200,6 @@ spawn_spacetopus:
 
     jsr spawn_static_ufo_2_enemy
 
-        
     lda #$d8                                ; xPos
     sta var_1
     lda #$52                                ; yPos
@@ -219,7 +228,6 @@ spawn_spacetopus:
     ; rts
     jsr spawn_static_spacetopus_enemy
 
-   
     lda #$c0                                ; xPos
     sta var_1
     lda #$80                                ; yPos
@@ -227,6 +235,7 @@ spawn_spacetopus:
 
     jsr spawn_static_ufo_enemy
     rts
+.endproc
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -240,7 +249,7 @@ spawn_spacetopus:
 ;
 ; RETURN:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-spawn_enemy:
+.proc spawn_enemy
     lda var_4
     pha
 
@@ -257,7 +266,7 @@ spawn_enemy:
     ; 1. Create Entity
     jsr create_entity                       ; None -> address_1 entity address
 
-    pla 
+    pla
     sta var_3                               ; get xDir from stack, store to var_3 again
 
     pla
@@ -275,7 +284,7 @@ spawn_enemy:
     lda address_2 + 1
     sta (address_1), y
     iny
-    
+
     lda address_7
     sta address_2
 
@@ -284,7 +293,7 @@ spawn_enemy:
 
     ; 4. Create SPRITE component
     jsr create_sprite_component             ; arguments (address_1: owner, address_2: sprite config) => return address_3 of component
-    
+
     ; 5. Store sprite component address in entity component buffer
     ldy #$06
     lda address_3
@@ -314,7 +323,7 @@ spawn_enemy:
     sta var_4
 
     jsr create_collision_component             ; arguments (var_1: mask, var_2: layer, var_3: w, var_4:h ) => return address_2 of component
-    
+
     ; 5. Store collision component address in entity component buffer
     ldy #$08
     lda address_2
@@ -323,7 +332,7 @@ spawn_enemy:
 
     lda address_2 + 1
     sta (address_1), y
-    
+
 
     ldy #$06
     lda (address_1), y
@@ -333,7 +342,7 @@ spawn_enemy:
     sta address_2 + 1
 
     jsr create_enemy_component             ; arguments (address_1: owner, address_2: sprite component) => return address_3 of component
-    
+
     ; 5. Store enemy component address in entity component buffer
     ldy #$0a
     lda address_3
@@ -345,3 +354,4 @@ spawn_enemy:
     iny
 
     rts
+.endproc
