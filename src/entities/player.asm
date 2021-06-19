@@ -1,3 +1,15 @@
+.include "constants.asm"
+.include "globals.asm"
+.include "nes.asm"
+
+.import create_actor_component
+.import create_collision_component
+.import create_sprite_component
+.import create_movement_component
+.import create_entity
+
+.export create_player
+
 .rodata
 
 ;

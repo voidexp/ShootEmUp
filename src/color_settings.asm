@@ -1,10 +1,10 @@
+.include "nes.asm"
+
 .export load_color_palettes
+.export background_palettes
+.export sprite_palettes
 
-;
-; Universal background color
-;
-BG_COLOR = $0d
-
+.rodata
 ;
 ; Background tiles palette indices
 ;

@@ -1,3 +1,14 @@
+.include "globals.asm"
+.include "constants.asm"
+
+.import create_sprite_component
+.import create_movement_component
+.import create_entity
+
+.export init_flame_entities
+.export create_flame
+
+
 .rodata
 flame_default_anim:
     .byte $01                               ; length frames

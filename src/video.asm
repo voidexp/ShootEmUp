@@ -1,5 +1,7 @@
 .export copy_to_vram
 
+.include "nes.asm"
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Copy given memory region to VRAM
 ;

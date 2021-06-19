@@ -1,3 +1,19 @@
+.include "macros.asm"
+.include "globals.asm"
+.include "constants.asm"
+
+.importzp update_flags, draw_flags
+
+.import enable_one_entity_component
+.import disable_one_entity_component
+.import update_movement_direction
+.import update_projectile_position
+
+.export create_actor_component
+.export init_actor_components
+.export process_controller_input
+.export update_actor_components
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; manages player input/movement
 ;
@@ -11,17 +27,9 @@
 ;    dec shoot_cooldown
 ;:
 
-.rodata
-;
-; Different actor roles
-;
-PLAYER_ROLE         = 1
-DUMMY_ROLE          = 2
-
-
-; container for 25 actor components
 
 .segment "BSS"
+; container for 25 actor components
 num_actor_components:                   .res 1
 current_actor_component_container_size: .res 1
 actor_component_container:              .res 30
@@ -366,7 +374,7 @@ actor_component_container:              .res 30
     ; sta var_5
 
     ; requires var_1, var_2 (entity position), var_3, var_4 (projectile_direction)
-:   jsr update_projectile_position
+    jsr update_projectile_position
 
     pla
     sta var_3

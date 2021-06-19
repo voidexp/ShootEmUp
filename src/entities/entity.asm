@@ -1,22 +1,19 @@
-; ENTITY_TYPES:
-ENTITY_PROJECTILE                           = 0
-ENTITY_ENEMY_SMALL                          = 1
-ENTITY_ENEMY_BIG                            = 2
+.include "macros.asm"
+.include "globals.asm"
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; COMPONENT_MASK
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; 0         - MOVEMENT
-; 1         - SPRITE
-; 2         - COLLISION
-; 3         - HEALTH
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-MOVEMENT_CMP        = 1
-SPRITE_CMP          = 2
-COLLISION_CMP       = 4
-HEALTH_CMP          = 8
-ENEMY_CMP           = 16
-ACTOR_CMP           = 32
+.import init_flame_entities
+.import init_enemy_components
+.import init_collision_components
+.import init_projectile_components
+.import init_sprite_components
+.import init_movement_components
+
+.export initialize_entities
+.export create_entity
+.export disable_all_entity_components
+.export update_movement_direction
+.export enable_one_entity_component
+.export disable_one_entity_component
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; entity:
@@ -219,7 +216,7 @@ end:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Deactivates a certain component
+; Activates a certain component
 ;
 ; ARGS:
 ;  address_10            - entity address

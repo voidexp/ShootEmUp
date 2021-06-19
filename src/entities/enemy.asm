@@ -1,3 +1,14 @@
+.include "globals.asm"
+.include "constants.asm"
+
+.import create_enemy_component
+.import create_collision_component
+.import create_sprite_component
+.import create_movement_component
+.import create_entity
+
+.export spawn_spacetopus
+
 .rodata
 squady_idle_animation:
     .byte $04                               ; length frames
@@ -12,13 +23,6 @@ octi_idle_anim:
     .byte $04                               ; starting tile ID
     .byte $02                               ; attribute set
     .byte $02                               ; padding x, z -> 2 tiles wide and high
-
-dead_enemy_animation:
-    .byte $01                               ; length frames
-    .byte $08                               ; speed
-    .byte $25                               ; starting tile ID
-    .byte $03                               ; attribute set
-    .byte $01                               ; padding x, z -> 1 tiles wide and high
 
 ufo_idle_animation:
     .byte $04                               ; length frames

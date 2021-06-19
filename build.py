@@ -1,10 +1,10 @@
-"""ROM build tool"""
-import argparse
-import subprocess as sp
-import pathlib
 import os
+import pathlib
 import shutil
+import subprocess as sp
 import sys
+
+import click
 
 
 SRC_DIR = 'src'
@@ -38,6 +38,7 @@ def executable_path(path):
 def run_assembler(assembler, src, dst):
     args = [
         str(assembler),
+        '-I', os.path.join(os.getcwd(), 'src'),
         '-o', str(dst),
         str(src),
     ]
@@ -85,17 +86,14 @@ def prepare_folder_structure(out_dir):
     os.mkdir(out_dir_path.joinpath('levels'))
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('-l', type=executable_path, dest='linker')
-    parser.add_argument('-a', type=executable_path, dest='assembler')
-
-    args = parser.parse_args()
-
+@click.command()
+@click.option('-l', '--linker', type=click.Path(file_okay=True, dir_okay=False))
+@click.option('-a', '--assembler', type=click.Path(file_okay=True, dir_okay=False))
+def build(linker, assembler):
     prepare_folder_structure(OUT_DIR)
 
-    assembler = args.assembler or ASSEMBLER
-    linker = args.linker or LINKER
+    linker = linker or LINKER
+    assembler = assembler or ASSEMBLER
     bmp2chr = pathlib.Path('.').joinpath('.', 'tools', 'bmp2chr.py')
     bmp2lvl = pathlib.Path('.').joinpath('.', 'tools', 'bmp2lvl.py')
 
@@ -127,23 +125,27 @@ def main():
                 success = False
                 break
 
-    # compile main asm file
+    # compile assembly files
     if success:
-        asm_file = pathlib.Path(SRC_DIR).joinpath(TESTBED if LOAD_TESTBED else MAIN)
-        o_file = pathlib.Path(OUT_DIR).joinpath(f'{asm_file.stem}.o')
-
-        try:
-            run_assembler(assembler, asm_file, o_file).check_returncode()
-        except sp.CalledProcessError as err:
-            msg = (err.stdout or err.stderr).decode('utf8').strip()
-            print(f'{asm_file}: {msg}')
-            success = False
-        except FileNotFoundError:
-            print(f'{assembler} not found')
-            success = False
+        for asm_file in pathlib.Path(SRC_DIR).rglob('*.asm'):
+            # FIXME: enable testbed builds
+            if 'testbed' in str(asm_file):
+                continue
+            prefix = pathlib.Path(OUT_DIR).joinpath(asm_file.parent)
+            prefix.mkdir(parents=True, exist_ok=True)
+            o_file = prefix.joinpath(f'{asm_file.stem}.o')
+            try:
+                run_assembler(assembler, asm_file, o_file).check_returncode()
+            except sp.CalledProcessError as err:
+                msg = (err.stdout or err.stderr).decode('utf8').strip()
+                print(f'{asm_file}: {msg}')
+                success = False
+            except FileNotFoundError:
+                print(f'{assembler} not found')
+                success = False
 
     if success:
-        obj_files = pathlib.Path(OUT_DIR).glob('*.o')
+        obj_files = pathlib.Path(OUT_DIR).rglob('*.o')
         cfg_file = pathlib.Path('.').joinpath(LINKER_CFG)
         rom_file = pathlib.Path(OUT_DIR).joinpath(ROM)
         try:
@@ -161,4 +163,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    build()

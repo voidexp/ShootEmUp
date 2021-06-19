@@ -1,8 +1,29 @@
 .include "nes.asm"
-.include "globals.asm"
-.include "color_settings.asm"
+.include "constants.asm"
 .include "macros.asm"
 
+.import draw_end_text
+.import draw_sprite_components
+.import update_sprite_components
+.import enemy_cmp_process_cd_results
+.import update_collision_components
+.import update_movement_components
+.import update_actor_components
+.import copy_to_vram
+.import sprite_palettes
+.import load_color_palettes
+.import background_palettes
+.import num_enemy_components
+.import spawn_spacetopus
+.import create_player
+.import create_flame
+.import create_player_projectile
+.import initialize_entities
+.import num_rainbows
+
+
+; TODO: move this to sprite.asm
+ANIMATION_SPEED = 8
 
 ;
 ; iNES header for the emulators.
@@ -35,6 +56,7 @@
     starfield2: .incbin "../build/levels/starfield.lvl"
     starfield2_end:
 
+
 ; Zero-page RAM.
 ;
 .zeropage
@@ -51,7 +73,7 @@
 
     ; draw flags
     update_flags:       .res 1  ; flags what to update (0000 000 UPDATE_POSITIONS)
-    draw_flags:  	    .res 1  ; flags what to draw in the next frame (0000 000 DRAW_FLAME)
+    draw_flags:         .res 1  ; flags what to draw in the next frame (0000 000 DRAW_FLAME)
     update_animations:  .res 1  ; update animations
 
     ; tmp variables
@@ -90,6 +112,11 @@
     shoot_cooldown:     .res 1
     num_enemies_alive:  .res 1
 
+.exportzp temp_1, temp_2, temp_3, temp_4, temp_5, temp_6
+.exportzp var_1, var_2, var_3, var_4, var_5, var_6, var_7, var_8, var_9, var_10
+.exportzp address_1, address_2, address_3, address_4, address_5, address_6, address_7, address_8, address_9, address_10
+.exportzp update_flags, draw_flags
+.exportzp kill_count, num_enemies_alive
 
 ;
 ; PPU Object Attribute Memory - shadow RAM which holds rendering attributes
@@ -98,6 +125,7 @@
 .segment "OAM"
     oam: .res 256
 
+.export oam
 
 ;
 ; PRG-ROM, code.
@@ -335,7 +363,7 @@ ppusetup:
     ; Ready to go, enable VBlank NMI, all subsequent writes should take place
     ; during VBlank, inside NMI handler.
     lda #$90
-	sta PPUCTRL
+    sta PPUCTRL
 
 main:
     ;

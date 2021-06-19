@@ -1,18 +1,18 @@
-;collision_component_container:
+.include "globals.asm"
+.include "macros.asm"
+.include "constants.asm"
+
+
+.import disable_all_entity_components
+
+.export create_collision_component
+.export init_collision_components
+.export update_collision_components
+
 ; list of all collision components
 .rodata
 
 COLL_COMP_SIZE = 8
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; COLLISION_LAYER:
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-ENEMY_LYR           = 1
-PROJECTILE_LYR      = 2
-PLAYER_LYR          = 4
-TBD_1_LYR           = 8
-TBD_2_LYR           = 16
-TBD_3_LYR           = 32
 
 
 .segment "BSS"
@@ -22,6 +22,8 @@ num_collision_components:       .res 1
 
 collision_results:              .res 20
 num_collision_results:          .res 1
+
+.export collision_results, num_collision_results
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; INIT CODE .. reset all variables

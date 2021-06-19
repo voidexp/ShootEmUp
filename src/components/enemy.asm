@@ -1,5 +1,22 @@
+.include "globals.asm"
+.include "macros.asm"
+
+.importzp kill_count, num_enemies_alive
+.import collision_results, num_collision_results
+
+.export create_enemy_component
+.export init_enemy_components
+.export enemy_cmp_process_cd_results
+
 .rodata
 ENEMY_COMP_SIZE = 4
+
+dead_enemy_animation:
+    .byte $01                               ; length frames
+    .byte $08                               ; speed
+    .byte $25                               ; starting tile ID
+    .byte $03                               ; attribute set
+    .byte $01                               ; padding x, z -> 1 tiles wide and high
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; enemy_component:
@@ -11,6 +28,8 @@ ENEMY_COMP_SIZE = 4
 enemy_component_container: .res 80
 
 num_enemy_components: .res 1
+
+.export num_enemy_components
 
 
 .code

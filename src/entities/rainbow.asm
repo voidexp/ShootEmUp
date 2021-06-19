@@ -1,6 +1,9 @@
 .export create_rainbow
 .export draw_end_text
 
+.include "constants.asm"
+.include "globals.asm"
+
 .import create_entity
 .import create_sprite_component
 
@@ -14,6 +17,8 @@ rainbow_default_anim:
 
 .segment "BSS"
 num_rainbows: .res 1
+
+.export num_rainbows
 
 .code
 .proc create_rainbow

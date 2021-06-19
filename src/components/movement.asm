@@ -1,3 +1,11 @@
+.include "constants.asm"
+.include "globals.asm"
+.include "macros.asm"
+
+.export create_movement_component
+.export init_movement_components
+.export update_movement_components
+
 ; movement component
 ; size -> 5 byte
 

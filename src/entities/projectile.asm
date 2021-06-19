@@ -3,6 +3,16 @@
 .export spawn_projectile
 .export update_projectile_position
 
+.include "constants.asm"
+.include "globals.asm"
+.include "macros.asm"
+
+.import create_collision_component
+.import create_sprite_component
+.import create_movement_component
+.import create_entity
+.import disable_all_entity_components
+
 ;
 ; Projectile configuration
 ;
@@ -13,11 +23,6 @@ projectile_default_anim:
     .byte $13                               ; starting tile ID
     .byte $01                               ; attribute set
     .byte $01                               ; padding x, z -> 2 tiles wide and high
-
-
-projectile_anim_config:
-    .byte HEALTH_STATE_ALIVE
-    .addr projectile_default_anim
 
 
 ;bullet_properties_config:
