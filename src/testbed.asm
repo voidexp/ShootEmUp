@@ -74,7 +74,7 @@
 
     ; temp_address
     address_1:          .res 2
-    address_2:          .res 2  
+    address_2:          .res 2
     address_3:          .res 2
     address_4:          .res 2
     address_5:          .res 2
@@ -289,7 +289,7 @@ ppusetup:
 
     ; Clear OAMDATA address
     lda #$00
-    sta OAMADDR 
+    sta OAMADDR
 
     ; Enable sprite drawing
     lda #$1e
@@ -298,7 +298,7 @@ ppusetup:
     ; Ready to go, enable VBlank NMI, all subsequent writes should take place
     ; during VBlank, inside NMI handler.
     lda #$90
-	sta PPUCTRL
+    sta PPUCTRL
 
 main:
     ;
@@ -310,10 +310,10 @@ main:
     jsr execute_test
 
 return_to_main:
-    
+
     jmp main
 
-    
+
 ;
 ; Handle non-masked interrupts
 ;
@@ -373,13 +373,13 @@ irq_handler:
 handle_input:
     ; first latch buttons to be able to poll input
     lda #$01            ; fill input from buttons currently held
-    sta JOYPAD1 
+    sta JOYPAD1
     lda #$00            ; return to serial mode wait for bits to be read out
     sta JOYPAD1
 
     ldx #$00
     ; we don't process those yet, need to be executed in correct order
-    ; check if magic flag is set for this button and store direction indicator 
+    ; check if magic flag is set for this button and store direction indicator
 
 
     lda JOYPAD1         ; Player 1 - A

@@ -46,7 +46,7 @@ init_movement_components:
 ; RETURN:
 ;   address_2           - address of movement_component
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-create_movement_component:
+.proc create_movement_component
     ; calculate offset in current component buffer
     mult_with_constant num_movement_components, #MOVE_COMP_SIZE, var_5
 
@@ -75,6 +75,7 @@ create_movement_component:
 
     inc num_movement_components
     rts
+.endproc
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -84,7 +85,7 @@ create_movement_component:
 ; RETURN:
 ;   address_1             - updated movement component
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-update_movement_components:
+.proc update_movement_components
     ; calculate max value and store it in var_1
     mult_with_constant num_movement_components, #MOVE_COMP_SIZE, var_1
 
@@ -96,7 +97,7 @@ update_movement_components:
 
     lda #>movement_component_container
     sta address_1 + 1
-    
+
     ldy #$00
 
 @update_mov_comp:
@@ -105,14 +106,14 @@ update_movement_components:
     bne :+
     rts                                     ; return if no components are left
 :   lda (address_1), y                      ; Get entity address lo byte
-	sta address_2
+    sta address_2
     iny
 
     lda (address_1), y                      ; Get entity address hi byte
-	sta address_2 + 1
+    sta address_2 + 1
     iny
 
-    tya                                     ; push y to stack 
+    tya                                     ; push y to stack
     pha
 
     ldy #$00                                ; get x, y position from the entity
@@ -125,7 +126,7 @@ update_movement_components:
     iny
     iny                                     ; jump over components
 
-    lda (address_2), Y                      ; check if movement component is active 
+    lda (address_2), Y                      ; check if movement component is active
     sta var_5
 
     pla                                     ; get y offset from stack again
@@ -140,17 +141,17 @@ update_movement_components:
     dec var_1
     jmp @update_mov_comp
 
-:   lda (address_1), y                      
+:   lda (address_1), y
     sta var_4                               ; speed
     iny
 
     lda (address_1), Y
     sta var_5                               ; dirX
-    iny 
+    iny
 
     lda (address_1), Y
     sta var_6                               ; dirY
-    iny 
+    iny
 
     tya
     pha
@@ -186,7 +187,7 @@ update_movement_components:
     sta var_7
  :  lda var_7
     sta (address_2), y                     ; store new y pos
-  
+
     pla
     tay
 
@@ -199,14 +200,15 @@ update_movement_components:
     eor #$ff
     adc #$01
     sta (address_1), Y                      ; overwrite yDir
-    dey 
+    dey
     lda #$00
     sta (address_1), Y                      ; overwrite xDir
     iny
-    iny  
+    iny
 
-:   dec var_1 
+:   dec var_1
     jmp @update_mov_comp
+.endproc
 
 
 ; var_7                 : new value
@@ -228,4 +230,4 @@ check_for_overflow:
     bcs @return
     inx
 @return:
-   rts
+    rts

@@ -13,8 +13,8 @@
 
 .rodata
 ;
-; Different actor roles 
-; 
+; Different actor roles
+;
 PLAYER_ROLE         = 1
 DUMMY_ROLE          = 2
 
@@ -30,11 +30,13 @@ actor_component_container:              .res 30
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; INIT CODE .. reset all variables
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-init_actor_components:
+.proc init_actor_components
     lda #$00
     sta num_actor_components
     sta current_actor_component_container_size
     rts
+.endproc
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; create actor components
@@ -51,10 +53,10 @@ init_actor_components:
 ; RETURN:
 ;   address_2           - address of actor_component
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-create_actor_component:
+.proc create_actor_component
     ; use address_2 as address_3 is return address
     calc_address_with_offset actor_component_container, current_actor_component_container_size, address_2
-    
+
     ; common for all actor components, store the owner as first arguments
     ldy #$00                                ; owner lo
     lda address_1
@@ -70,7 +72,7 @@ create_actor_component:
     iny
 
     iny                                     ; safe this byte for the size of THIS actor component
- 
+
     ; check what kind of component we want to create
     lda var_1
     cmp #PLAYER_ROLE
@@ -95,9 +97,9 @@ create_actor_component:
     sta (address_2), y
     iny
 
-    ; add the size of the currently created compnent to the offset counter 
+    ; add the size of the currently created compnent to the offset counter
     ; (should be 8 for player role, 2 for dummy role, ... )
- :  tya     
+ :  tya
     sta (address_2), Y                      ; store size of current actor component at fourth byte
 
     lda #$33
@@ -107,8 +109,9 @@ create_actor_component:
     sta current_actor_component_container_size
 
     inc num_actor_components
-      
+
     rts
+.endproc
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -116,7 +119,7 @@ create_actor_component:
 ;
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-update_actor_components:
+.proc update_actor_components
     ; update player actor components
 
     lda #<actor_component_container
@@ -134,10 +137,10 @@ update_actor_components:
 
 @process_actor_component:
     lda (address_1), y                      ; Get entity address lo byte
-	sta address_2
+    sta address_2
     iny
     lda (address_1), y                      ; Get entity address hi byte
-	sta address_2 + 1
+    sta address_2 + 1
     iny
 
     ; get type of actor role
@@ -157,8 +160,8 @@ update_actor_components:
     iny
 
     lda (address_1), Y
-    sta address_3 + 1 
-    jsr process_controller_input            ; return player direction vector 
+    sta address_3 + 1
+    jsr process_controller_input            ; return player direction vector
 
     ; ARGS:
     ;  address_1:       - component address, offsetted
@@ -182,17 +185,19 @@ update_actor_components:
     tay
 
     rts
+.endproc
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; processes controller input and calculates player position, direction
 ;
-; ARGS: 
+; ARGS:
 ;   address_3       - joystick_address
 
 ; RETURN:
 ;   var_2           - player_direction_vector
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-process_controller_input:
+.proc process_controller_input
     ldy #$00
     ; first latch buttons to be able to poll input
     lda #$01            ; fill input from buttons currently held
@@ -202,9 +207,9 @@ process_controller_input:
 
     ldx #$00
     ; we don't process those yet, need to be executed in correct order
-    ; check if magic flag is set for this button and store direction indicator 
+    ; check if magic flag is set for this button and store direction indicator
 
-  
+
     lda (address_3), y         ; Player 1 - A
     and #$01
     beq :+
@@ -253,6 +258,8 @@ process_controller_input:
 :   txa
     sta var_2
     rts
+.endproc
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; processes controller input and calculates player position, direction
@@ -266,13 +273,13 @@ process_controller_input:
 ;   var_1           - xDir
 ;   var_2           - yDir
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-update_player_role:
+.proc update_player_role
     ; reset draw flags, set them one by one for the elements
     lda #$00
-    sta draw_flags  
+    sta draw_flags
 
     ; reset x and y direction variables
-    lda #$00                    
+    lda #$00
     sta var_3
     sta var_4
 
@@ -292,16 +299,16 @@ update_player_role:
 @move_down:
     lda #MOVE_DOWN
     bit var_2
-    beq @move_left 
+    beq @move_left
     ; move down
-    lda #$01      
+    lda #$01
     sta var_4
 @move_left:
     lda #MOVE_LEFT
     bit var_2
     beq @move_right
     ; move left
-    lda #$01                                ; - xDir 
+    lda #$01                                ; - xDir
     clc
     eor #$ff
     adc #$01
@@ -312,7 +319,7 @@ update_player_role:
     beq @shoot
     ; move right
     lda #$01
-    sta var_3                                ; + xDir 
+    sta var_3                                ; + xDir
 
 @shoot:
     lda #PRESS_A
@@ -322,7 +329,7 @@ update_player_role:
     ; if no direction was set in this frame .. take default direction -> upwards -y
     lda var_4
     pha                                     ; push y direction to stack
-    
+
     ; lda var_3
     ; clc
     lda var_4
@@ -334,14 +341,14 @@ update_player_role:
     eor #$ff
     adc #$01
     sta var_4
-:   
+:
     ldy #$00                                ; get x, y position from the entity and offset it a bit
     lda (address_2), y
     clc
     adc #$04
     sta var_1                               ; xPos
 
-    iny                                     
+    iny
     lda (address_2), y
     sec
     sbc #$08
@@ -361,14 +368,14 @@ update_player_role:
     ; requires var_1, var_2 (entity position), var_3, var_4 (projectile_direction)
 :   jsr update_projectile_position
 
-    pla 
+    pla
     sta var_3
 
     ; restore y direction
     pla
     sta var_4
 
-@end_of_player_move:  
+@end_of_player_move:
     lda var_3
     sta temp_1
 
@@ -402,14 +409,14 @@ update_player_role:
     cmp #$01
     bcs :+
     jmp disable_one_entity_component
-:    
+:
     lda var_2
     cmp #$01
     bcc :+
     jmp enable_one_entity_component
     ; reset frame counter and player direction and update the position in the next second
-    ; so that the next time 
+    ; so that the next time
 :   lda #$00
     sta update_flags
     rts
-
+.endproc

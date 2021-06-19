@@ -1,3 +1,5 @@
+.export load_color_palettes
+
 ;
 ; Universal background color
 ;
@@ -8,13 +10,13 @@ BG_COLOR = $0d
 ;
 background_palettes:
     .byte $10, $30, $20, $0d
-    .byte $04, $14, $24, $0d 
+    .byte $04, $14, $24, $0d
     .byte $04, $14, $24, $0d
     .byte $04, $14, $24, $0d
 
 ;
 ; sprite palette indices
-; 
+;
 sprite_palettes:
     .byte $02, $22, $32, $0d
     .byte $16, $26, $37, $0d
@@ -31,10 +33,10 @@ sprite_palettes:
 ;   PALETTE_ADDR_LO      - Palette address high part
 ;   PALETTE_ADDR_HI      - Palette adress address low part
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-load_color_palettes:             
+.proc load_color_palettes
     inx                                 ; load number of colors to load and store it in y
     ldy $00,X
-                            
+
     ; set PPUADDR destination address to Palette
     inx                                 ; X => VRAM_PAL_ADDR_HI
     lda $00,X
@@ -51,7 +53,7 @@ load_color_palettes:
     inc $00,X                           ; increase the low address part -> point to next color
 
     bne :+                              ; check for overflow (ff -> 00)
-    inx                                 
+    inx
     inc $00,X                           ; increase the address of the high pointer PALETTE_ADDR_HI
     dex                                 ; go back to lo pointer X to PALETTE_ADDR_LO
 
@@ -60,3 +62,4 @@ load_color_palettes:
     bne @palette_load_loop
     inx
     rts
+.endproc

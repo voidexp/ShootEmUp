@@ -1,3 +1,5 @@
+.import update_animation
+
 .rodata
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; sprite component:
@@ -18,11 +20,13 @@ num_drawn_sprites:          .res 1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; INIT CODE .. reset all variables
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-init_sprite_components:
+.proc init_sprite_components
     lda #$00
     sta num_sprite_components
     sta num_drawn_sprites
     rts
+.endproc
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; create sprite components
@@ -47,20 +51,21 @@ create_sprite_component:
     lda address_1 + 1                        ; owner hi
     sta (address_3), y
     iny
-                                
+
     lda address_2                           ; sprite address lo
     sta (address_3), y
     iny
 
     lda address_2 + 1                       ; sprite address hi
     sta (address_3), y
-    iny 
+    iny
 
     lda #$00                                ; current anim frame
     sta (address_3), Y
-        
+
     inc num_sprite_components
     rts
+.endproc
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -68,7 +73,7 @@ create_sprite_component:
 ; update sprite animation
 ; get the length of the animation and either increase/reset current frame
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-update_sprite_components:
+.proc update_sprite_components
     ;lda update_animations
     ;cmp #ANIMATION_SPEED
     ;bpl end_of_anims                        ; should we tick anims? - if not return to end ... else tick!
@@ -92,18 +97,18 @@ update_sprite_components:
     iny
 
     lda (address_1), y                      ; Get sprite config lo byte
-	sta address_2
+    sta address_2
     iny
 
     lda (address_1), y                      ; Get sprite config hi byte
-	sta address_2 + 1
+    sta address_2 + 1
     iny
 
     ;iny                                    ; we don't have posX and posY in this component
     ;iny                                    ; pos-x and pos-y are on 2nd and 3rd place
 
     lda (address_1), y                      ; animation frame
-    sta var_2    
+    sta var_2
 
     tya
     pha ; push y on hw stack
@@ -123,8 +128,9 @@ update_sprite_components:
     jmp @tick_sprite
 :
     rts
+.endproc
 
-    
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; DRAW SPRITE ANIMATION COMPONENTS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -133,9 +139,9 @@ update_sprite_components:
 ;
 ; RETURN:
 ; y                      - oam offset
-; 
-; USES 
-;; tile_data: 
+;
+; USES
+;; tile_data:
 ; var_5                 - posX
 ; var_6                 - posy
 ; var_7                 - tileID
@@ -149,7 +155,7 @@ update_sprite_components:
 ;    .byte $02                               ; attribute set
 ;    .byte $01                               ; padding x, z -> 1 tiles wide and high
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-draw_sprite_components:
+.proc draw_sprite_components
     lda #<sprite_component_container
     sta address_1
 
@@ -165,7 +171,7 @@ draw_sprite_components:
     tax                                     ; oam_offset to x
 
     ldy #$00                                ; reset y
-    
+
     lda num_sprite_components
     cmp #$00
     bne @process_sprite_object         ; early out if list is empty
@@ -174,13 +180,13 @@ draw_sprite_components:
     rts
 @process_sprite_object:
     lda (address_1), y                      ; Get entity address lo byte
-	sta address_2
+    sta address_2
     iny
     lda (address_1), y                      ; Get entity address hi byte
-	sta address_2 + 1
+    sta address_2 + 1
     iny
 
-    tya                                     ; push y to stack 
+    tya                                     ; push y to stack
     pha
 
     ldy #$00                                ; get x, y position from the entity
@@ -191,8 +197,8 @@ draw_sprite_components:
     lda (address_2), y
     sta var_6
 
-    iny 
-    iny     
+    iny
+    iny
     lda (address_2), Y                      ; get mask of active components
     sta var_9
 
@@ -205,7 +211,7 @@ draw_sprite_components:
     bne :+
     iny                                     ; set the correct offset to the next sprite component
     iny
-    iny 
+    iny
     jmp @check_for_more_sprite_components
 :
     ; get the address of the object animation setting
@@ -214,14 +220,14 @@ draw_sprite_components:
     iny
 
     lda (address_1), Y
-	sta address_3 + 1
-    iny 
+    sta address_3 + 1
+    iny
 
     lda (address_1), y                      ; animation frame
     sta var_4
     iny
 
-    tya 
+    tya
     pha                                     ; sprite component buffer offset to stack
 
     ; Hi future: if you ever reconsider ticking the animation in the draw loop, do it here
@@ -235,7 +241,7 @@ draw_sprite_components:
 
     ; starting tile id -> get current animation frame (length of anim X frame)
     ldy #$02                                ; 00 is length, 01 speed, 02 is tile id :)
-    lda (address_3), Y 
+    lda (address_3), Y
 
     clc
     adc var_3                               ; add multiplied animframe
@@ -250,17 +256,17 @@ draw_sprite_components:
     ;sta var_7
 
     iny
-    lda (address_3), Y 
+    lda (address_3), Y
     sta var_8                               ; attribute
     iny
     ; width and height -> var_2
 
     lda var_1                               ; to be on the safe side push var_1 on stack
     pha
-   
+
     jsr draw_object
 
-    pla                                     ; stack has var_1 and anim buffer offset 
+    pla                                     ; stack has var_1 and anim buffer offset
     sta var_1
 
     pla                                     ; get animation buffer offset
@@ -273,14 +279,15 @@ draw_sprite_components:
     beq :+
     jmp @process_sprite_object
 
-:   
+:
     txa
     tay                                     ; oam offset from x to y
     jmp draw_empty_objects
     rts
+.endproc
 
 
-draw_empty_objects:   
+.proc draw_empty_objects
     ; take empty sprite id and set it to the id of all remaining empty sprites
 @empty_sprite_loop:
     lda num_drawn_sprites
@@ -290,7 +297,7 @@ draw_empty_objects:
     iny
     lda #$0c
     sta oam, Y                              ; just overwrite tile id
-    iny 
+    iny
     iny
     iny
 
@@ -298,3 +305,4 @@ draw_empty_objects:
     jmp @empty_sprite_loop
 @back_to_main_loop:
     rts
+.endproc

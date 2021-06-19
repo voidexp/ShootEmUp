@@ -1,8 +1,8 @@
 .include "nes.asm"
 .include "globals.asm"
 .include "color_settings.asm"
-.include "video.asm"
 .include "macros.asm"
+
 
 ;
 ; iNES header for the emulators.
@@ -75,7 +75,7 @@
 
     ; temp_address
     address_1:          .res 2
-    address_2:          .res 2  
+    address_2:          .res 2
     address_3:          .res 2
     address_4:          .res 2
     address_5:          .res 2
@@ -90,24 +90,6 @@
     shoot_cooldown:     .res 1
     num_enemies_alive:  .res 1
 
-
-
-.include "animation.asm"
-.include "components/health.asm"
-.include "components/movement.asm"
-.include "components/sprite.asm"
-.include "components/collision.asm"
-.include "components/enemy_cmp.asm"
-.include "components/actor_cmp.asm"
-.include "entities/player.asm"
-.include "entities/entity.asm"
-.include "entities/projectile.asm"
-.include "entities/enemy.asm"
-.include "entities/rainbow.asm"
-.include "entities/flame.asm"
-
-; .include "controller/player_controller.asm"
-;.include "enemy.asm"
 
 ;
 ; PPU Object Attribute Memory - shadow RAM which holds rendering attributes
@@ -198,7 +180,7 @@ ready:
     jsr create_flame
 
     ; store flame address in address 2 so it can be correctly linked to the player actor component
-    lda address_1 
+    lda address_1
     sta address_4
 
     lda address_1 + 1
@@ -223,7 +205,7 @@ ready:
     iny
     lda address_1 + 1
     sta player_entity_adr + 1
-    
+
     ; jsr spawn_squady
     jsr spawn_spacetopus
 
@@ -344,7 +326,7 @@ ppusetup:
 
     ; Clear OAMDATA address
     lda #$00
-    sta OAMADDR 
+    sta OAMADDR
 
     ; Enable sprite drawing
     lda #$1e
@@ -363,7 +345,7 @@ main:
     ldy #$00 ; byte offset
 
     ; jsr handle_input ; process input and reposition the ship
-    ; 
+    ;
     ; update position of player
     ; check if one of the position bits is set if so, update the position of the player
 update_player_position:
@@ -375,7 +357,7 @@ update_player_position:
     jsr update_actor_components             ; process_controller_input
 
     ; UPDATE COMPONENTS
-    jsr update_movement_components 
+    jsr update_movement_components
     jsr update_collision_components
 
     jsr enemy_cmp_process_cd_results
@@ -388,7 +370,7 @@ update_anim_components:
     jsr update_sprite_components
     lda #$00
     sta update_animations
- 
+
 start_rendering:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; START RENDERING SET OAM OFFSET TO 0
@@ -456,11 +438,11 @@ draw_kill_count:
 components:
     jsr draw_sprite_components
     jmp return_to_main
-check_game_state: 
+check_game_state:
     lda num_enemies_alive
     cmp #$02
     bcs return_to_main
-    
+
     tya
     pha
     ; jsr create_rainbow
@@ -468,13 +450,13 @@ check_game_state:
     tay
     jsr draw_end_text
 
-    
+
 
 return_to_main:
-    
+
     jmp main
 
-    
+
 ;
 ; Handle non-masked interrupts
 ;

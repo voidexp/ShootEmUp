@@ -1,3 +1,7 @@
+.export update_animation
+.export draw_object
+
+
 .rodata
 ANIMATION_SPEED = 8
 
@@ -11,13 +15,13 @@ ANIMATION_SPEED = 8
 ;
 ; RETURN:
 ; var_2                 - updated anim frame
-; 
+;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; get current frame
 ; increase current frame
 ; if current frame exceeds bounds reset
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-update_animation:
+.proc update_animation
     inc var_2                               ; increase anim frame
 
     ;ldy #$00
@@ -25,7 +29,7 @@ update_animation:
     ;sta address_3
     ;iny
     ;lda (address_2), Y
-	;sta address_3 + 1 
+    ;sta address_3 + 1
 
     ldy #$00                                ; 00 is anim length
     lda (address_2), Y                      ; load anim length
@@ -35,8 +39,9 @@ update_animation:
     bne :+
     lda #$00
     sta var_2
-:   
+:
     rts
+.endproc
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -47,7 +52,7 @@ update_animation:
 ; var_2                 - width/height of object
 ;
 ; base_tile_data:
-; var_5                 - pos x 
+; var_5                 - pos x
 ; var_6                 - pos y
 ; var_7                 - tile id
 ; var_8                 - attribute id
@@ -57,11 +62,11 @@ update_animation:
 ; RETURN:
 ; x                     - updated oam offset
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Takes width/height of the object and calculates correct positions for all 
+; Takes width/height of the object and calculates correct positions for all
 ; for the separate tiles of the object
 ; Result: all required tiles are saved in the shadow oam
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-draw_object:
+.proc draw_object
     lda var_2                               ; we use var_2 for heigth, var_1 for width
     dec var_2
     lda var_2
@@ -71,7 +76,7 @@ draw_object:
     lda var_2
     ; shifted y offset
     ; offset to one tile in y axis means + 10 row so
-    asl 
+    asl
     asl
     asl
     asl
@@ -81,7 +86,7 @@ draw_object:
     ; we start with the bottom y row
 
     txa                                    ; move oam offset from x to y
-    tay  
+    tay
 
 @draw_tiles_loop:
     jsr draw_tile
@@ -109,7 +114,8 @@ draw_object:
 
     pla
     rts
-    
+.endproc
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; draw simple sprite tile
@@ -119,7 +125,7 @@ draw_object:
 ; var_1                 - x offset
 ; var_2                 - y offset
 ; var_3                 - shifted y offset (instead of 01 .. 10)
-; var_5                 - pos x 
+; var_5                 - pos x
 ; var_6                 - pos y
 ; var_7                 - tile id
 ; var_8                 - attribute id
@@ -127,9 +133,9 @@ draw_object:
 ; RETURN:
 ; y                     - update oam offset
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; move offset calculation to draw_object? 
+; move offset calculation to draw_object?
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-draw_tile:
+.proc draw_tile
 
     mult_with_constant var_2, #PIXELS_PER_TILE, var_4
 
@@ -138,14 +144,14 @@ draw_tile:
     adc var_4                              ; y offset
     sta oam, Y
     iny
- 
+
     lda var_7                               ; tile id
     clc
     adc var_1
     adc var_3                               ; y offset (shifted version of temp2)
     sta oam, y
     iny
- 
+
     lda var_8                               ; attribute id
     sta oam, Y
     iny
@@ -160,3 +166,4 @@ draw_tile:
 
     inc num_drawn_sprites
     rts
+.endproc

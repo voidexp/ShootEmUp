@@ -31,16 +31,19 @@ entity_container:       .res 300             ; contains .. entities
 num_current_entities:   .res 1
 
 .code
-initialize_entities:
+.proc initialize_entities
     lda #$00
     sta num_current_entities
     jsr init_movement_components
     jsr init_sprite_components
     jsr init_projectile_components
-    jsr init_collision_components 
+    jsr init_collision_components
     jsr init_enemy_components
     jsr init_flame_entities
     rts
+.endproc
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Creates the entity by calculating the storage address of the entity, setting
 ; the position, mask
@@ -53,9 +56,9 @@ initialize_entities:
 ; RETURN:
 ;   address_1           - address of the entity config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-create_entity:   
+.proc create_entity
     lda var_3
-    pha 
+    pha
 
     jsr get_current_entity_buffer_offset    ; (None -> var_4: address offset)
 
@@ -83,6 +86,8 @@ create_entity:
     inc num_current_entities
 
     rts
+.endproc
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; returns entity offset for a given entity idop
@@ -92,7 +97,7 @@ create_entity:
 ; RETURN:
 ;   var_4           - address of the entity config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-get_current_entity_buffer_offset:
+.proc get_current_entity_buffer_offset
 ; get entity component mask and calculate the number of components
 ; number of components => number of address bytes
 
@@ -111,7 +116,7 @@ get_current_entity_buffer_offset:
     cpx #$00
     beq end
 @entity_loop:
-    iny 
+    iny
     iny                                     ; hop over position storage space
     lda (address_1), Y                      ; get component mask
     sta var_3
@@ -126,7 +131,7 @@ get_current_entity_buffer_offset:
 
     pla                                     ; get y from stack
 
-    clc 
+    clc
     adc var_5                               ; add the offset of the component addresses
     tay
 
@@ -135,9 +140,10 @@ get_current_entity_buffer_offset:
     bne @entity_loop
     iny                                     ;increase offset to new free byte
 end:
-    tya 
+    tya
     sta var_4                               ; y -> current offset .. save it and go back
     rts
+.endproc
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -152,7 +158,7 @@ end:
 ; RETURN:
 ;   None
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-update_entity_position:
+.proc update_entity_position
     lda #<entity_container
     sta address_1
 
@@ -169,6 +175,8 @@ update_entity_position:
     iny
 
     rts
+.endproc
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Deactivates all components
@@ -179,11 +187,13 @@ update_entity_position:
 ; RETURN:
 ;   None
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-disable_all_entity_components: 
+.proc disable_all_entity_components
     lda #$00
     ldy #$03                                ; jump over position and mask
     sta (address_1), y
     rts
+.endproc
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Deactivates a certain component
@@ -195,7 +205,7 @@ disable_all_entity_components:
 ; RETURN:
 ;   None
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-disable_one_entity_component: 
+.proc disable_one_entity_component
     lda #$ff
     sec
     sbc temp_1
@@ -205,6 +215,8 @@ disable_one_entity_component:
     and temp_2
     sta (address_10), y
     rts
+.endproc
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Deactivates a certain component
@@ -216,12 +228,13 @@ disable_one_entity_component:
 ; RETURN:
 ;   None
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-enable_one_entity_component: 
+.proc enable_one_entity_component
     ldy #$03                                ; jump over position and mask
     lda (address_10), y
     ora temp_1
     sta (address_10), y
     rts
+.endproc
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -235,7 +248,7 @@ enable_one_entity_component:
 ; RETURN:
 ;   None
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-update_movement_direction:
+.proc update_movement_direction
     ldy #$04
     lda (address_10), y                      ; fetch address of the movement component
     sta address_9
@@ -250,5 +263,6 @@ update_movement_direction:
 
     iny                                     ; yDir
     lda temp_2
-    sta (address_9), y 
+    sta (address_9), y
     rts
+.endproc

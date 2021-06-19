@@ -1,5 +1,5 @@
 .rodata
-test_data: 
+test_data:
     .byte $00, $01
     .byte $02, $03
     .byte $04, $05
@@ -72,8 +72,8 @@ test_update_components:
 ; spawn a squad enemy
 ; ARGS:
 ;   var_1           - xPos
-;   var_2           - yPos     
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;                          
+;   var_2           - yPos
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 test_spawn_squady:
     lda #$40                                ; xPos
     sta var_1
@@ -124,7 +124,7 @@ test_spawn_projectile:
 
     jsr spawn_projectile
 
-    ;rts    
+    ;rts
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ; RETURN
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -200,7 +200,7 @@ test_address_offset_macro:
     calc_address_with_offset test_data_address, var_1, address_2
     lda address_2 + 1
     sta address_3
-    lda address_2 
+    lda address_2
     sta address_3 + 1
     ; result 0421
     rts
@@ -241,7 +241,7 @@ test_movement_component_creation:
     ; save resulting address
     lda address_2 + 1
     sta address_3
-    lda address_2 
+    lda address_2
     sta address_3 + 1
 
     jsr test_movement_component_creation
@@ -249,7 +249,7 @@ test_movement_component_creation:
     ; save resulting address
     lda address_2 + 1
     sta address_4
-    lda address_4 
+    lda address_4
     sta address_3 + 1
     rts
 
@@ -279,16 +279,16 @@ test_memcpy_macro:
     lda #<test_data
     sta address_1
 
-    lda #>test_data 
+    lda #>test_data
     sta address_1 + 1
 
     ; load address of test_data_copy to address_2
     lda #<test_data_copy
     sta address_2
 
-    lda #>test_data_copy 
+    lda #>test_data_copy
     sta address_2 + 1
-    
+
     lda #BYTES_PER_LOOP
     sta temp_2
 
@@ -313,7 +313,7 @@ test_memcpy_macro:
     clc
     adc temp_2
     sta temp_4
-    
+
     lda #$ff
     ldy temp_4
     sta (address_2), y
