@@ -25,3 +25,19 @@ def test_zeropage_vars(cpu):
 
     assert cpu.memory[0] == 0xaa
     assert cpu.memory[1] == 0xbb
+
+
+def test_bss_memory(cpu):
+    cpu.compile_and_run('''
+    .bss
+        foo:    .res 10
+
+    .code
+        lda #$78
+        ldy #(.sizeof(foo))
+    :   dey
+        sta foo,y
+        bne :-
+    ''')
+
+    assert bytes(cpu.memory[cpu.bss:cpu.bss + 10]) == b'x' * 10

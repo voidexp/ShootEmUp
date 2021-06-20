@@ -141,3 +141,28 @@
     cpy #$00
     bne @loop
 .endmacro
+
+
+.macro iter_ptr ptr, address, increment, body
+@loop:
+    lda ptr
+    cmp #<address
+    bne @body
+    lda ptr + 1
+    cmp #>address
+    beq @end
+
+@body:
+    body
+
+    lda ptr
+    clc
+    adc #increment
+    sta ptr
+    bcc @loop
+    lda ptr + 1
+    adc 0
+    sta ptr + 1
+    bcc @loop
+@end:
+.endmacro
