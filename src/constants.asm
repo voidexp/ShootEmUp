@@ -42,3 +42,10 @@ PRESS_B = 32
 ; Universal background color
 ;
 BG_COLOR = $0d
+
+
+;
+; Error codes
+;
+ERR_GENERIC         = $ff
+ERR_OUT_OF_MEMORY   = $fe

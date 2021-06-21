@@ -143,26 +143,64 @@
 .endmacro
 
 
-.macro iter_ptr ptr, address, increment, body
+.macro iter_ptr ptr, end, offset, pred
 @loop:
     lda ptr
-    cmp #<address
+    cmp #<end
     bne @body
     lda ptr + 1
-    cmp #>address
-    beq @end
+    cmp #>end
+    beq @exit
 
 @body:
-    body
+    pred
 
     lda ptr
     clc
-    adc #increment
+    adc #offset
     sta ptr
     bcc @loop
     lda ptr + 1
     adc 0
     sta ptr + 1
     bcc @loop
+@exit:
+.endmacro
+
+
+;
+; Iterate a pointer over an array until Z flag is not set.
+;
+; Parameters:
+;   ptr     - iterator
+;   end     - end address (excluded)
+;   offset  - iteration offset
+;   pred    - predicate macro to execute on each iteration;
+;             should set Z flag as true condition
+;
+.macro find_ptr ptr, end, offset, pred
+@loop:
+    lda ptr
+    cmp #<end
+    bne @body
+    lda ptr + 1
+    cmp #>end
+    beq @not_found
+
+@body:
+    pred
+    beq @end
+
+    lda ptr
+    clc
+    adc #offset
+    sta ptr
+    bcc @loop
+    lda ptr + 1
+    adc 0
+    sta ptr + 1
+    bcc @loop
+@not_found:
+    lda #$ff
 @end:
 .endmacro
