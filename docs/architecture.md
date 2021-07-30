@@ -98,3 +98,22 @@ Remove an entity from the world. Calls the `EntityOps.fini()` and marks the enti
 
 ### `world_tick()`
 Tick all currently active entities in the world by calling their `EntityOps.tick()` function.
+
+
+# Game mode
+Game modes are particular stages of the game, like intro screen, main menu, main
+game, game over, etc.
+
+Since each game mode has its own entities, backgrounds, music and logic, there
+are entry points for setting up, updating and clearing the particular game mode,
+defined as a set of function pointers:
+
+    GameMode:
+      |
+      +-- enter()
+      +-- update()
+      +-- exit()
+
+
+### `game_mode_switch(game_mode: ptr)`
+Exits the current game mode, and enters the requested one, making it active.
