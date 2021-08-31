@@ -142,27 +142,25 @@
     bne @loop
 .endmacro
 
-
+;
+; Iterate a pointer with fixed increments.
+;
 .macro iter_ptr ptr, address, increment, body
-@loop:
-    lda ptr
-    cmp #<address
-    bne @body
-    lda ptr + 1
-    cmp #>address
-    beq @end
-
-@body:
-    body
-
-    lda ptr
-    clc
-    adc #increment
-    sta ptr
-    bcc @loop
-    lda ptr + 1
-    adc 0
-    sta ptr + 1
-    bcc @loop
+@loop:      lda ptr             ; load the low address
+            cmp #<address       ; compare it with target low part
+            bne @body           ; if doesnt match; execute teh body
+            lda ptr + 1         ; load high address
+            cmp #>address       ; compare with target high part
+            beq @end            ; if match, we're done
+@body:      body                ; inlined code macro
+            lda ptr             ; re-load the pointer
+            clc
+            adc #increment      ; increment the low part
+            sta ptr             ; write it back
+            bcc @loop           ; repeat if no overflow occurred
+            lda ptr + 1         ; load the high part
+            adc 0               ; add carry
+            sta ptr + 1         ; write it back
+            bcc @loop           ; repeat
 @end:
 .endmacro
