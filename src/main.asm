@@ -20,12 +20,8 @@
 .import create_player_projectile
 .import initialize_entities
 .import num_rainbows
+.import battle_main_loop
 
-
-; TODO: move this to sprite.asm
-ANIMATION_SPEED = 8
-
-;
 ; iNES header for the emulators.
 ;
 .segment "INESHDR"
@@ -115,7 +111,7 @@ ANIMATION_SPEED = 8
 .exportzp temp_1, temp_2, temp_3, temp_4, temp_5, temp_6
 .exportzp var_1, var_2, var_3, var_4, var_5, var_6, var_7, var_8, var_9, var_10
 .exportzp address_1, address_2, address_3, address_4, address_5, address_6, address_7, address_8, address_9, address_10
-.exportzp update_flags, draw_flags
+.exportzp update_flags, draw_flags, update_animations
 .exportzp kill_count, num_enemies_alive
 
 ;
@@ -372,116 +368,7 @@ main:
     ldx #$00 ; character index
     ldy #$00 ; byte offset
 
-    ; jsr handle_input ; process input and reposition the ship
-    ;
-    ; update position of player
-    ; check if one of the position bits is set if so, update the position of the player
-update_player_position:
-    ; check how often to increase the player position, depending on the speed
-    lda update_flags
-    cmp #$01  ; check if the last frame was drawn then update the position for the next one
-    bcc update_anim_components
-
-    jsr update_actor_components             ; process_controller_input
-
-    ; UPDATE COMPONENTS
-    jsr update_movement_components
-    jsr update_collision_components
-
-    jsr enemy_cmp_process_cd_results
-
-
-update_anim_components:
-    lda update_animations
-    cmp #ANIMATION_SPEED
-    bcc start_rendering
-    jsr update_sprite_components
-    lda #$00
-    sta update_animations
-
-start_rendering:
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; START RENDERING SET OAM OFFSET TO 0
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ldy #$00
-
-draw_kill_count:
-
-    lda num_enemies_alive
-    cmp #$02
-    bcc check_game_state
-    lda #$0a        ; sprite xpos
-    sta var_2
-    lda kill_count
-    sta var_1
-    cmp #$0a
-
-    bcc :+
-
-    lda var_1
-    sec
-    sbc #$0a
-    sta var_1
-
-    ; move xpos for second tile
-    lda var_2
-    clc
-    adc #$08
-    sta var_2
-
-    lda #$0c
-    sta oam,Y
-    iny
-    ; sprite id
-    lda #$31
-    sta oam,Y
-    iny
-    ; sprite attrs
-    lda #$01
-    sta oam,Y
-    iny
-    ; X coord
-    lda #$0a
-    sta oam,Y
-    iny
-
-:   lda #$0c
-    sta oam,Y
-    iny
-    ; sprite id
-    lda #$30
-    clc
-    adc var_1
-    sta oam,Y
-    iny
-    ; sprite attrs
-    lda #$01
-    sta oam,Y
-    iny
-    ; X coord
-    lda var_2
-    sta oam,Y
-    iny
-
-components:
-    jsr draw_sprite_components
-    jmp return_to_main
-check_game_state:
-    lda num_enemies_alive
-    cmp #$02
-    bcs return_to_main
-
-    tya
-    pha
-    ; jsr create_rainbow
-    pla
-    tay
-    jsr draw_end_text
-
-
-
-return_to_main:
-
+    jsr battle_main_loop
     jmp main
 
 

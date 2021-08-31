@@ -166,3 +166,17 @@
     bcc @loop
 @end:
 .endmacro
+
+.macro add_constant_to_address address, constant, result
+    lda address
+    clc
+    adc constant
+    sta result
+    lda address + 1
+
+    bcc :+                          ; check for overflow, if yes, increas high part as well
+    clc
+    adc #$01                        ; increase high part
+:
+    sta result + 1
+.endmacro
