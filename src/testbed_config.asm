@@ -64,7 +64,7 @@ test_update_components:
     lda #$00
     sta update_animations
 :   ldy #$00
-    jsr draw_sprite_components
+    jsr draw_sprites
     rts
 
 

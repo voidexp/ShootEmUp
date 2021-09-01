@@ -8,7 +8,7 @@
 .include "macros.asm"
 
 .import create_collision_component
-.import create_sprite_component
+.import create_sprite
 .import create_movement_component
 .import create_entity
 .import disable_all_entity_components
@@ -141,7 +141,7 @@ last_updated_projectile:            .res 1
     lda #>projectile_default_anim
     sta address_2 + 1
 
-    jsr create_sprite_component             ; arguments (address_1: owner, address_2: sprite config) => return address_3 of component
+    jsr create_sprite             ; arguments (address_1: owner, address_2: sprite config) => return address_3 of component
 
     ; 5. Store sprite component address in entity component buffer
     ldy #$06

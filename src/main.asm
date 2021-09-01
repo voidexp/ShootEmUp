@@ -1,24 +1,23 @@
 .include "nes.asm"
 .include "constants.asm"
 .include "macros.asm"
+.include "structs.asm"
 
 .import draw_end_text
-.import draw_sprite_components
-.import update_sprite_components
-.import enemy_cmp_process_cd_results
-.import update_collision_components
-.import update_movement_components
-.import update_actor_components
+.import draw_sprites
+; .import update_collision_components
+; .import update_movement_components
+; .import update_actor_components
 .import copy_to_vram
 .import sprite_palettes
 .import load_color_palettes
 .import background_palettes
-.import num_enemy_components
-.import spawn_spacetopus
-.import create_player
-.import create_flame
-.import create_player_projectile
-.import initialize_entities
+.import spawn_enemy_kind
+; .import spawn_spacetopus
+; .import create_player
+; .import create_flame
+; .import create_player_projectile
+; .import initialize_entities
 .import num_rainbows
 
 
@@ -112,11 +111,17 @@ ANIMATION_SPEED = 8
     shoot_cooldown:     .res 1
     num_enemies_alive:  .res 1
 
+    ; enemy entities
+    enemies: .res .sizeof(Enemy) * NUM_ENEMIES
+    enemies_end:
+
+
 .exportzp temp_1, temp_2, temp_3, temp_4, temp_5, temp_6
 .exportzp var_1, var_2, var_3, var_4, var_5, var_6, var_7, var_8, var_9, var_10
 .exportzp address_1, address_2, address_3, address_4, address_5, address_6, address_7, address_8, address_9, address_10
 .exportzp update_flags, draw_flags
 .exportzp kill_count, num_enemies_alive
+.exportzp enemies, enemies_end
 
 ;
 ; PPU Object Attribute Memory - shadow RAM which holds rendering attributes
@@ -195,50 +200,53 @@ ready:
     sta shoot_cooldown
     sta num_rainbows
 
-    jsr initialize_entities
-    jsr create_player_projectile
+    ; jsr initialize_entities
+    ; jsr create_player_projectile
 
     ; create flame entity
-    lda #$84                                ; x-Pos
-    sta var_1
+    ; lda #$84                                ; x-Pos
+    ; sta var_1
 
-    lda #$bc                                ; y-Pos
-    sta var_2
+    ; lda #$bc                                ; y-Pos
+    ; sta var_2
 
-    jsr create_flame
+    ; jsr create_flame
 
     ; store flame address in address 2 so it can be correctly linked to the player actor component
-    lda address_1
-    sta address_4
+    ; lda address_1
+    ; sta address_4
 
-    lda address_1 + 1
-    sta address_4 + 1
+    ; lda address_1 + 1
+    ; sta address_4 + 1
 
-    lda #$80
+    ; lda #$80
+    ; sta var_1
+
+    ; lda #$b0
+    ; sta var_2
+
+    ; lda #$00
+    ; sta var_3
+    ; lda #$00
+    ; sta var_4
+
+    ; jsr create_player
+
+    ; lda address_1
+    ; sta player_entity_adr
+
+    ; iny
+    ; lda address_1 + 1
+    ; sta player_entity_adr + 1
+
+    ; spawn an enemy
+    lda #130                ; X coord
     sta var_1
-
-    lda #$b0
+    lda #100                ; Y coord
     sta var_2
-
-    lda #$00
+    lda #EnemyKind::UFO     ; enemy kind
     sta var_3
-    lda #$00
-    sta var_4
-
-    jsr create_player
-
-    lda address_1
-    sta player_entity_adr
-
-    iny
-    lda address_1 + 1
-    sta player_entity_adr + 1
-
-    ; jsr spawn_squady
-    jsr spawn_spacetopus
-
-    lda num_enemy_components
-    sta num_enemies_alive
+    jsr spawn_enemy_kind
 
 ;
 ; Here we setup the PPU for drawing by writing apropriate memory-mapped
@@ -382,20 +390,17 @@ update_player_position:
     cmp #$01  ; check if the last frame was drawn then update the position for the next one
     bcc update_anim_components
 
-    jsr update_actor_components             ; process_controller_input
 
     ; UPDATE COMPONENTS
-    jsr update_movement_components
-    jsr update_collision_components
-
-    jsr enemy_cmp_process_cd_results
+    ; jsr update_actor_components             ; process_controller_input
+    ; jsr update_movement_components
+    ; jsr update_collision_components
 
 
 update_anim_components:
     lda update_animations
     cmp #ANIMATION_SPEED
     bcc start_rendering
-    jsr update_sprite_components
     lda #$00
     sta update_animations
 
@@ -408,8 +413,8 @@ start_rendering:
 draw_kill_count:
 
     lda num_enemies_alive
-    cmp #$02
-    bcc check_game_state
+    ; cmp #$02
+    ; bcc check_game_state
     lda #$0a        ; sprite xpos
     sta var_2
     lda kill_count
@@ -464,7 +469,7 @@ draw_kill_count:
     iny
 
 components:
-    jsr draw_sprite_components
+    jsr draw_sprites
     jmp return_to_main
 check_game_state:
     lda num_enemies_alive

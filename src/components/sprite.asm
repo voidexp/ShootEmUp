@@ -3,477 +3,275 @@
 .include "macros.asm"
 .include "nes.asm"
 
-.export init_sprite_components
-.export create_sprite_component
-.export draw_sprite_components
-.export update_sprite_components
+.export init_sprites
+.export create_sprite
+.export draw_sprites
 
-.rodata
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; sprite component:
-;    .addr owner                     ; entity
-;    .addr sprite config
-;    .byte animation_frame
-; movement rule
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-SPRITE_COMP_SIZE = 5
-; ANIMATION_SPEED = 8
+;
+; Sprite instance.
+;
+.struct Sprite
+    pos     .word   ; X,Y coordinates
+    anim    .addr   ; animation descriptor
+    frame   .byte   ; current animation frame index
+.endstruct
+
+;
+; Animation descriptor (read-only).
+;
+.struct Animation
+    length  .byte   ; length in frames
+    speed   .byte   ; playback speed
+    tile0   .byte   ; starting tile ID
+    attr    .byte   ; attribute set
+    size    .byte   ; frame size in tiles
+.endstruct
 
 .segment "BSS"
-sprite_component_container: .res 250
-
-num_sprite_components:      .res 1
-num_drawn_sprites:          .res 1
+; array of sprite components
+sprites: .res (.sizeof(Sprite) * 12)
+sprites_end:
 
 .code
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; INIT CODE .. reset all variables
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-.proc init_sprite_components
-    lda #$00
-    sta num_sprite_components
-    sta num_drawn_sprites
-    rts
-.endproc
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; create sprite components
-; ARGS:
-;   address_1           - owner
-;   address_2           - sprite_config
 ;
-; RETURN:
-;   address_3           - address of sprite_component
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-.proc create_sprite_component
-    ; calculate offset in current component buffer
-    mult_with_constant num_sprite_components, #SPRITE_COMP_SIZE, var_1
-
-    calc_address_with_offset sprite_component_container, var_1, address_3 ;address_3 is return address
-
-    ldy #$00                                ; owner lo
-    lda address_1
-    sta (address_3), y
-
-    iny
-    lda address_1 + 1                        ; owner hi
-    sta (address_3), y
-    iny
-
-    lda address_2                           ; sprite address lo
-    sta (address_3), y
-    iny
-
-    lda address_2 + 1                       ; sprite address hi
-    sta (address_3), y
-    iny
-
-    lda #$00                                ; current anim frame
-    sta (address_3), Y
-
-    inc num_sprite_components
-    rts
-.endproc
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Inititalize sprites subsystem.
 ;
-; update sprite animation
-; get the length of the animation and either increase/reset current frame
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-.proc update_sprite_components
-    ;lda update_animations
-    ;cmp #ANIMATION_SPEED
-    ;bpl end_of_anims                        ; should we tick anims? - if not return to end ... else tick!
-
-    lda #<sprite_component_container
-    sta address_1
-
-    lda #>sprite_component_container
-    sta address_1 + 1
-
-    ldy #$45
-    ldy #$00
-    lda num_sprite_components
-    sta var_1
-
-    cmp #$00
-    bne @tick_sprite                        ; early out if list is empty
-    rts
-@tick_sprite:
-    iny                                     ; ignore owner address
-    iny
-
-    lda (address_1), y                      ; Get sprite config lo byte
-    sta address_2
-    iny
-
-    lda (address_1), y                      ; Get sprite config hi byte
-    sta address_2 + 1
-    iny
-
-    ;iny                                    ; we don't have posX and posY in this component
-    ;iny                                    ; pos-x and pos-y are on 2nd and 3rd place
-
-    lda (address_1), y                      ; animation frame
-    sta var_2
-
-    tya
-    pha ; push y on hw stack
-
-    jsr update_animation                    ; (var_2, address_2 => var_2)
-
-    pla                                     ; pull y from hw stack
-    tay
-    lda var_2
-    sta (address_1), y
-    iny
-
-    dec var_1                               ; check if there are enemies left to draw
-    lda var_1
-    cmp #$00
-    beq :+
-    jmp @tick_sprite
-:
+.proc init_sprites
+    ; FIXME: is this really necessary?
     rts
 .endproc
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; DRAW SPRITE ANIMATION COMPONENTS
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; Create a sprite.
+;
+; Parameters:
+;   var_1       - X coord
+;   var_2       - Y coord
+;   address_1   - animation descriptor address
+;
+; Returns:
+;   address_2   - address of created sprite
+;
+; Allocates an entry in the sprites array, initializes it and returns its
+; address.
+;
+.proc create_sprite
+
+.mac find_empty
+            ldy #Sprite::anim + 1   ; offset to animation address hi byte
+            lda (address_2),y       ; load hi part, if null, Z is set and iteration stops
+.endmac
+
+            ; search for an unused sprite entry, address_2 used as iterator
+            lda #<sprites
+            sta address_2
+            lda #>sprites
+            sta address_2 + 1
+            find_ptr address_2, sprites_end, .sizeof(Sprite), find_empty
+
+            ldy #Sprite::pos        ; set Y index to 'pos' field offset
+            lda var_1               ; load X coord
+            sta (address_2),y       ; save X coord
+
+            iny                     ; set Y index to 'pos' field's Y coord offset
+            lda var_2               ; load Y coord
+            sta (address_2),y       ; save Y coord
+
+            ldy #Sprite::anim       ; set Y index to 'anim' field offset
+            lda address_1           ; sprite anim address lo
+            sta (address_2),y       ; save lo
+
+            iny                     ; advance Y index to hi address part
+            lda address_1 + 1       ; sprite address hi
+            sta (address_2),y       ; save hi
+
+            ldy #Sprite::frame      ; set Y index to 'frame' field offset
+            lda #$00                ; new sprites always start animation from beginning
+            sta (address_2),y       ; save frame index
+
+            rts
+.endproc
+
+;
 ; ARGS:
-; y                     - oam offset
+; y                      - oam offset
 ;
 ; RETURN:
 ; y                      - oam offset
 ;
-; USES
-;; tile_data:
-; var_5                 - posX
-; var_6                 - posy
-; var_7                 - tileID
-; var_8                 - attribute id
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Example of sprite animation setting
-; squady_idle_animation:
-;    .byte $04                               ; length frames
-;    .byte $08                               ; speed
-;    .byte $20                               ; starting tile ID
-;    .byte $02                               ; attribute set
-;    .byte $01                               ; padding x, z -> 1 tiles wide and high
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-.proc draw_sprite_components
-    lda #<sprite_component_container
-    sta address_1
+.proc draw_sprites
+            tya                     ; OAM offset to A
+            tax                     ; OAM offset to X
 
-    lda #>sprite_component_container
-    sta address_1 + 1
+.mac iter_sprite
+            ldy #Sprite::pos        ; load X,Y coords into var_5 and var_6
+            lda (address_1),y
+            sta var_5
+            iny
+            lda (address_1),y
+            sta var_6
 
-    lda #$00
-    sta num_drawn_sprites
+            ldy #Sprite::anim + 1   ; load animation addr hi offset to Y
+            lda (address_1),y       ; load hi addr part
+            beq @skip               ; skip this sprite if hi addr part is null
+            sta address_3 + 1       ; store to address_3 hi byte
+            dey                     ; lo offset
+            lda (address_1),y       ; load lo addr part
+            sta address_3           ; store to address_3 lo byte
 
-    lda num_sprite_components               ; #NUM_SPRITES
-    sta var_10
-    tya
-    tax                                     ; oam_offset to x
+            ldy #Sprite::frame      ; load the frame counter
+            lda (address_1),y
+            clc                     ; increment it, free automatic reset on overflow :)
+            adc #1
+            ldy #Animation::length  ; compare with animation length in the descriptor
+            cmp (address_3),y
+            bne :+
+            lda #0                  ; reset if last frame is reached
+:           ldy #Sprite::frame      ; write back the new value
+            sta (address_1),y
+            sta var_4               ; copy it also to var_4
 
-    ldy #$00                                ; reset y
+            ldy #Animation::size    ; load the sprite size
+            lda (address_3),y
+            sta var_2               ; copy it to var_2
 
-    lda num_sprite_components
-    cmp #$00
-    bne @process_sprite_object         ; early out if list is empty
-    txa
-    tay                                     ; oam offset from x to y
-    rts
-@process_sprite_object:
-    lda (address_1), y                      ; Get entity address lo byte
-    sta address_2
-    iny
-    lda (address_1), y                      ; Get entity address hi byte
-    sta address_2 + 1
-    iny
+            mult_variables var_4, var_2, temp_1; frame * size = offset to first tile
 
-    tya                                     ; push y to stack
-    pha
+            ldy #Animation::tile0   ; load the ID of the first tile
+            lda (address_3),y
+            clc
+            adc temp_1              ; add the offset to it
+            sta var_7               ; store the result to var_7
 
-    ldy #$00                                ; get x, y position from the entity
-    lda (address_2), y
-    sta var_5
-    iny
+            ldy #Animation::attr    ; load attribute value to var_8
+            lda (address_3),y
+            sta var_8
 
-    lda (address_2), y
-    sta var_6
+            jsr draw_frame
+@skip:
+.endmac
 
-    iny
-    iny
-    lda (address_2), Y                      ; get mask of active components
-    sta var_9
+            ; execute the code above for each sprite using address_1 as iterator
+            lda #<sprites
+            sta address_1
+            lda #>sprites
+            sta address_1 + 1
+            iter_ptr address_1, sprites_end, .sizeof(Sprite), iter_sprite
 
-    pla                                     ; get y offset from stack again
-    tay
-
-     ; if component is disabled go to the next sprite component
-    lda #SPRITE_CMP
-    bit var_9
-    bne :+
-    iny                                     ; set the correct offset to the next sprite component
-    iny
-    iny
-    jmp @check_for_more_sprite_components
-:
-    ; get the address of the object animation setting
-    lda (address_1), Y
-    sta address_3
-    iny
-
-    lda (address_1), Y
-    sta address_3 + 1
-    iny
-
-    lda (address_1), y                      ; animation frame
-    sta var_4
-    iny
-
-    tya
-    pha                                     ; sprite component buffer offset to stack
-
-    ; Hi future: if you ever reconsider ticking the animation in the draw loop, do it here
-    ; height, length
-    ; offset to height and length
-    ldy #$04
-    lda (address_3), Y
-    sta var_2
-
-    mult_variables var_4, var_2, var_3      ; (var_4 X var_2 => var_3) => animation_frame * width (in tiles)
-
-    ; starting tile id -> get current animation frame (length of anim X frame)
-    ldy #$02                                ; 00 is length, 01 speed, 02 is tile id :)
-    lda (address_3), Y
-
-    clc
-    adc var_3                               ; add multiplied animframe
-    sta var_7                               ; tile id
-
-    ; if component is disabled set tile_id to something invisible
-    ;lda #SPRITE_CMP
-    ;bit var_9
-    ;bne :+
-
-    ;lda #$0c
-    ;sta var_7
-
-    iny
-    lda (address_3), Y
-    sta var_8                               ; attribute
-    iny
-    ; width and height -> var_2
-
-    lda var_1                               ; to be on the safe side push var_1 on stack
-    pha
-
-    jsr draw_object
-
-    pla                                     ; stack has var_1 and anim buffer offset
-    sta var_1
-
-    pla                                     ; get animation buffer offset
-    tay
-
-@check_for_more_sprite_components:
-    dec var_10                              ; check if there are sprite components left to draw
-    lda var_10
-    cmp #$00
-    beq :+
-    jmp @process_sprite_object
-
-:
-    txa
-    tay                                     ; oam offset from x to y
-    jmp draw_empty_objects
-    rts
+            txa                     ; OAM offset to A
+            tay                     ; OAM offset to Y
+            rts
 .endproc
 
-
-.proc draw_empty_objects
-    ; take empty sprite id and set it to the id of all remaining empty sprites
-@empty_sprite_loop:
-    lda num_drawn_sprites
-    cmp #NUM_SPRITES
-    bcs @back_to_main_loop
-
-    iny
-    lda #$0c
-    sta oam, Y                              ; just overwrite tile id
-    iny
-    iny
-    iny
-
-    inc num_drawn_sprites
-    jmp @empty_sprite_loop
-@back_to_main_loop:
-    rts
-.endproc
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; draw simple sprite tile
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; ARGS:
-; y                     - oam offset
-; var_1                 - x offset
-; var_2                 - y offset
-; var_3                 - shifted y offset (instead of 01 .. 10)
-; var_5                 - pos x
-; var_6                 - pos y
-; var_7                 - tile id
-; var_8                 - attribute id
 ;
-; RETURN:
-; y                     - update oam offset
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; move offset calculation to draw_object?
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Draw an animation frame.
+;
+; Parameters:
+;   x       - current OAM offset
+;   var_2   - frame size
+;   var_5   - X position
+;   var_6   - Y position
+;   var_7   - ID of the first tile
+;   var_8   - attribute
+;
+; Returns:
+;   x       - updated OAM offset
+;
+; Based on frame geometry (1x1, 2x2, 3x3, etc), calculates the positions and
+; draws all the tiles that make up the frame.
+;
+.proc draw_frame
+            dec var_2               ; subtract 1 from size
+            lda var_2               ; var_2 for height (rows)
+            sta var_1               ; var_1 for width (columns)
+            pha                     ; push it to stack ... we need it later again
+
+            ; compute the tile ID offset for the lowest row:
+            ; offset = (size - 1) * 16
+            asl
+            asl
+            asl
+            asl
+            sta var_3               ; var_3 for current offset
+
+            ; draw all the tiles, starting from the right-most one of the lowest
+            ; row and going left and up
+@draw_row:  jsr draw_tile           ; draw a tile
+            lda var_1               ; check if there are more on this row
+            beq :+                  ; if the row is done, advance to next (upper) one
+            dec var_1               ; else, advance one tile to the left
+            jmp @draw_row           ; repeat
+:           lda var_2               ; check remaining rows
+            beq @epic_end           ; if we're done, bail out
+            pla                     ; get original row width from the stack
+            sta var_1               ; reset the counter of tiles in a row
+            pha                     ; save it again on the stack
+            dec var_2               ; decrement the rows counter
+            lda var_3               ; load the tile ID offset
+            sec                     ; subtract the row pitch from it
+            sbc #16
+            sta var_3               ; and save back
+            jmp @draw_row           ; draw another row
+
+@epic_end:  pla                     ; restore the stack
+            rts
+.endproc
+
+
+;
+; Draw a single sprite tile.
+;
+; Parameters:
+;   x       - OAM offset
+;   var_1   - X offset
+;   var_2   - Y offset
+;   var_3   - row tile ID offset
+;   var_5   - X position
+;   var_6   - Y position
+;   var_7   - starting tile ID
+;   var_8   - attributes
+; Returns:
+;   x       - updated OAM offset
+;
+; TODO: move offset calculation to draw_frame?
+;
 .proc draw_tile
+            ; OAM entry structure reminder:
+            ;   byte 0: Y position of sprite's top side
+            ;   byte 1: tile index
+            ;   byte 2: attributes
+            ;   byte 3: X position of sprite's left side
 
-    mult_with_constant var_2, #PIXELS_PER_TILE, var_4
+            ; compute vertical offset in pixels
+            mult_with_constant var_2, #PIXELS_PER_TILE, temp_1
 
-    lda var_6
-    clc
-    adc var_4                              ; y offset
-    sta oam, Y
-    iny
+            lda var_6               ; load Y position
+            clc
+            adc temp_1              ; add the vertical offset in pixels to it
+            sta oam,x               ; write to OAM Y coord byte
 
-    lda var_7                               ; tile id
-    clc
-    adc var_1
-    adc var_3                               ; y offset (shifted version of temp2)
-    sta oam, y
-    iny
+            lda var_7               ; load tile id
+            clc
+            adc var_1               ; add column offset
+            adc var_3               ; add row offset
+            inx
+            sta oam,x               ; write to OAM tile id byte
 
-    lda var_8                               ; attribute id
-    sta oam, Y
-    iny
+            lda var_8               ; load attribute id
+            inx
+            sta oam,x               ; write to OAM attributes byte
 
-    mult_with_constant var_1, #PIXELS_PER_TILE, var_4
+            ; compute horizontal offset in pixels
+            mult_with_constant var_1, #PIXELS_PER_TILE, temp_1
 
-    lda var_5                               ; set x position
-    clc
-    adc var_4                               ; add x offset
-    sta oam, y
-    iny
+            lda var_5               ; load X position
+            clc
+            adc temp_1              ; add horizontal offset in pixels to it
+            inx
+            sta oam,x               ; write to OAM X coord byte
 
-    inc num_drawn_sprites
-    rts
-.endproc
+            inx                     ; advance to the beginning of next OAM entry
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; tick enemy animations
-; ARGS:
-; var_2                 - current current animation frame
-; address_2             - animation config
-;
-; RETURN:
-; var_2                 - updated anim frame
-;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; get current frame
-; increase current frame
-; if current frame exceeds bounds reset
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-.proc update_animation
-    inc var_2                               ; increase anim frame
-
-    ;ldy #$00
-    ;lda (address_2), Y
-    ;sta address_3
-    ;iny
-    ;lda (address_2), Y
-    ;sta address_3 + 1
-
-    ldy #$00                                ; 00 is anim length
-    lda (address_2), Y                      ; load anim length
-
-    cmp var_2
-
-    bne :+
-    lda #$00
-    sta var_2
-:
-    rts
-.endproc
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; DRAW OBJECT
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; ARGS:
-; x                     - oam offset
-; var_2                 - width/height of object
-;
-; base_tile_data:
-; var_5                 - pos x
-; var_6                 - pos y
-; var_7                 - tile id
-; var_8                 - attribute id
-;
-; address_1             - animation config
-;
-; RETURN:
-; x                     - updated oam offset
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Takes width/height of the object and calculates correct positions for all
-; for the separate tiles of the object
-; Result: all required tiles are saved in the shadow oam
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-.proc draw_object
-    lda var_2                               ; we use var_2 for heigth, var_1 for width
-    dec var_2
-    lda var_2
-    sta var_1                               ; store width on var_3 for height (atm everything is square)
-    pha                                     ; and push it to stack .. we need it later again
-
-    lda var_2
-    ; shifted y offset
-    ; offset to one tile in y axis means + 10 row so
-    asl
-    asl
-    asl
-    asl
-    sta var_3                               ; offset for tile id
-
-    ; now draw all associated tiles for this object
-    ; we start with the bottom y row
-
-    txa                                    ; move oam offset from x to y
-    tay
-
-@draw_tiles_loop:
-    jsr draw_tile
-    ; check if we have drawn all x tiles
-    lda var_1                               ; remaining tiles in x axis
-    cmp #$00
-    beq :+
-    dec var_1
-    jmp @draw_tiles_loop
-:   lda var_2                               ; remaining tiles in y axis
-    cmp #$00
-    beq @epic_end                           ; if we have reached the last y tile let's stop drawing tiles
-    pla                                     ; get original width from stack
-    sta var_1
-    pha
-    dec var_2
-    lda var_3
-    sec
-    sbc #$10
-    sta var_3
-    jmp @draw_tiles_loop
-@epic_end:                                  ; epic return
-    tya                                     ; oam offset from y to x again
-    tax
-
-    pla
-    rts
+            rts
 .endproc

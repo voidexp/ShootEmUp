@@ -145,22 +145,61 @@
 ;
 ; Iterate a pointer with fixed increments.
 ;
-.macro iter_ptr ptr, address, increment, body
+.macro iter_ptr ptr, end, offset, pred
 @loop:      lda ptr             ; load the low address
-            cmp #<address       ; compare it with target low part
+            cmp #<end           ; compare it with target low part
             bne @body           ; if doesnt match; execute teh body
             lda ptr + 1         ; load high address
-            cmp #>address       ; compare with target high part
-            beq @end            ; if match, we're done
-@body:      body                ; inlined code macro
+            cmp #>end           ; compare with target high part
+            beq @exit           ; if match, we're done
+@body:      pred                ; inlined code macro
             lda ptr             ; re-load the pointer
             clc
-            adc #increment      ; increment the low part
+            adc #offset         ; increment the low part
             sta ptr             ; write it back
             bcc @loop           ; repeat if no overflow occurred
             lda ptr + 1         ; load the high part
             adc 0               ; add carry
             sta ptr + 1         ; write it back
-            bcc @loop           ; repeat
-@end:
+            bcs @exit           ; repeat
+            jmp @body
+@exit:
+.endmacro
+
+
+;
+; Iterate a pointer over an array until Z flag is not set.
+;
+; Parameters:
+;   ptr     - iterator
+;   end     - end address (excluded)
+;   offset  - iteration offset
+;   pred    - predicate macro to execute on each iteration;
+;             should set Z flag as true condition
+;
+.macro find_ptr ptr, end, offset, pred
+@loop:
+    lda ptr
+    cmp #<end
+    bne @body
+    lda ptr + 1
+    cmp #>end
+    beq @not_found
+
+@body:
+    pred
+    beq @exit
+
+    lda ptr
+    clc
+    adc #offset
+    sta ptr
+    bcc @loop
+    lda ptr + 1
+    adc 0
+    sta ptr + 1
+    bcc @loop
+@not_found:
+    lda #$ff
+@exit:
 .endmacro

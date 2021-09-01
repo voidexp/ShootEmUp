@@ -4,7 +4,7 @@
 
 .import create_actor_component
 .import create_collision_component
-.import create_sprite_component
+.import create_sprite
 .import create_movement_component
 .import create_entity
 
@@ -82,7 +82,7 @@ player_ship_anim:
     lda #>player_ship_anim
     sta address_2 + 1
 
-    jsr create_sprite_component             ; arguments (address_1: owner, address_2: sprite config) => return address_3 of component
+    jsr create_sprite             ; arguments (address_1: owner, address_2: sprite config) => return address_3 of component
 
     ; 5. Store sprite component address in entity component buffer
     ldy #$06

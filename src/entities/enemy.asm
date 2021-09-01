@@ -1,13 +1,16 @@
 .include "globals.asm"
 .include "constants.asm"
+.include "macros.asm"
+.include "structs.asm"
 
 .import create_enemy_component
 .import create_collision_component
-.import create_sprite_component
+.import create_sprite
 .import create_movement_component
 .import create_entity
 
 .export spawn_spacetopus
+.export spawn_enemy_kind
 
 .rodata
 squady_idle_animation:
@@ -238,6 +241,97 @@ ufo_2_idle_animation:
 .endproc
 
 
+;
+; Spawn an enemy of a given kind.
+;
+; Parameters:
+;   var_1       - kind of enemy to spawn, see 'EnemyKind' enum
+;   var_2       - X coord
+;   var_3       - Y coord
+;
+; Returns:
+;   address_1   - address of the enemy object
+;
+; Finds the first enemy object with NONE kind, initializes and returns its
+; address.
+;
+.proc spawn_enemy_kind
+            lda #<enemies       ; let 'address_1' point to 'enemies' array
+            sta address_1
+            lda #>enemies
+            sta address_1 + 1
+
+.mac find_none                  ; macro executed on each 'Enemy' object
+            lda (address_1),y   ; if 'kind' is 0, Z is set and iteration stops
+.endmac
+
+            ldy #Enemy::kind    ; load 'kind' field offset to Y for indexing
+
+            ; find the first free enemy object, 'address_1' will point to it
+            find_ptr address_1, enemies_end, .sizeof(Enemy), find_none
+
+            lda var_3           ; enemy kind value
+            sta (address_1),y   ; save it to 'kind' field
+            lda var_1           ; X coord value
+            ldy #Enemy::pos     ; offset to X component of 'pos' field
+            sta (address_1),y   ; save X coord
+            lda var_2           ; Y coord value
+            iny                 ; offset to Y component of 'pos' field
+            sta (address_1),y   ; save Y coord
+
+            lda address_1       ; backup address_1 on stack
+            pha                 ; lo part
+            lda address_2 + 1
+            pha                 ; hi part
+
+            lda #<octi_idle_anim; point address_1 to desired animation
+            sta address_1
+            lda #>octi_idle_anim
+            sta address_1 + 1
+
+            jsr create_sprite   ; create a sprite, result in address_2
+
+            pla                 ; enemy address hi
+            sta address_1 + 1   ; restore to address_1 hi
+            pla                 ; enemy address lo part
+            sta address_1       ; restore to address_1 lo
+
+            ldy #Enemy::sprite  ; offset to sprite field
+            lda address_2       ; sprite addr lo byte
+            sta (address_1),y   ; write to sprite field lo
+            lda address_2 + 1   ; sprite addr hi byte
+            iny
+            sta (address_1),y   ; write to sprite field hi
+
+            rts
+.endproc
+
+
+;
+; Tick enemies.
+;
+; Iterates all enemy objects and performs collision detection, movement and
+; rendering.
+;
+.proc tick_enemies
+            lda #<enemies       ; let 'address_1' point to 'enemies' array
+            sta address_1
+            lda #>enemies
+            sta address_1 + 1
+
+.mac tick_enemy
+            ldy #Enemy::kind    ; load 'kind' field offset to Y for indexing
+            lda (address_1),y   ; if 'kind' is 0, Z is set and iteration stops
+
+            ; TODO: skip if 'kind' is NONE
+            ; TODO: check for collision detection
+            ; TODO: move
+            ; TODO: draw
+.endmac
+
+            rts
+.endproc
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; spawn an enemy
 ; ARGS:
@@ -292,7 +386,7 @@ ufo_2_idle_animation:
     sta address_2 + 1
 
     ; 4. Create SPRITE component
-    jsr create_sprite_component             ; arguments (address_1: owner, address_2: sprite config) => return address_3 of component
+    jsr create_sprite             ; arguments (address_1: owner, address_2: sprite config) => return address_3 of component
 
     ; 5. Store sprite component address in entity component buffer
     ldy #$06
