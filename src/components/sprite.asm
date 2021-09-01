@@ -32,6 +32,12 @@
 sprites: .res (.sizeof(Sprite) * 12)
 sprites_end:
 
+.rodata
+;
+; Table with pre-multiplied tile offsets in pixels
+;
+tile_offsets: .byte 0, PIXELS_PER_TILE, PIXELS_PER_TILE * 2, PIXELS_PER_TILE * 3
+
 .code
 ;
 ; Inititalize sprites subsystem.
@@ -243,12 +249,10 @@ sprites_end:
             ;   byte 2: attributes
             ;   byte 3: X position of sprite's left side
 
-            ; compute vertical offset in pixels
-            mult_with_constant var_2, #PIXELS_PER_TILE, temp_1
-
             lda var_6               ; load Y position
+            ldy var_2               ; index in the premultiplied sizes table
             clc
-            adc temp_1              ; add the vertical offset in pixels to it
+            adc tile_offsets,y      ; add the vertical offset in pixels to it
             sta oam,x               ; write to OAM Y coord byte
 
             lda var_7               ; load tile id
@@ -262,12 +266,10 @@ sprites_end:
             inx
             sta oam,x               ; write to OAM attributes byte
 
-            ; compute horizontal offset in pixels
-            mult_with_constant var_1, #PIXELS_PER_TILE, temp_1
-
             lda var_5               ; load X position
+            ldy var_1               ; index in the premultiplied sizes table
             clc
-            adc temp_1              ; add horizontal offset in pixels to it
+            adc tile_offsets,y      ; add horizontal offset in pixels to it
             inx
             sta oam,x               ; write to OAM X coord byte
 
