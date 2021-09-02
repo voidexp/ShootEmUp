@@ -9,11 +9,7 @@
 .import load_color_palettes
 .import background_palettes
 .import spawn_enemy_kind
-.import num_rainbows
 
-
-; TODO: move this to sprite.asm
-ANIMATION_SPEED = 8
 
 ;
 ; iNES header for the emulators.
@@ -45,6 +41,7 @@ ANIMATION_SPEED = 8
 
     starfield2: .incbin "../build/levels/starfield.lvl"
     starfield2_end:
+
 
 ;
 ; Zero-page RAM layout.
@@ -106,13 +103,14 @@ ANIMATION_SPEED = 8
     enemies: .res .sizeof(Enemy) * NUM_ENEMIES
     enemies_end:
 
-
+; export the stuff above, so it could be accessed by other code during linkage
 .exportzp temp_1, temp_2, temp_3, temp_4, temp_5, temp_6
 .exportzp var_1, var_2, var_3, var_4, var_5, var_6, var_7, var_8, var_9, var_10
 .exportzp address_1, address_2, address_3, address_4, address_5, address_6, address_7, address_8, address_9, address_10
 .exportzp update_flags, draw_flags
 .exportzp kill_count, num_enemies_alive
 .exportzp enemies, enemies_end
+
 
 ;
 ; PPU Object Attribute Memory - shadow RAM which holds rendering attributes
@@ -123,224 +121,220 @@ ANIMATION_SPEED = 8
 
 .export oam
 
-;
-; PRG-ROM, code.
-;
-.code
 
+.code
 ;
-; Entry point.
+; Execution entry point. After power-on and initial boot, the CPU jumps here.
 ;
 reset_handler:
-    sei        ; ignore IRQs
-    cld        ; disable decimal mode
-    ldx #$40
-    stx $4017  ; disable APU frame IRQ
-    ldx #$ff
-    txs        ; Set up stack
-    inx        ; now X = 0 (FF overflows)
-    stx $2000  ; disable NMI
-    stx $2001  ; disable rendering
-    stx $4010  ; disable DMC IRQs
+            sei             ; ignore IRQs
+            cld             ; disable decimal mode
+            ldx #$40
+            stx $4017       ; disable APU frame IRQ
+            ldx #$ff
+            txs             ; Set up stack
+            inx             ; now X = 0 (FF overflows)
+            stx $2000       ; disable NMI
+            stx $2001       ; disable rendering
+            stx $4010       ; disable DMC IRQs
 
-    ; Optional (omitted):
-    ; Set up mapper and jmp to further init code here.
+            ; Optional (omitted):
+            ; Set up mapper and jmp to further init code here.
 
-    ; The vblank flag is in an unknown state after reset,
-    ; so it is cleared here to make sure that vblankwait1
-    ; does not exit immediately.
+            ; The vblank flag is in an unknown state after reset, so it is
+            ; cleared here to make sure that vblankwait1 does not exit
+            ; immediately.
 
-    ; NOTE: reading $2002 clears the 7th bit, so, testing it effectively clears
-    ; it.
-    bit $2002
+            ; NOTE: reading $2002 clears the 7th bit, so, testing it effectively
+            ; clears it.
+            bit $2002
 
-    ; First of two waits for vertical blank to make sure that the
-    ; PPU has stabilized
+            ; First of two waits for vertical blank to make sure that the PPU
+            ; has stabilized
 vblankwait1:
-    bit $2002
-    bpl vblankwait1
+            bit $2002
+            bpl vblankwait1
 
-    ; We now have about 30,000 cycles to burn before the PPU stabilizes.
-    ; One thing we can do with this time is put RAM in a known state.
-    ; Here we fill it with $00, which matches what (say) a C compiler
-    ; expects for BSS.
-    ; Conveniently, X is still 0.
-    txa
-clrmem:
-    sta $000,x
-    sta $100,x
-    sta $200,x
-    sta $300,x
-    sta $400,x
-    sta $500,x
-    sta $600,x
-    sta $700,x
-    inx
-    bne clrmem
+            ; We now have about 30,000 cycles to burn before the PPU stabilizes.
+            ; One thing we can do with this time is put our 2k of RAM in a known
+            ; state. Here we fill it with $00, which matches what (say) a C
+            ; compiler expects for BSS. Conveniently, X is still 0.
+            txa
+clrmem:     sta $000,x
+            sta $100,x
+            sta $200,x
+            sta $300,x
+            sta $400,x
+            sta $500,x
+            sta $600,x
+            sta $700,x
+            inx
+            bne clrmem
 
-    ; Other things you can do between vblank waits are set up audio
-    ; or set up other mapper registers.
+            ; Other things you can do between vblank waits are set up audio or
+            ; set up other mapper registers.
 
-    ; Second of the two vblank waits. After this, we're ready to go.
+            ; Second of the two vblank waits. After this, we're ready to go.
 vblankwait2:
-    bit $2002
-    bpl vblankwait2
+            bit $2002
+            bpl vblankwait2
 
-;
-; Initialization section.
-;
-; Console initialization terminated, here we prepare our game stuff, initialize
-; subystems, load levels, spawn enemies, etc.
-; All covered by a nice black screen.
-;
-    ; spawn an enemy
-    lda #130                ; X coord
-    sta var_1
-    lda #100                ; Y coord
-    sta var_2
-    lda #EnemyKind::UFO     ; enemy kind
-    sta var_3
-    jsr spawn_enemy_kind
+            ;
+            ; Initialization section.
+            ;
+            ; PPU warm-up is done, finally we can do prepare our stuff,
+            ; initialize subystems, load levels, spawn enemies, etc.
+            ; All covered by a nice black screen.
+            ;
+            ; Spawn an enemy
+            lda #130                ; X coord
+            sta var_1
+            lda #100                ; Y coord
+            sta var_2
+            lda #EnemyKind::UFO     ; enemy kind
+            sta var_3
+            jsr spawn_enemy_kind
 
-;
-; Here we setup the PPU for drawing by writing apropriate memory-mapped
-; registers and specific memory locations.
-;
-; IMPORTANT! Writes to the PPU RAM afterwards should occur only during VBlank!
-;
-    ; First set the universal background color
-    lda #>VRAM_BGCOLOR
-    sta PPUADDR
-    lda #<VRAM_BGCOLOR
-    sta PPUADDR
+            ;
+            ; Here we setup the PPU for drawing by writing apropriate
+            ; memory-mapped registers and specific memory locations.
+            ;
+            ; IMPORTANT! Writes to the PPU RAM afterwards should occur only
+            ; during VBlank!
+            ;
+            ; First set the universal background color
+            lda #>VRAM_BGCOLOR
+            sta PPUADDR
+            lda #<VRAM_BGCOLOR
+            sta PPUADDR
 
-    lda #BG_COLOR
-    sta PPUDATA
+            lda #BG_COLOR
+            sta PPUDATA
 
-    ; write the background palette color indices
-    lda #>background_palettes   ; PALETTE_ADDR_HI
-    sta $00,X
-    dex
-    lda #<background_palettes   ; PALETTE_ADDR_LO
-    sta $00,X
-    dex
-    lda #<VRAM_BGR_PAL0         ; VRAM_PAL_ADDR_LO
-    sta $00,X
-    dex
-    lda #>VRAM_BGR_PAL0         ; VRAM_PAL_ADDR_HI
-    sta $00,X
-    dex
-    lda #$10                    ; NUM_COLORS
-    sta $00,X
-    dex
-    jsr load_color_palettes
+            ; write the background palette color indices
+            lda #>background_palettes   ; PALETTE_ADDR_HI
+            sta $00,X
+            dex
+            lda #<background_palettes   ; PALETTE_ADDR_LO
+            sta $00,X
+            dex
+            lda #<VRAM_BGR_PAL0         ; VRAM_PAL_ADDR_LO
+            sta $00,X
+            dex
+            lda #>VRAM_BGR_PAL0         ; VRAM_PAL_ADDR_HI
+            sta $00,X
+            dex
+            lda #$10                    ; NUM_COLORS
+            sta $00,X
+            dex
+            jsr load_color_palettes
 
-    ; write the sprite palette color indices
-    lda #>sprite_palettes       ; PALETTE_ADDR_HI
-    sta $00,X
-    dex
-    lda #<sprite_palettes       ; PALETTE_ADDR_LO
-    sta $00,X
-    dex
-    lda #<VRAM_SPR_PAL0         ; VRAM_PAL_ADDR_LO
-    sta $00,X
-    dex
-    lda #>VRAM_SPR_PAL0         ; VRAM_PAL_ADDR_HI
-    sta $00,X
-    dex
-    lda #$10                    ; NUM_COLORS
-    sta $00,X
-    dex
-    jsr load_color_palettes
+            ; write the sprite palette color indices
+            lda #>sprite_palettes       ; PALETTE_ADDR_HI
+            sta $00,X
+            dex
+            lda #<sprite_palettes       ; PALETTE_ADDR_LO
+            sta $00,X
+            dex
+            lda #<VRAM_SPR_PAL0         ; VRAM_PAL_ADDR_LO
+            sta $00,X
+            dex
+            lda #>VRAM_SPR_PAL0         ; VRAM_PAL_ADDR_HI
+            sta $00,X
+            dex
+            lda #$10                    ; NUM_COLORS
+            sta $00,X
+            dex
+            jsr load_color_palettes
 
-    ;
-    ; Populate nametable-0 with starfield1 stored in PRG-ROM
-    ;
-    size1 = starfield1_end - starfield1
-    lda #size1 & $ff        ; SIZE_LO
-    sta $00,X
-    dex
-    lda #size1 >> 8         ; SIZE_HI
-    sta $00,X
-    dex
-    lda #>starfield1        ; SRC_HI
-    sta $00,X
-    dex
-    lda #<starfield1        ; SRC_LO
-    sta $00,X
-    dex
-    lda #<VRAM_NAMETABLE0   ; VRAM_LO
-    sta $00,X
-    dex
-    lda #>VRAM_NAMETABLE0   ; VRAM_HI
-    sta $00,X
-    dex
-    jsr copy_to_vram
+            ;
+            ; Populate nametable-0 with starfield1 stored in PRG-ROM
+            ;
+            size1 = starfield1_end - starfield1
+            lda #size1 & $ff        ; SIZE_LO
+            sta $00,X
+            dex
+            lda #size1 >> 8         ; SIZE_HI
+            sta $00,X
+            dex
+            lda #>starfield1        ; SRC_HI
+            sta $00,X
+            dex
+            lda #<starfield1        ; SRC_LO
+            sta $00,X
+            dex
+            lda #<VRAM_NAMETABLE0   ; VRAM_LO
+            sta $00,X
+            dex
+            lda #>VRAM_NAMETABLE0   ; VRAM_HI
+            sta $00,X
+            dex
+            jsr copy_to_vram
 
-    ;
-    ; Populate nametable-2 with starfield2 stored in PRG-ROM
-    ;
-    size2 = starfield2_end - starfield2
-    lda #size2 & $ff        ; SIZE_LO
-    sta $00,X
-    dex
-    lda #size2 >> 8         ; SIZE_HI
-    sta $00,X
-    dex
-    lda #>starfield2        ; SRC_HI
-    sta $00,X
-    dex
-    lda #<starfield2        ; SRC_LO
-    sta $00,X
-    dex
-    lda #<VRAM_NAMETABLE2   ; VRAM_LO
-    sta $00,X
-    dex
-    lda #>VRAM_NAMETABLE2   ; VRAM_HI
-    sta $00,X
-    dex
+            ;
+            ; Populate nametable-2 with starfield2 stored in PRG-ROM
+            ;
+            size2 = starfield2_end - starfield2
+            lda #size2 & $ff        ; SIZE_LO
+            sta $00,X
+            dex
+            lda #size2 >> 8         ; SIZE_HI
+            sta $00,X
+            dex
+            lda #>starfield2        ; SRC_HI
+            sta $00,X
+            dex
+            lda #<starfield2        ; SRC_LO
+            sta $00,X
+            dex
+            lda #<VRAM_NAMETABLE2   ; VRAM_LO
+            sta $00,X
+            dex
+            lda #>VRAM_NAMETABLE2   ; VRAM_HI
+            sta $00,X
+            dex
 
-    jsr copy_to_vram
+            jsr copy_to_vram
 
-    ;
-    ; Clear PPU status and scroll registers
-    ;
-    bit PPUSTAT
-    lda #$00
-    sta PPUSCRL
-    sta PPUSCRL
+            ;
+            ; Clear PPU status and scroll registers
+            ;
+            bit PPUSTAT
+            lda #$00
+            sta PPUSCRL
+            sta PPUSCRL
 
-    ; Clear OAMDATA address
-    lda #$00
-    sta OAMADDR
+            ; Clear OAMDATA address
+            lda #$00
+            sta OAMADDR
 
-    ; Enable sprite drawing
-    lda #$1e
-    sta PPUMASK
+            ; Enable sprite drawing
+            lda #$1e
+            sta PPUMASK
 
-    ; Ready to go, enable VBlank NMI, all subsequent writes should take place
-    ; during VBlank, inside NMI handler.
-    lda #$90
-    sta PPUCTRL
+            ; Ready to go, enable VBlank NMI, all subsequent writes should take
+            ; place during VBlank, inside NMI handler.
+            lda #$90
+            sta PPUCTRL
 
-
-;
-; Main loop.
-;
-; All simulation, game logic, advancing animations, moving stuff around, bank
-; switching and whatever else goes here.
-;
-; NOTE: this is executed *in parallel* with the PPU. Actual writes to PPU
-; registers, DMA and everything else should occur *only* in the NMI handler
-; during vblank!
-;
+            ;
+            ; Finally, the never ending Main Loop!
+            ;
+            ; All simulation, game logic, advancing animations, moving stuff
+            ; around, bank switching and whatever else makes up the actual game
+            ; goes here.
+            ;
+            ; NOTE: this is executed *in parallel* with the PPU. Actual writes
+            ; to PPU registers, DMA and everything else should occur *only* in
+            ; the NMI handler during VBlank!
+            ;
 main:
-    jsr wait_frame      ; just waste cycles until a new frame is requested
+            jsr wait_frame      ; just waste cycles until a new frame is ready
 
-    ldy #0              ; oam,y is used as cursor to shadow OAM, clear it
-    jsr draw_sprites
+            ldy #0              ; oam,y is used as shadow OAM cursor, zero it
+            jsr draw_sprites
 
-    jmp main
+            jmp main
 
 
 ;
@@ -357,44 +351,50 @@ main:
 ;
 ; PPU vblank Non-Masked Interrupt handler.
 ;
+; Executed by the CPU when the PPU signals that vblank period has started.
+;
+; Note that we must make sure that all this code takes less than ~2250 cycles to
+; execute.
 nmi_handler:
-    ; push registers to stack
-    pha
-    txa
-    pha
-    tya
-    pha
+            ; push registers to stack
+            pha
+            txa
+            pha
+            tya
+            pha
 
-    ; clear the frame waiting flag
-    lda #0
-    sta sleeping
+            ; clear the frame waiting flag
+            lda #0
+            sta sleeping
 
-    ; scroll up the Y axis
-    lda scroll_y
-    bne :+
-    sbc #$0f        ; wtf?! just figured out this number empirically, but why
-                    ; it's needed in first place?
-:   sbc #$01
-    sta scroll_y
+            ; scroll up the Y axis
+            lda scroll_y
+            bne :+
+            ; WTF?! just figured out this number empirically, but why it's
+            ; needed in first place?
+            sbc #$0f
+:           sbc #$01
+            sta scroll_y
 
-    ; Perform DMA copy of shadow OAM to PPU's OAM
-    lda #>oam
-    sta $4014
+            ; perform DMA copy of shadow OAM to PPU's OAM
+            lda #>oam
+            sta $4014
 
-    ; set scroll, what pixel of the NT should be on the left top of the screen
-    lda scroll_x
-    sta PPUSCRL
-    lda scroll_y
-    sta PPUSCRL
+            ; set scroll, what pixel of the NT should be on the left top of the
+            ; screen
+            lda scroll_x
+            sta PPUSCRL
+            lda scroll_y
+            sta PPUSCRL
 
-    ; restore the registers
-    pla
-    tay
-    pla
-    tax
-    pla
+            ; restore the registers
+            pla
+            tay
+            pla
+            tax
+            pla
 
-    rti
+            rti
 
 
 ;
