@@ -14,7 +14,9 @@
     pos     .word   ; X,Y coordinates
     anim    .addr   ; animation descriptor
     frame   .byte   ; current animation frame index
+    elapsed .byte   ; number of frames elapsed since last frame advance
 .endstruct
+
 
 ;
 ; Animation descriptor (read-only).
@@ -27,16 +29,19 @@
     size    .byte   ; frame size in tiles
 .endstruct
 
+
 .segment "BSS"
 ; array of sprite components
-sprites: .res (.sizeof(Sprite) * 12)
+sprites: .res (.sizeof(Sprite) * 8)
 sprites_end:
+
 
 .rodata
 ;
 ; Table with pre-multiplied tile offsets in pixels
 ;
 tile_offsets: .byte 0, PIXELS_PER_TILE, PIXELS_PER_TILE * 2, PIXELS_PER_TILE * 3
+
 
 .code
 ;
@@ -96,6 +101,9 @@ tile_offsets: .byte 0, PIXELS_PER_TILE, PIXELS_PER_TILE * 2, PIXELS_PER_TILE * 3
             lda #$00                ; new sprites always start animation from beginning
             sta (address_2),y       ; save frame index
 
+            ldy #Sprite::elapsed    ; offset to 'elapsed' field
+            sta (address_2),y       ; zero it out
+
             rts
 .endproc
 
@@ -126,19 +134,36 @@ tile_offsets: .byte 0, PIXELS_PER_TILE, PIXELS_PER_TILE * 2, PIXELS_PER_TILE * 3
             lda (address_1),y       ; load lo addr part
             sta address_3           ; store to address_3 lo byte
 
-            ldy #Sprite::frame      ; load the frame counter
-            lda (address_1),y
-            clc                     ; increment it, free automatic reset on overflow :)
-            adc #1
-            ldy #Animation::length  ; compare with animation length in the descriptor
-            cmp (address_3),y
+            ;
+            ; Advance the animation frame if enough frames passed since last
+            ; update.
+            ;
+            ldy #Sprite::frame
+            lda (address_1),y       ; load current frame value
+            sta var_4               ; copy to var_4, used both as temporary var and argument later
+
+            ldy #Sprite::elapsed
+            lda (address_1),y       ; load elapsed frames counter
+            clc
+            adc #1                  ; increment it; use addition since there's no indexed inc
+            sta (address_1),y       ; save back to 'elapsed' field
+            ldy #Animation::speed
+            cmp (address_3),y       ; compare elapsed counter with reference speed value
+            bne :++                 ; if not reached, skip frame advance, var_4 left as-is
+            lda #0                  ; else, reset elapsed frames counter
+            ldy #Sprite::elapsed
+            sta (address_1),y       ; save the new frame counter back to 'elapsed' field
+            inc var_4               ; advance the frame index
+            lda var_4
+            ldy #Animation::length
+            cmp (address_3),y       ; compare it with animation length in the descriptor
             bne :+
             lda #0                  ; reset if last frame is reached
-:           ldy #Sprite::frame      ; write back the new value
-            sta (address_1),y
-            sta var_4               ; copy it also to var_4
+:           ldy #Sprite::frame
+            sta (address_1),y       ; save the new frame index back to 'frame' field
+            sta var_4
 
-            ldy #Animation::size    ; load the sprite size
+:           ldy #Animation::size    ; load the sprite size
             lda (address_3),y
             sta var_2               ; copy it to var_2
 

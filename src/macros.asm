@@ -148,17 +148,19 @@
 .macro iter_ptr ptr, end, offset, pred
 @loop:      lda ptr             ; load the low address
             cmp #<end           ; compare it with target low part
-            bne @body           ; if doesnt match; execute teh body
+            bne @body           ; if doesnt match, execute the body
             lda ptr + 1         ; load high address
             cmp #>end           ; compare with target high part
-            beq @exit           ; if match, we're done
+            bne @body           ; if doesn't match, execute the body
+            jmp @exit           ; otherwise do a long jump to the exit
 @body:      pred                ; inlined code macro
             lda ptr             ; re-load the pointer
             clc
             adc #offset         ; increment the low part
             sta ptr             ; write it back
-            bcc @loop           ; repeat if no overflow occurred
-            lda ptr + 1         ; load the high part
+            bcs :+              ; repeat if no overflow occurred
+            jmp @loop
+:           lda ptr + 1         ; load the high part
             adc 0               ; add carry
             sta ptr + 1         ; write it back
             bcs @exit           ; repeat
