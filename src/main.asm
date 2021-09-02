@@ -3,21 +3,12 @@
 .include "macros.asm"
 .include "structs.asm"
 
-.import draw_end_text
 .import draw_sprites
-; .import update_collision_components
-; .import update_movement_components
-; .import update_actor_components
 .import copy_to_vram
 .import sprite_palettes
 .import load_color_palettes
 .import background_palettes
 .import spawn_enemy_kind
-; .import spawn_spacetopus
-; .import create_player
-; .import create_flame
-; .import create_player_projectile
-; .import initialize_entities
 .import num_rainbows
 
 
@@ -55,8 +46,8 @@ ANIMATION_SPEED = 8
     starfield2: .incbin "../build/levels/starfield.lvl"
     starfield2_end:
 
-
-; Zero-page RAM.
+;
+; Zero-page RAM layout.
 ;
 .zeropage
     frame_counter:      .res 1  ; current frame, wraps at $ff
@@ -73,7 +64,7 @@ ANIMATION_SPEED = 8
     ; draw flags
     update_flags:       .res 1  ; flags what to update (0000 000 UPDATE_POSITIONS)
     draw_flags:         .res 1  ; flags what to draw in the next frame (0000 000 DRAW_FLAME)
-    update_animations:  .res 1  ; update animations
+    sleeping:           .res 1  ; is waiting for vblank?
 
     ; tmp variables
     temp_1:             .res 1
@@ -136,6 +127,10 @@ ANIMATION_SPEED = 8
 ; PRG-ROM, code.
 ;
 .code
+
+;
+; Entry point.
+;
 reset_handler:
     sei        ; ignore IRQs
     cld        ; disable decimal mode
@@ -168,7 +163,8 @@ vblankwait1:
     ; We now have about 30,000 cycles to burn before the PPU stabilizes.
     ; One thing we can do with this time is put RAM in a known state.
     ; Here we fill it with $00, which matches what (say) a C compiler
-    ; expects for BSS.  Conveniently, X is still 0.
+    ; expects for BSS.
+    ; Conveniently, X is still 0.
     txa
 clrmem:
     sta $000,x
@@ -185,60 +181,18 @@ clrmem:
     ; Other things you can do between vblank waits are set up audio
     ; or set up other mapper registers.
 
+    ; Second of the two vblank waits. After this, we're ready to go.
 vblankwait2:
     bit $2002
     bpl vblankwait2
 
-
-ready:
-    ; initialize settings
-    lda #$00
-    sta update_animations
-
-    lda #$00
-    sta kill_count
-    sta shoot_cooldown
-    sta num_rainbows
-
-    ; jsr initialize_entities
-    ; jsr create_player_projectile
-
-    ; create flame entity
-    ; lda #$84                                ; x-Pos
-    ; sta var_1
-
-    ; lda #$bc                                ; y-Pos
-    ; sta var_2
-
-    ; jsr create_flame
-
-    ; store flame address in address 2 so it can be correctly linked to the player actor component
-    ; lda address_1
-    ; sta address_4
-
-    ; lda address_1 + 1
-    ; sta address_4 + 1
-
-    ; lda #$80
-    ; sta var_1
-
-    ; lda #$b0
-    ; sta var_2
-
-    ; lda #$00
-    ; sta var_3
-    ; lda #$00
-    ; sta var_4
-
-    ; jsr create_player
-
-    ; lda address_1
-    ; sta player_entity_adr
-
-    ; iny
-    ; lda address_1 + 1
-    ; sta player_entity_adr + 1
-
+;
+; Initialization section.
+;
+; Console initialization terminated, here we prepare our game stuff, initialize
+; subystems, load levels, spawn enemies, etc.
+; All covered by a nice black screen.
+;
     ; spawn an enemy
     lda #130                ; X coord
     sta var_1
@@ -254,7 +208,6 @@ ready:
 ;
 ; IMPORTANT! Writes to the PPU RAM afterwards should occur only during VBlank!
 ;
-ppusetup:
     ; First set the universal background color
     lda #>VRAM_BGCOLOR
     sta PPUADDR
@@ -357,9 +310,6 @@ ppusetup:
     sta PPUSCRL
     sta PPUSCRL
 
-    lda #$01
-    sta player_speed
-
     ; Clear OAMDATA address
     lda #$00
     sta OAMADDR
@@ -373,125 +323,39 @@ ppusetup:
     lda #$90
     sta PPUCTRL
 
+
+;
+; Main loop.
+;
+; All simulation, game logic, advancing animations, moving stuff around, bank
+; switching and whatever else goes here.
+;
+; NOTE: this is executed *in parallel* with the PPU. Actual writes to PPU
+; registers, DMA and everything else should occur *only* in the NMI handler
+; during vblank!
+;
 main:
-    ;
-    ; Display the message on screen using sprites representing ASCII symbols
-    ;
-    ldx #$00 ; character index
-    ldy #$00 ; byte offset
+    jsr wait_frame      ; just waste cycles until a new frame is requested
 
-    ; jsr handle_input ; process input and reposition the ship
-    ;
-    ; update position of player
-    ; check if one of the position bits is set if so, update the position of the player
-update_player_position:
-    ; check how often to increase the player position, depending on the speed
-    lda update_flags
-    cmp #$01  ; check if the last frame was drawn then update the position for the next one
-    bcc update_anim_components
-
-
-    ; UPDATE COMPONENTS
-    ; jsr update_actor_components             ; process_controller_input
-    ; jsr update_movement_components
-    ; jsr update_collision_components
-
-
-update_anim_components:
-    lda update_animations
-    cmp #ANIMATION_SPEED
-    bcc start_rendering
-    lda #$00
-    sta update_animations
-
-start_rendering:
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; START RENDERING SET OAM OFFSET TO 0
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ldy #$00
-
-draw_kill_count:
-
-    lda num_enemies_alive
-    ; cmp #$02
-    ; bcc check_game_state
-    lda #$0a        ; sprite xpos
-    sta var_2
-    lda kill_count
-    sta var_1
-    cmp #$0a
-
-    bcc :+
-
-    lda var_1
-    sec
-    sbc #$0a
-    sta var_1
-
-    ; move xpos for second tile
-    lda var_2
-    clc
-    adc #$08
-    sta var_2
-
-    lda #$0c
-    sta oam,Y
-    iny
-    ; sprite id
-    lda #$31
-    sta oam,Y
-    iny
-    ; sprite attrs
-    lda #$01
-    sta oam,Y
-    iny
-    ; X coord
-    lda #$0a
-    sta oam,Y
-    iny
-
-:   lda #$0c
-    sta oam,Y
-    iny
-    ; sprite id
-    lda #$30
-    clc
-    adc var_1
-    sta oam,Y
-    iny
-    ; sprite attrs
-    lda #$01
-    sta oam,Y
-    iny
-    ; X coord
-    lda var_2
-    sta oam,Y
-    iny
-
-components:
+    ldy #0              ; oam,y is used as cursor to shadow OAM, clear it
     jsr draw_sprites
-    jmp return_to_main
-check_game_state:
-    lda num_enemies_alive
-    cmp #$02
-    bcs return_to_main
-
-    tya
-    pha
-    ; jsr create_rainbow
-    pla
-    tay
-    jsr draw_end_text
-
-
-
-return_to_main:
 
     jmp main
 
 
 ;
-; Handle non-masked interrupts
+; Wait for a new frame.
+;
+.proc wait_frame
+            inc sleeping    ; set sleeping flag, the PPU will clear it
+@loop:      lda sleeping    ; if sleeping is zero, Z flag will be set
+            bne @loop       ; loop until the flag is cleared by the PPU
+            rts
+.endproc
+
+
+;
+; PPU vblank Non-Masked Interrupt handler.
 ;
 nmi_handler:
     ; push registers to stack
@@ -501,12 +365,9 @@ nmi_handler:
     tya
     pha
 
-    ; increment the frame counter
-    inc frame_counter
-
-    inc update_flags
-
-    inc update_animations
+    ; clear the frame waiting flag
+    lda #0
+    sta sleeping
 
     ; scroll up the Y axis
     lda scroll_y
@@ -535,18 +396,13 @@ nmi_handler:
 
     rti
 
+
 ;
 ; Handle IRQs
 ;
 irq_handler:
     rti
 
-
-;
-; handle input
-;
-handle_input:
-    rts
 
 ;
 ; Interrupt handler vectors (pointers).
