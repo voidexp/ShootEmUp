@@ -63,36 +63,44 @@
     draw_flags:         .res 1  ; flags what to draw in the next frame (0000 000 DRAW_FLAME)
     sleeping:           .res 1  ; is waiting for vblank?
 
-    ; tmp variables
-    temp_1:             .res 1
-    temp_2:             .res 1
-    temp_3:             .res 1
-    temp_4:             .res 1
-    temp_5:             .res 1
-    temp_6:             .res 1
+    ; temporary variables, for subroutine internal use, unprotected, may be
+    ; changed at will by nested calls
+    tmp1:               .res 1
+    tmp2:               .res 1
+    tmp3:               .res 1
+    tmp4:               .res 1
+    tmp5:               .res 1
+    tmp6:               .res 1
+    tmp7:               .res 1
+    tmp8:               .res 1
+    tmp9:               .res 1
+    tmp10:              .res 1
 
-    var_1:              .res 1
-    var_2:              .res 1
-    var_3:              .res 1
-    var_4:              .res 1
-    var_5:              .res 1
-    var_6:              .res 1
-    var_7:              .res 1
-    var_8:              .res 1
-    var_9:              .res 1
-    var_10:             .res 1
+    ; variables for passing data in and out from subroutines, protected, unless
+    ; explicitly stated otherwise
+    var1:               .res 1
+    var2:               .res 1
+    var3:               .res 1
+    var4:               .res 1
+    var5:               .res 1
+    var6:               .res 1
+    var7:               .res 1
+    var8:               .res 1
+    var9:               .res 1
+    var10:              .res 1
 
-    ; temp_address
-    address_1:          .res 2
-    address_2:          .res 2
-    address_3:          .res 2
-    address_4:          .res 2
-    address_5:          .res 2
-    address_6:          .res 2
-    address_7:          .res 2
-    address_8:          .res 2
-    address_9:          .res 2
-    address_10:         .res 2
+    ; pointers for passing addresses in and out from subroutines, protected,
+    ; unless explicitly stated otherwise
+    ptr1:               .res 2
+    ptr2:               .res 2
+    ptr3:               .res 2
+    ptr4:               .res 2
+    ptr5:               .res 2
+    ptr6:               .res 2
+    ptr7:               .res 2
+    ptr8:               .res 2
+    ptr9:               .res 2
+    ptr10:              .res 2
 
     ; game mode stuff
     kill_count:         .res 1
@@ -104,9 +112,9 @@
     enemies_end:
 
 ; export the stuff above, so it could be accessed by other code during linkage
-.exportzp temp_1, temp_2, temp_3, temp_4, temp_5, temp_6
-.exportzp var_1, var_2, var_3, var_4, var_5, var_6, var_7, var_8, var_9, var_10
-.exportzp address_1, address_2, address_3, address_4, address_5, address_6, address_7, address_8, address_9, address_10
+.exportzp tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8, tmp9, tmp10
+.exportzp var1, var2, var3, var4, var5, var6, var7, var8, var9, var10
+.exportzp ptr1, ptr2, ptr3, ptr4, ptr5, ptr6, ptr7, ptr8, ptr9, ptr10
 .exportzp update_flags, draw_flags
 .exportzp kill_count, num_enemies_alive
 .exportzp enemies, enemies_end
@@ -127,16 +135,16 @@
 ; Execution entry point. After power-on and initial boot, the CPU jumps here.
 ;
 reset_handler:
-            sei             ; ignore IRQs
-            cld             ; disable decimal mode
+            sei                     ; ignore IRQs
+            cld                     ; disable decimal mode
             ldx #$40
-            stx $4017       ; disable APU frame IRQ
+            stx $4017               ; disable APU frame IRQ
             ldx #$ff
-            txs             ; Set up stack
-            inx             ; now X = 0 (FF overflows)
-            stx $2000       ; disable NMI
-            stx $2001       ; disable rendering
-            stx $4010       ; disable DMC IRQs
+            txs                     ; Set up stack
+            inx                     ; now X = 0 (FF overflows)
+            stx $2000               ; disable NMI
+            stx $2001               ; disable rendering
+            stx $4010               ; disable DMC IRQs
 
             ; Optional (omitted):
             ; Set up mapper and jmp to further init code here.
@@ -188,11 +196,11 @@ vblankwait2:
             ;
             ; Spawn an enemy
             lda #130                ; X coord
-            sta var_1
+            sta var1
             lda #100                ; Y coord
-            sta var_2
+            sta var2
             lda #EnemyKind::UFO     ; enemy kind
-            sta var_3
+            sta var3
             jsr spawn_enemy_kind
 
             ;
@@ -212,37 +220,37 @@ vblankwait2:
             sta PPUDATA
 
             ; write the background palette color indices
-            lda #>background_palettes   ; PALETTE_ADDR_HI
+            lda #>background_palettes; PALETTE_ADDR_HI
             sta $00,X
             dex
-            lda #<background_palettes   ; PALETTE_ADDR_LO
+            lda #<background_palettes; PALETTE_ADDR_LO
             sta $00,X
             dex
-            lda #<VRAM_BGR_PAL0         ; VRAM_PAL_ADDR_LO
+            lda #<VRAM_BGR_PAL0     ; VRAM_PAL_ADDR_LO
             sta $00,X
             dex
-            lda #>VRAM_BGR_PAL0         ; VRAM_PAL_ADDR_HI
+            lda #>VRAM_BGR_PAL0     ; VRAM_PAL_ADDR_HI
             sta $00,X
             dex
-            lda #$10                    ; NUM_COLORS
+            lda #$10                ; NUM_COLORS
             sta $00,X
             dex
             jsr load_color_palettes
 
             ; write the sprite palette color indices
-            lda #>sprite_palettes       ; PALETTE_ADDR_HI
+            lda #>sprite_palettes   ; PALETTE_ADDR_HI
             sta $00,X
             dex
-            lda #<sprite_palettes       ; PALETTE_ADDR_LO
+            lda #<sprite_palettes   ; PALETTE_ADDR_LO
             sta $00,X
             dex
-            lda #<VRAM_SPR_PAL0         ; VRAM_PAL_ADDR_LO
+            lda #<VRAM_SPR_PAL0     ; VRAM_PAL_ADDR_LO
             sta $00,X
             dex
-            lda #>VRAM_SPR_PAL0         ; VRAM_PAL_ADDR_HI
+            lda #>VRAM_SPR_PAL0     ; VRAM_PAL_ADDR_HI
             sta $00,X
             dex
-            lda #$10                    ; NUM_COLORS
+            lda #$10                ; NUM_COLORS
             sta $00,X
             dex
             jsr load_color_palettes
@@ -329,9 +337,9 @@ vblankwait2:
             ; the NMI handler during VBlank!
             ;
 main:
-            jsr wait_frame      ; just waste cycles until a new frame is ready
+            jsr wait_frame          ; just waste cycles until a new frame is ready
 
-            ldy #0              ; oam,y is used as shadow OAM cursor, zero it
+            ldy #0                  ; oam,y is used as shadow OAM cursor, zero it
             jsr draw_sprites
 
             jmp main
@@ -341,9 +349,9 @@ main:
 ; Wait for a new frame.
 ;
 .proc wait_frame
-            inc sleeping    ; set sleeping flag, the PPU will clear it
-@loop:      lda sleeping    ; if sleeping is zero, Z flag will be set
-            bne @loop       ; loop until the flag is cleared by the PPU
+            inc sleeping            ; set sleeping flag, the PPU will clear it
+@loop:      lda sleeping            ; if sleeping is zero, Z flag will be set
+            bne @loop               ; loop until the flag is cleared by the PPU
             rts
 .endproc
 
@@ -401,7 +409,7 @@ nmi_handler:
 ; Handle IRQs
 ;
 irq_handler:
-    rti
+            rti
 
 
 ;

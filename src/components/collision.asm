@@ -40,15 +40,15 @@ num_collision_results:          .res 1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; CREATES COLLISION COMPONENT
 ; Args:
-;   var_1               - collision mask
-;   var_2               - collision layer
-;   var_3               - width
-;   var_4               - height
+;   var1               - collision mask
+;   var2               - collision layer
+;   var3               - width
+;   var4               - height
 
-;   address_1           - owner
+;   ptr1           - owner
 ;
 ; Result:
-;   address_2           - address of the coll component
+;   ptr2           - address of the coll component
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    .addr owner
 ;    .byte collision_mask
@@ -70,49 +70,49 @@ num_collision_results:          .res 1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .proc create_collision_component
     ; calculate offset in current component buffer
-    mult_with_constant num_collision_components, #COLL_COMP_SIZE, var_5
+    mult_with_constant num_collision_components, #COLL_COMP_SIZE, var5
 
-    calc_address_with_offset collision_component_container, var_5, address_2 ; use address_2 as address_3 is return address
+    calc_address_with_offset collision_component_container, var5, ptr2 ; use ptr2 as ptr3 is return address
 
     ldy #$00                                ; owner lo
-    lda address_1
-    sta (address_2), y
+    lda ptr1
+    sta (ptr2), y
 
     iny
-    lda address_1 + 1                       ; owner hi
-    sta (address_2), y
+    lda ptr1 + 1                       ; owner hi
+    sta (ptr2), y
     iny
 
-    lda var_1                               ; collision mask
-    sta (address_2), y
+    lda var1                               ; collision mask
+    sta (ptr2), y
     iny
 
-    lda var_2                               ; collision layer
-    sta (address_2), y
+    lda var2                               ; collision layer
+    sta (ptr2), y
     iny
 
-    mult_with_constant var_3, #4, var_5     ; multiply by eight -> size in pixel
-    lda var_5                               ; xMin
+    mult_with_constant var3, #4, var5     ; multiply by eight -> size in pixel
+    lda var5                               ; xMin
     clc
     eor #$ff
     adc #$01
-    sta (address_2), y
+    sta (ptr2), y
     iny
 
-    lda var_5                               ; xMax
-    sta (address_2), y
+    lda var5                               ; xMax
+    sta (ptr2), y
     iny
 
-    mult_with_constant var_4, #4, var_5     ; multiply by eight -> size in pixel
-    lda var_5                               ; yMin
+    mult_with_constant var4, #4, var5     ; multiply by eight -> size in pixel
+    lda var5                               ; yMin
     clc
     eor #$ff
     adc #$01
-    sta (address_2), y
+    sta (ptr2), y
     iny
 
-    lda var_5                               ; yMax
-    sta (address_2), y
+    lda var5                               ; yMax
+    sta (ptr2), y
     iny
 
     inc num_collision_components
@@ -139,40 +139,40 @@ num_collision_results:          .res 1
     ldy #$00
 
     lda #<collision_results
-    sta address_2
+    sta ptr2
 
     lda #>collision_results
-    sta address_2 + 1
+    sta ptr2 + 1
     ; process collision
 
-    lda (address_2), Y                      ; Get first entity address lo byte
-    sta address_3
+    lda (ptr2), Y                      ; Get first entity address lo byte
+    sta ptr3
     iny
 
-    lda (address_2), y                      ; Get first entity address hi byte
-    sta address_3 + 1
+    lda (ptr2), y                      ; Get first entity address hi byte
+    sta ptr3 + 1
     iny
 
-    lda (address_2), Y                      ; get address of second entity
-    sta address_4
+    lda (ptr2), Y                      ; get address of second entity
+    sta ptr4
     iny
 
-    lda (address_2), Y
-    sta address_4 + 1
+    lda (ptr2), Y
+    sta ptr4 + 1
     iny
 
-    lda address_3
-    sta address_1
+    lda ptr3
+    sta ptr1
 
-    lda address_3 + 1
-    sta address_1 + 1
+    lda ptr3 + 1
+    sta ptr1 + 1
     jsr disable_all_entity_components
 
-    lda address_4
-    sta address_1
+    lda ptr4
+    sta ptr1
 
-    lda address_4 + 1
-    sta address_1 + 1
+    lda ptr4 + 1
+    sta ptr1 + 1
     jsr disable_all_entity_components
 
     rts
@@ -192,23 +192,23 @@ num_collision_results:          .res 1
     sta num_collision_results
 
     lda #<collision_component_container
-    sta address_1
+    sta ptr1
 
     lda #>collision_component_container
-    sta address_1 + 1
+    sta ptr1 + 1
 
     lda #<collision_results
-    sta address_4
+    sta ptr4
 
     lda #>collision_results
-    sta address_4 + 1
+    sta ptr4 + 1
 
     ldy #$00
     tya                                     ; push y to stack
     pha
 
     lda num_collision_components
-    sta var_10
+    sta var10
     cmp #$00
     bne @first_loop                         ; early out if list is empty
     rts
@@ -216,73 +216,73 @@ num_collision_results:          .res 1
     pla                                     ; get y from stack
     tay
 
-    lda var_10
+    lda var10
     cmp #$00
     bne :+
     rts
-:   lda (address_1), y                      ; Get entity address lo byte
-    sta address_2
+:   lda (ptr1), y                      ; Get entity address lo byte
+    sta ptr2
     iny
 
-    lda (address_1), y                      ; Get entity address hi byte
-    sta address_2 + 1
+    lda (ptr1), y                      ; Get entity address hi byte
+    sta ptr2 + 1
     iny
 
     tya                                     ; push y to stack
     pha
 
     ldy #$00                                ; get x, y position from the entity
-    lda (address_2), y
-    sta var_1                               ; var_1 => x pos
+    lda (ptr2), y
+    sta var1                               ; var1 => x pos
     iny
 
-    lda (address_2), y
-    sta var_2                               ; var_2 => y pos
+    lda (ptr2), y
+    sta var2                               ; var2 => y pos
     iny
 
     iny                                     ; check if this component is active or not
-    lda (address_2), Y
-    sta var_3
+    lda (ptr2), Y
+    sta var3
     lda #COLLISION_CMP
-    bit var_3
+    bit var3
     bne :+
 
-    dec var_10
+    dec var10
     jmp @first_loop
 
  :  pla                                     ; get collision offset from buffer
     tay
 
-    lda (address_1), y                      ; collision mask
-    sta var_3
+    lda (ptr1), y                      ; collision mask
+    sta var3
     iny
 
-    lda (address_1), y                      ; collision layer
-    sta var_4
+    lda (ptr1), y                      ; collision layer
+    sta var4
     iny
 
-    lda (address_1), y                      ; xMin => xMinOffset + xPos  =>     var_5
+    lda (ptr1), y                      ; xMin => xMinOffset + xPos  =>     var5
     clc
-    adc var_1
-    sta var_5
+    adc var1
+    sta var5
     iny
 
-    lda (address_1), Y                      ; xMax => xMinOffset + xPos =>      var_6
+    lda (ptr1), Y                      ; xMax => xMinOffset + xPos =>      var6
     clc
-    adc var_1
-    sta var_6
+    adc var1
+    sta var6
     iny
 
-    lda (address_1), Y                      ; yMin => yMaxOffset + yPos =>      var_1
+    lda (ptr1), Y                      ; yMin => yMaxOffset + yPos =>      var1
     clc
-    adc var_2
-    sta var_1
+    adc var2
+    sta var1
     iny
 
-    lda (address_1), Y                      ; yMax => yMaxOffset + yPos =>      var_2
+    lda (ptr1), Y                      ; yMax => yMaxOffset + yPos =>      var2
     clc
-    adc var_2
-    sta var_2
+    adc var2
+    sta var2
     iny
 
     tya                                     ; push y to stack
@@ -290,77 +290,77 @@ num_collision_results:          .res 1
 
     ; prepare the variables and there we go
     lda num_collision_components
-    sta var_9
+    sta var9
     ldy #$00
 
 ; let the maddness begin
 @second_loop:
-    lda var_9
+    lda var9
     cmp #$00
     bne :+
-    dec var_10
+    dec var10
     jmp @first_loop
     ; lets get this other collision component
-:   ; lda var_9                               ; if both items (first and second loop) have the same offset continue to the next item
-    cmp var_10
+:   ; lda var9                               ; if both items (first and second loop) have the same offset continue to the next item
+    cmp var10
     bne :+
     tya
     clc
     adc #COLL_COMP_SIZE
     tay
-    dec var_9
+    dec var9
     jmp @second_loop
 
-:   lda (address_1), y                      ; Get entity address lo byte
-    sta address_3
+:   lda (ptr1), y                      ; Get entity address lo byte
+    sta ptr3
     iny
 
-    lda (address_1), y                      ; Get entity address hi byte
-    sta address_3 + 1
+    lda (ptr1), y                      ; Get entity address hi byte
+    sta ptr3 + 1
     iny
 
     iny                                     ; ignore mask, get to the layer directly
     ; first check the collision layer .. if the item from the first loop doesn't have it on his mask .. skip
-    lda (address_1), y                      ; Get entity address hi byte
-    and var_3                               ; compare with mask
+    lda (ptr1), y                      ; Get entity address hi byte
+    and var3                               ; compare with mask
 
     bne :+                                  ; skip this and go to the next item
     tya
     clc
     adc #$05                                ; increase y by 3
     tay
-    dec var_9
+    dec var9
     jmp @second_loop
 
 :   tya                                     ; push y to stack
     pha
 
     ldy #$00                                ; get x, y position from the entity
-    lda (address_3), y
-    sta var_7                               ; var_1 => x pos
+    lda (ptr3), y
+    sta var7                               ; var1 => x pos
     iny
 
-    lda (address_3), y
-    sta var_8                               ; var_2 => y pos
+    lda (ptr3), y
+    sta var8                               ; var2 => y pos
     iny
 
     iny                                     ; check if this component is active or not
-    lda (address_3), Y
-    sta temp_2
+    lda (ptr3), Y
+    sta tmp2
 
     pla                                     ; get collision offset from buffer
     tay
 
     lda #COLLISION_CMP
-    bit temp_2
+    bit tmp2
     bne :+
     tya
     clc
     adc #$05                                ; increase y by 3
     tay
-    dec var_9
+    dec var9
     jmp @second_loop
-    dec var_9
+    dec var9
     jmp @second_loop
 
  :  jmp @achje_jmp
@@ -370,53 +370,53 @@ num_collision_results:          .res 1
     ; do the actual collision checks, check for the cases where you DON'T have a collision
     ; less instructions -> faster
     lda #$00
-    sta temp_1                              ; use temp_1 for the result -> 1 coll .. 0 not
+    sta tmp1                              ; use tmp1 for the result -> 1 coll .. 0 not
 
     iny
     ;1: sprite2.xMin > sprite1.xMax
-    lda (address_1), Y                      ; sprite2.xMin
+    lda (ptr1), Y                      ; sprite2.xMin
 
     clc
-    adc var_7
-    cmp var_6                               ; var_6 => sprite1.xMax
+    adc var7
+    cmp var6                               ; var6 => sprite1.xMax
     bcs :+                                  ; cary set if sprite2.xMin > sprite1.xMax
-    inc temp_1
+    inc tmp1
 :
     iny
     ;2: sprite1.xMin > sprite2.xMax
-    lda (address_1), Y                      ; sprite2.xMax
+    lda (ptr1), Y                      ; sprite2.xMax
     clc
-    adc var_7
-    sta temp_2
-    lda var_5                               ; var_5 => sprite1.xMin
-    cmp temp_2
+    adc var7
+    sta tmp2
+    lda var5                               ; var5 => sprite1.xMin
+    cmp tmp2
 
     bcs :+                                  ; carry set if sprite2.xMin >= sprite2.xMax
-    inc temp_1
+    inc tmp1
 :
     ;3: sprite2.y > sprite1.y2
     iny
-    lda (address_1), Y                      ; sprite2.yMin
+    lda (ptr1), Y                      ; sprite2.yMin
     clc
-    adc var_8
-    cmp var_2                               ; var_2 => sprite1.yMax
+    adc var8
+    cmp var2                               ; var2 => sprite1.yMax
     bcs :+                                  ; s2min > s1max
-    inc temp_1
+    inc tmp1
 :
     ;4: sprite1.y > sprite2.y2
     iny
-    lda (address_1), Y
+    lda (ptr1), Y
     clc
-    adc var_8
-    sta temp_2                              ; sprite2.yMax
+    adc var8
+    sta tmp2                              ; sprite2.yMax
     iny
-    lda var_1                               ; var_1 => sprite1.yMin
-    cmp temp_2
+    lda var1                               ; var1 => sprite1.yMin
+    cmp tmp2
     bcs @continue_2nd_loop                  ; carry set if sprite1.yMin > sprite2.yMax
-    inc temp_1
+    inc tmp1
 @continue_2nd_loop:   ; finito : if one of those checks was successfull, we don't have a collision and can continue
-    dec var_9
-    lda temp_1
+    dec var9
+    lda tmp1
     cmp #$04
     bne @inbetween_jump
 
@@ -425,24 +425,24 @@ num_collision_results:          .res 1
 
 
 ; commment_in later
-    mult_with_constant num_collision_results, #4, temp_6
-    ;calc_address_with_offset collision_results, temp_6, address_4
+    mult_with_constant num_collision_results, #4, tmp6
+    ;calc_address_with_offset collision_results, tmp6, ptr4
 
-    ldy temp_6
-    lda address_2
-    sta (address_4), Y
+    ldy tmp6
+    lda ptr2
+    sta (ptr4), Y
     iny
 
-    lda address_2 + 1
-    sta (address_4), Y
+    lda ptr2 + 1
+    sta (ptr4), Y
     iny
 
-    lda address_3
-    sta (address_4), Y
+    lda ptr3
+    sta (ptr4), Y
     iny
 
-    lda address_3 +1
-    sta (address_4), y
+    lda ptr3 +1
+    sta (ptr4), y
 
     inc num_collision_results
     jmp @inbetween_jump

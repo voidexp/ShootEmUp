@@ -31,13 +31,13 @@ num_flames: .res 1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; setup flame entity
 ; ARGS:
-;   var_1           - xPosition
-;   var_2           - yPosition
-;   var_3           - xDir
-;   var_4           - yDir, now one byte will be reduced
+;   var1           - xPosition
+;   var2           - yPosition
+;   var3           - xDir
+;   var4           - yDir, now one byte will be reduced
 ;
 ; RETURN:
-;   address_1       - address of flame entity
+;   ptr1       - address of flame entity
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .proc create_flame
     lda num_flames
@@ -49,46 +49,46 @@ num_flames: .res 1
     lda #$00                                ; load component mask: sprite &&  movement component mask
     ora #MOVEMENT_CMP
     ora #SPRITE_CMP
-    sta var_3
+    sta var3
 
     ; 1. Create Entity
-    jsr create_entity                       ; None -> address_1 entity address
+    jsr create_entity                       ; None -> ptr1 entity address
 
     lda #$00                                ; xDir
-    sta var_3
+    sta var3
     lda #$00                                ; yDir
-    sta var_4
+    sta var4
 
     ; 2. Create MOVEMENT component
-    jsr create_movement_component           ; arguments (address_1: owner, var_1-4: config) => return address_2 of component
+    jsr create_movement_component           ; arguments (ptr1: owner, var1-4: config) => return ptr2 of component
 
     ; 3. store address of movement component in entity component buffer
     ldy #$04
-    lda address_2
-    sta (address_1), y
+    lda ptr2
+    sta (ptr1), y
     iny
 
-    lda address_2 + 1
-    sta (address_1), y
+    lda ptr2 + 1
+    sta (ptr1), y
     iny
 
     ; 4. Create SPRITE component
     lda #<flame_default_anim
-    sta address_2
+    sta ptr2
 
     lda #>flame_default_anim
-    sta address_2 + 1
+    sta ptr2 + 1
 
-    jsr create_sprite             ; arguments (address_1: owner, address_2: sprite config) => return address_3 of component
+    jsr create_sprite             ; arguments (ptr1: owner, ptr2: sprite config) => return ptr3 of component
 
     ; 5. Store sprite component address in entity component buffer
     ldy #$06
-    lda address_3
-    sta (address_1), y
+    lda ptr3
+    sta (ptr1), y
     iny
 
-    lda address_3 + 1
-    sta (address_1), y
+    lda ptr3 + 1
+    sta (ptr1), y
     iny
 
     inc num_flames

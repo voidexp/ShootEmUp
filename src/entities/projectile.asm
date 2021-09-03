@@ -60,16 +60,16 @@ last_updated_projectile:            .res 1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .proc create_player_projectile
     lda #$ff                                ; xPos
-    sta var_1
+    sta var1
     lda #$32                                ; yPos
-    sta var_2
+    sta var2
     lda #$00                                ; xDir
-    sta var_3
+    sta var3
     lda #$02                                ; yDir
     clc
     eor #$ff
     adc #$01
-    sta var_4
+    sta var4
 
     jsr spawn_projectile
     jsr disable_all_entity_components
@@ -81,13 +81,13 @@ last_updated_projectile:            .res 1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; spawn a projectile
 ; ARGS:
-;   var_1           - xPosition
-;   var_2           - yPosition
-;   var_3           - xDir
-;   var_4           - yDir, now one byte will be reduced
+;   var1           - xPosition
+;   var2           - yPosition
+;   var3           - xDir
+;   var4           - yDir, now one byte will be reduced
 ;
 ; RETURN:
-;   address_1       - projectile entity
+;   ptr1       - projectile entity
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .proc spawn_projectile
     ; get offset in projectile buffer for new projectile
@@ -100,57 +100,57 @@ last_updated_projectile:            .res 1
     jsr update_projectile_position
     rts
 :
-    lda var_4
+    lda var4
     pha
 
-    lda var_3
-    pha                                     ; push var_3 (xDir) to stack
+    lda var3
+    pha                                     ; push var3 (xDir) to stack
 
     lda #$00                          ; load component mask: sprite &&  movement component mask
     ora #MOVEMENT_CMP
     ora #SPRITE_CMP
     ora #COLLISION_CMP
-    sta var_3
+    sta var3
 
     ; 1. Create Entity
-    jsr create_entity                       ; None -> address_1 entity address
+    jsr create_entity                       ; None -> ptr1 entity address
 
     pla
-    sta var_3                               ; get xDir from stack, store to var_3 again
+    sta var3                               ; get xDir from stack, store to var3 again
 
     pla
-    sta var_4
+    sta var4
 
     ; 2. Create MOVEMENT component
-    jsr create_movement_component           ; arguments (address_1: owner, var_1-4: config) => return address_2 of component
+    jsr create_movement_component           ; arguments (ptr1: owner, var1-4: config) => return ptr2 of component
 
     ; 3. store address of movement component in entity component buffer
     ldy #$04
-    lda address_2
-    sta (address_1), y
+    lda ptr2
+    sta (ptr1), y
     iny
 
-    lda address_2 + 1
-    sta (address_1), y
+    lda ptr2 + 1
+    sta (ptr1), y
     iny
 
     ; 4. Create SPRITE component
     lda #<projectile_default_anim
-    sta address_2
+    sta ptr2
 
     lda #>projectile_default_anim
-    sta address_2 + 1
+    sta ptr2 + 1
 
-    jsr create_sprite             ; arguments (address_1: owner, address_2: sprite config) => return address_3 of component
+    jsr create_sprite             ; arguments (ptr1: owner, ptr2: sprite config) => return ptr3 of component
 
     ; 5. Store sprite component address in entity component buffer
     ldy #$06
-    lda address_3
-    sta (address_1), y
+    lda ptr3
+    sta (ptr1), y
     iny
 
-    lda address_3 + 1
-    sta (address_1), y
+    lda ptr3 + 1
+    sta (ptr1), y
     iny
 
     ; 6. Create COLLISON component
@@ -158,43 +158,43 @@ last_updated_projectile:            .res 1
     lda #$00
     ora #ENEMY_LYR
     ora #PLAYER_LYR
-    sta var_1
+    sta var1
 
     ; set collision layer
     lda #$00
     ora #PROJECTILE_LYR
-    sta var_2
+    sta var2
 
     ; get width and height from animation for the AABB
     ldy #$04
-    lda (address_2), y
-    sta var_3
-    sta var_4
+    lda (ptr2), y
+    sta var3
+    sta var4
 
-    jsr create_collision_component             ; arguments (var_1: mask, var_2: layer, var_3: w, var_4:h ) => return address_2 of component
+    jsr create_collision_component             ; arguments (var1: mask, var2: layer, var3: w, var4:h ) => return ptr2 of component
 
     ; 7. Store collision component address in entity component buffer
     ldy #$08
-    lda address_2
-    sta (address_1), y
+    lda ptr2
+    sta (ptr1), y
     iny
 
-    lda address_2 + 1
-    sta (address_1), y
+    lda ptr2 + 1
+    sta (ptr1), y
     iny
 
     ; fill projectile buffer:
     ; store link to projectile entities in projectile buffer
-    mult_with_constant num_current_projectiles, #2, var_1
-    calc_address_with_offset projectile_component_container, var_1, address_3
+    mult_with_constant num_current_projectiles, #2, var1
+    calc_address_with_offset projectile_component_container, var1, ptr3
 
     ldy #$00                                ; owner lo
-    lda address_1
-    sta (address_3), y
+    lda ptr1
+    sta (ptr3), y
 
     iny
-    lda address_1 + 1                        ; owner hi
-    sta (address_3), y
+    lda ptr1 + 1                        ; owner hi
+    sta (ptr3), y
     iny
 
     inc num_current_projectiles
@@ -206,70 +206,70 @@ last_updated_projectile:            .res 1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Update an existing projectile with a new position information
 ; ARGS:
-;   var_1           - xPosition
-;   var_2           - yPosition
-;   var_3           - xDir
-;   var_4           - yDir, now one byte will be reduced
-;   var_5           - speed
+;   var1           - xPosition
+;   var2           - yPosition
+;   var3           - xDir
+;   var4           - yDir, now one byte will be reduced
+;   var5           - speed
 ;
 ; RETURN:
 ;   None
 ; TODO: also update movement dir
 ; MODIFIES:
-;   address_10, address_9, address_8
+;   ptr10, ptr9, ptr8
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .proc update_projectile_position
     lda #<projectile_component_container
-    sta address_10
+    sta ptr10
 
     lda #>projectile_component_container
-    sta address_10 + 1
+    sta ptr10 + 1
 
-    mult_with_constant last_updated_projectile, #2, var_6
+    mult_with_constant last_updated_projectile, #2, var6
 
-    ldy var_6
-    lda (address_10), y
-    sta address_9
+    ldy var6
+    lda (ptr10), y
+    sta ptr9
 
     iny
-    lda (address_10), Y
-    sta address_9 + 1
+    lda (ptr10), Y
+    sta ptr9 + 1
 
     ldy #$00
-    lda var_1                               ; store x and y pos
-    sta (address_9), Y
+    lda var1                               ; store x and y pos
+    sta (ptr9), Y
     iny
 
-    lda var_2
-    sta (address_9), Y
+    lda var2
+    sta (ptr9), Y
 
     ; update active component mask
     ldy #$03                                ; go over component mask
-    lda (address_9), Y
+    lda (ptr9), Y
     ora #MOVEMENT_CMP
     ora #SPRITE_CMP
     ora #COLLISION_CMP
-    sta (address_9), Y
+    sta (ptr9), Y
 
     ; offset to movement_component
-    lda var_6
+    lda var6
     clc
     adc #$04
     tay
-    lda (address_9), Y
-    sta address_8
+    lda (ptr9), Y
+    sta ptr8
     iny
 
-    lda (address_9), Y
-    sta address_8 + 1
+    lda (ptr9), Y
+    sta ptr8 + 1
 
     ldy #$03
-    lda var_3
-    sta (address_8), y                              ; xDir
+    lda var3
+    sta (ptr8), y                              ; xDir
 
     iny
-    lda var_4                                       ; yDir
-    sta (address_8), Y
+    lda var4                                       ; yDir
+    sta (ptr8), Y
 
     inc last_updated_projectile
     lda last_updated_projectile

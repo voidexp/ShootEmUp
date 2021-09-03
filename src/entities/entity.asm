@@ -46,38 +46,38 @@ num_current_entities:   .res 1
 ; the position, mask
 ;
 ; ARGS:
-;  var_1                - posX
-;  var_2                - posY
-;  var_3                - component mask
+;  var1                - posX
+;  var2                - posY
+;  var3                - component mask
 ;
 ; RETURN:
-;   address_1           - address of the entity config
+;   ptr1           - address of the entity config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .proc create_entity
-    lda var_3
+    lda var3
     pha
 
-    jsr get_current_entity_buffer_offset    ; (None -> var_4: address offset)
+    jsr get_current_entity_buffer_offset    ; (None -> var4: address offset)
 
-    calc_address_with_offset entity_container, var_4, address_1
+    calc_address_with_offset entity_container, var4, ptr1
 
     pla
-    sta var_3
+    sta var3
 
     ldy #$00
-    lda var_1
-    sta (address_1), Y
+    lda var1
+    sta (ptr1), Y
     iny
 
-    lda var_2
-    sta (address_1), Y
+    lda var2
+    sta (ptr1), Y
     iny
 
-    lda var_3
-    sta (address_1), y
+    lda var3
+    sta (ptr1), y
     iny
 
-    sta (address_1), Y                      ; active components
+    sta (ptr1), Y                      ; active components
     iny
 
     inc num_current_entities
@@ -92,7 +92,7 @@ num_current_entities:   .res 1
 ;  None
 ;
 ; RETURN:
-;   var_4           - address of the entity config
+;   var4           - address of the entity config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .proc get_current_entity_buffer_offset
 ; get entity component mask and calculate the number of components
@@ -102,10 +102,10 @@ num_current_entities:   .res 1
     ; first 2 bytes of the entity are the position, offset 2 for mask
 
     lda #<entity_container
-    sta address_1
+    sta ptr1
 
     lda #>entity_container
-    sta address_1 + 1
+    sta ptr1 + 1
 
     ldy #$00
 
@@ -115,21 +115,21 @@ num_current_entities:   .res 1
 @entity_loop:
     iny
     iny                                     ; hop over position storage space
-    lda (address_1), Y                      ; get component mask
-    sta var_3
+    lda (ptr1), Y                      ; get component mask
+    sta var3
 
     iny                                     ; get over active components
     tya
     pha                                     ; push y on stack
 
-    get_num_of_bits_set_in_mask var_3, var_4  ; get amount of components for this entity
+    get_num_of_bits_set_in_mask var3, var4  ; get amount of components for this entity
 
-    mult_with_constant var_4, #2, var_5     ; size of components buffer for this entity (2 bytes per component)
+    mult_with_constant var4, #2, var5     ; size of components buffer for this entity (2 bytes per component)
 
     pla                                     ; get y from stack
 
     clc
-    adc var_5                               ; add the offset of the component addresses
+    adc var5                               ; add the offset of the component addresses
     tay
 
     dex
@@ -138,7 +138,7 @@ num_current_entities:   .res 1
     iny                                     ;increase offset to new free byte
 end:
     tya
-    sta var_4                               ; y -> current offset .. save it and go back
+    sta var4                               ; y -> current offset .. save it and go back
     rts
 .endproc
 
@@ -148,27 +148,27 @@ end:
 ; the position, mask
 ;
 ; ARGS:
-;  var_1                - posX
-;  var_2                - posY
-;  var_3                - component mask
+;  var1                - posX
+;  var2                - posY
+;  var3                - component mask
 ;
 ; RETURN:
 ;   None
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .proc update_entity_position
     lda #<entity_container
-    sta address_1
+    sta ptr1
 
     lda #>entity_container
-    sta address_1 + 1
+    sta ptr1 + 1
 
     ldy #$00
-    lda var_1
-    sta (address_1), Y
+    lda var1
+    sta (ptr1), Y
     iny
 
-    lda var_2
-    sta (address_1), Y
+    lda var2
+    sta (ptr1), Y
     iny
 
     rts
@@ -179,7 +179,7 @@ end:
 ; Deactivates all components
 ;
 ; ARGS:
-;  address_1            - entity address
+;  ptr1            - entity address
 ;
 ; RETURN:
 ;   None
@@ -187,7 +187,7 @@ end:
 .proc disable_all_entity_components
     lda #$00
     ldy #$03                                ; jump over position and mask
-    sta (address_1), y
+    sta (ptr1), y
     rts
 .endproc
 
@@ -196,8 +196,8 @@ end:
 ; Deactivates a certain component
 ;
 ; ARGS:
-;  address_10            - entity address
-;  temp_1                - component id
+;  ptr10            - entity address
+;  tmp1                - component id
 ;
 ; RETURN:
 ;   None
@@ -205,12 +205,12 @@ end:
 .proc disable_one_entity_component
     lda #$ff
     sec
-    sbc temp_1
-    sta temp_2
+    sbc tmp1
+    sta tmp2
     ldy #$03                                ; jump over position and mask
-    lda (address_10), y
-    and temp_2
-    sta (address_10), y
+    lda (ptr10), y
+    and tmp2
+    sta (ptr10), y
     rts
 .endproc
 
@@ -219,17 +219,17 @@ end:
 ; Activates a certain component
 ;
 ; ARGS:
-;  address_10            - entity address
-;  temp_1                - component id
+;  ptr10            - entity address
+;  tmp1                - component id
 ;
 ; RETURN:
 ;   None
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .proc enable_one_entity_component
     ldy #$03                                ; jump over position and mask
-    lda (address_10), y
-    ora temp_1
-    sta (address_10), y
+    lda (ptr10), y
+    ora tmp1
+    sta (ptr10), y
     rts
 .endproc
 
@@ -238,28 +238,28 @@ end:
 ; Update direction
 ;
 ; ARGS:
-;  address_10            - entity address
-;  temp_1                - dirX
-;  temp_2                - dirY
+;  ptr10            - entity address
+;  tmp1                - dirX
+;  tmp2                - dirY
 ;
 ; RETURN:
 ;   None
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .proc update_movement_direction
     ldy #$04
-    lda (address_10), y                      ; fetch address of the movement component
-    sta address_9
+    lda (ptr10), y                      ; fetch address of the movement component
+    sta ptr9
     iny
 
-    lda (address_10), Y
-    sta address_9 + 1
+    lda (ptr10), Y
+    sta ptr9 + 1
 
     ldy #$03                                ; offset to xDir
-    lda temp_1
-    sta (address_9), y
+    lda tmp1
+    sta (ptr9), y
 
     iny                                     ; yDir
-    lda temp_2
-    sta (address_9), y
+    lda tmp2
+    sta (ptr9), y
     rts
 .endproc

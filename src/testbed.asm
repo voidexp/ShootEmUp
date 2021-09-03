@@ -54,35 +54,35 @@
     update_animations:  .res 1  ; update animations
 
     ; tmp variables
-    temp_1:             .res 1
-    temp_2:             .res 1
-    temp_3:             .res 1
-    temp_4:             .res 1
-    temp_5:             .res 1
-    temp_6:             .res 1
+    tmp1:             .res 1
+    tmp2:             .res 1
+    tmp3:             .res 1
+    tmp4:             .res 1
+    tmp5:             .res 1
+    tmp6:             .res 1
 
-    var_1:              .res 1
-    var_2:              .res 1
-    var_3:              .res 1
-    var_4:              .res 1
-    var_5:              .res 1
-    var_6:              .res 1
-    var_7:              .res 1
-    var_8:              .res 1
-    var_9:              .res 1
-    var_10:             .res 1
+    var1:              .res 1
+    var2:              .res 1
+    var3:              .res 1
+    var4:              .res 1
+    var5:              .res 1
+    var6:              .res 1
+    var7:              .res 1
+    var8:              .res 1
+    var9:              .res 1
+    var10:             .res 1
 
     ; temp_address
-    address_1:          .res 2
-    address_2:          .res 2
-    address_3:          .res 2
-    address_4:          .res 2
-    address_5:          .res 2
-    address_6:          .res 2
-    address_7:          .res 2
-    address_8:          .res 2
-    address_9:          .res 2
-    address_10:         .res 2
+    ptr1:          .res 2
+    ptr2:          .res 2
+    ptr3:          .res 2
+    ptr4:          .res 2
+    ptr5:          .res 2
+    ptr6:          .res 2
+    ptr7:          .res 2
+    ptr8:          .res 2
+    ptr9:          .res 2
+    ptr10:         .res 2
 
     ; game mode stuff
     kill_count:         .res 1

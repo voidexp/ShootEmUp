@@ -46,33 +46,33 @@ num_enemy_components: .res 1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; create enemy components
 ; ARGS:
-;   address_1           - owner
-;   address_2           - sprite config
+;   ptr1           - owner
+;   ptr2           - sprite config
 ;
 ; RETURN:
-;   address_3           - address of movement_component
+;   ptr3           - address of movement_component
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .proc create_enemy_component
     ; calculate offset in current component buffer
-    mult_with_constant num_enemy_components, #ENEMY_COMP_SIZE, var_5
+    mult_with_constant num_enemy_components, #ENEMY_COMP_SIZE, var5
 
-    calc_address_with_offset enemy_component_container, var_5, address_3 ; address_3 is return address
+    calc_address_with_offset enemy_component_container, var5, ptr3 ; ptr3 is return address
 
     ldy #$00                                ; owner lo
-    lda address_1
-    sta (address_3), y
+    lda ptr1
+    sta (ptr3), y
 
     iny
-    lda address_1 + 1                       ; owner hi
-    sta (address_3), y
+    lda ptr1 + 1                       ; owner hi
+    sta (ptr3), y
     iny
 
-    lda address_2
-    sta (address_3), Y
+    lda ptr2
+    sta (ptr3), Y
     iny
 
-    lda address_2 + 1
-    sta (address_3), y
+    lda ptr2 + 1
+    sta (ptr3), y
 
     inc num_enemy_components
     rts
@@ -83,21 +83,21 @@ num_enemy_components: .res 1
 ; process collision detection result:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .proc enemy_cmp_process_cd_results
-    ; calculate max value and store it in var_1
+    ; calculate max value and store it in var1
     lda num_enemy_components
-    sta var_1
+    sta var1
 
     lda #<enemy_component_container
-    sta address_1
+    sta ptr1
 
     lda #>enemy_component_container
-    sta address_1 + 1
+    sta ptr1 + 1
 
     lda #<collision_results
-    sta address_2
+    sta ptr2
 
     lda #>collision_results
-    sta address_2 + 1
+    sta ptr2 + 1
 
     ldy #$00
     tya
@@ -112,8 +112,8 @@ num_enemy_components: .res 1
     beq @return_to_main
 
 @process_enemy_coll_cmp:
-    dec var_1                              ;check remaining coll_components, end this if 0
-    lda var_1
+    dec var1                              ;check remaining coll_components, end this if 0
+    lda var1
     cmp #$00
     beq @return_to_main
 
@@ -123,12 +123,12 @@ num_enemy_components: .res 1
 
     ; check if enemy is in collision component result list
     ; if yes, hide it
-    lda (address_1), Y
-    sta var_3
+    lda (ptr1), Y
+    sta var3
     iny
 
-    lda (address_1), y
-    sta var_4
+    lda (ptr1), y
+    sta var4
     iny
 
     iny                                     ; go over sprite component address
@@ -138,19 +138,19 @@ num_enemy_components: .res 1
     pha
 
     ; go over all collision results
-    mult_with_constant num_collision_results, #2, var_5
-    sta var_5
+    mult_with_constant num_collision_results, #2, var5
+    sta var5
 @process_coll:
-    mult_with_constant var_5, #2, var_6     ; get offset in result buffer for current
-    lda var_6
+    mult_with_constant var5, #2, var6     ; get offset in result buffer for current
+    lda var6
     tay                                     ; use offset for accessing result buffer
-    lda (address_2), Y                      ; compare entity lo-byte
-    cmp var_3
+    lda (ptr2), Y                      ; compare entity lo-byte
+    cmp var3
     bne @jump_to_next_result
 
     iny
-    lda (address_2), Y
-    cmp var_4                               ; compare entity hi-byte
+    lda (ptr2), Y
+    cmp var4                               ; compare entity hi-byte
     bne @jump_to_next_result
 
     inc kill_count
@@ -158,8 +158,8 @@ num_enemy_components: .res 1
     jmp @reset_sprite                       ; change sprite component
 
 @jump_to_next_result:
-    dec var_5
-    lda var_5
+    dec var5
+    lda var5
     cmp #$00
     bne @process_coll
     jmp @process_enemy_coll_cmp
@@ -179,34 +179,34 @@ num_enemy_components: .res 1
     dey
     dey
 
-    lda (address_1), Y
-    sta address_3
+    lda (ptr1), Y
+    sta ptr3
     iny
 
-    lda (address_1), y
-    sta address_3 + 1
+    lda (ptr1), y
+    sta ptr3 + 1
     iny
 
     tya
     pha
 
     lda #<dead_enemy_animation
-    sta address_4
+    sta ptr4
 
     lda #>dead_enemy_animation
-    sta address_4 + 1
+    sta ptr4 + 1
 
     ldy #$02 ;offset to sprite config
-    lda address_4
-    sta (address_3), Y
+    lda ptr4
+    sta (ptr3), Y
     iny
 
-    lda address_4 + 1
-    sta (address_3), Y
+    lda ptr4 + 1
+    sta (ptr3), Y
     iny
 
     lda #$00
-    sta (address_3), y
+    sta (ptr3), y
 
     jmp @process_enemy_coll_cmp
 .endproc

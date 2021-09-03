@@ -71,56 +71,56 @@ test_update_components:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; spawn a squad enemy
 ; ARGS:
-;   var_1           - xPos
-;   var_2           - yPos
+;   var1           - xPos
+;   var2           - yPos
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 test_spawn_squady:
     lda #$40                                ; xPos
-    sta var_1
+    sta var1
     lda #$10                                ; yPos
-    sta var_2
+    sta var2
 
     jsr spawn_static_squad_enemy
 
     ;rts
     lda #$62                                ; xPos
-    sta var_1
+    sta var1
     lda #$ab                                ; yPos
-    sta var_2
+    sta var2
 
     jsr spawn_static_squad_enemy
 
     lda #$c0                                ; xPos
-    sta var_1
+    sta var1
     lda #$50                                ; yPos
-    sta var_2
+    sta var2
 
     jsr spawn_static_squad_enemy
 
     lda #$a8
-    sta var_1
+    sta var1
     lda #$36
-    sta var_2
+    sta var2
     lda #$c4                                ; xPos
-    sta var_1
+    sta var1
     lda #$50                                ; yPos
-    sta var_2
+    sta var2
 
     jsr spawn_static_squad_enemy
     rts
 
 test_spawn_projectile:
     lda #$58                                ; xPos
-    sta var_1
+    sta var1
     lda #$32                                ; yPos
-    sta var_2
+    sta var2
     lda #$00                                ; xDir
-    sta var_3
+    sta var3
     lda #$00                                ; yDir
     clc
     eor #$ff
     adc #$01
-    sta var_4
+    sta var4
 
     jsr spawn_projectile
 
@@ -130,37 +130,37 @@ test_spawn_projectile:
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     lda #$64
-    sta var_1
+    sta var1
     lda #$ab
-    sta var_2
+    sta var2
     lda #$00
-    sta var_3
+    sta var3
     lda #$00
-    sta var_4
+    sta var4
 
     jsr spawn_projectile
 
     lda #$a8
-    sta var_1
+    sta var1
     lda #$32
-    sta var_2
+    sta var2
     lda #$00
-    sta var_3
+    sta var3
     lda #$00
-    sta var_4
+    sta var4
 
     jsr spawn_projectile
 
 
     lda #$c4                                ; xPos
-    sta var_1
+    sta var1
     lda #$50                                ; yPos
-    sta var_2
+    sta var2
 
     lda #$00
-    sta var_3
+    sta var3
     lda #$00
-    sta var_4
+    sta var4
 
     jsr spawn_projectile
 
@@ -171,10 +171,10 @@ test_spawn_projectile:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 test_mult_constant_macro:
     lda #$00
-    sta var_1
-    mult_with_constant var_1, #$02, var_2
-    lda var_2
-    sta var_3
+    sta var1
+    mult_with_constant var1, #$02, var2
+    lda var2
+    sta var3
     rts
 
 
@@ -183,12 +183,12 @@ test_mult_constant_macro:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 test_mult_macro:
     lda #$04
-    sta var_1
+    sta var1
     lda #$03
-    sta var_2
-    mult_variables var_1, var_2, var_3
-    lda var_3
-    sta var_4
+    sta var2
+    mult_variables var1, var2, var3
+    lda var3
+    sta var4
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -196,12 +196,12 @@ test_mult_macro:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 test_address_offset_macro:
     lda #$f1
-    sta var_1
-    calc_address_with_offset test_data_address, var_1, address_2
-    lda address_2 + 1
-    sta address_3
-    lda address_2
-    sta address_3 + 1
+    sta var1
+    calc_address_with_offset test_data_address, var1, ptr2
+    lda ptr2 + 1
+    sta ptr3
+    lda ptr2
+    sta ptr3 + 1
     ; result 0421
     rts
 
@@ -210,10 +210,10 @@ test_address_offset_macro:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 test_num_bits_set_in_mask_macro:
     lda #$07
-    sta var_1
-    get_num_of_bits_set_in_mask var_1, var_2
-    lda var_2
-    sta var_3
+    sta var1
+    get_num_of_bits_set_in_mask var1, var2
+    lda var2
+    sta var3
     rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -221,36 +221,36 @@ test_num_bits_set_in_mask_macro:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 test_movement_component_creation:
     lda #$c0             ; posX
-    sta var_1
+    sta var1
     lda #$10             ; posY
-    sta var_2
+    sta var2
     lda #$00             ; dirX
-    sta var_3
+    sta var3
     lda #$00             ; dirY -> check with still standing object first
-    sta var_4
+    sta var4
     lda #$01            ; speed
-    sta var_5
+    sta var5
 
     lda #<test_data_address
-    sta address_1
+    sta ptr1
     lda #>test_data_address
-    sta address_1 + 1
+    sta ptr1 + 1
 
     jsr test_movement_component_creation
 
     ; save resulting address
-    lda address_2 + 1
-    sta address_3
-    lda address_2
-    sta address_3 + 1
+    lda ptr2 + 1
+    sta ptr3
+    lda ptr2
+    sta ptr3 + 1
 
     jsr test_movement_component_creation
 
     ; save resulting address
-    lda address_2 + 1
-    sta address_4
-    lda address_4
-    sta address_3 + 1
+    lda ptr2 + 1
+    sta ptr4
+    lda ptr4
+    sta ptr3 + 1
     rts
 
 
@@ -259,13 +259,13 @@ test_movement_component_creation:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 test_projectile_spawn:
     lda $c0             ; posX
-    sta var_1
+    sta var1
     lda $10             ; posY
-    sta var_2
+    sta var2
     lda $00             ; dirX
-    sta var_3
+    sta var3
     lda $00             ; dirY -> check with still standing object first
-    sta var_4
+    sta var4
 
     ;jsr spawn_projectile
     rts
@@ -274,53 +274,53 @@ test_projectile_spawn:
 ; TEST MEMCPY MACRO
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 test_memcpy_macro:
-    ; load address of test_data to address_1
+    ; load address of test_data to ptr1
 
     lda #<test_data
-    sta address_1
+    sta ptr1
 
     lda #>test_data
-    sta address_1 + 1
+    sta ptr1 + 1
 
-    ; load address of test_data_copy to address_2
+    ; load address of test_data_copy to ptr2
     lda #<test_data_copy
-    sta address_2
+    sta ptr2
 
     lda #>test_data_copy
-    sta address_2 + 1
+    sta ptr2 + 1
 
     lda #BYTES_PER_LOOP
-    sta temp_2
+    sta tmp2
 
     lda #LOOPS
-    sta temp_1
+    sta tmp1
 
     lda #$00
-    sta temp_3
-    sta temp_4
+    sta tmp3
+    sta tmp4
 
 @perform_loop:
 
     ; src, src_offset, dst, dst_offset, numbytes
-    copy_x_bytes_zp address_1, temp_3, address_2, temp_4, temp_2
+    copy_x_bytes_zp ptr1, tmp3, ptr2, tmp4, tmp2
 
-    lda temp_3
+    lda tmp3
     clc
-    adc temp_2
-    sta temp_3
+    adc tmp2
+    sta tmp3
 
-    lda temp_4
+    lda tmp4
     clc
-    adc temp_2
-    sta temp_4
+    adc tmp2
+    sta tmp4
 
     lda #$ff
-    ldy temp_4
-    sta (address_2), y
-    inc temp_4
+    ldy tmp4
+    sta (ptr2), y
+    inc tmp4
 
-    dec temp_1
-    lda temp_1
+    dec tmp1
+    lda tmp1
     cmp #$00
     bne @perform_loop
 

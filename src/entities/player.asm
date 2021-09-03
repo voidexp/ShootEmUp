@@ -30,68 +30,68 @@ player_ship_anim:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; setup player entity
 ; ARGS:
-;   var_1           - xPosition
-;   var_2           - yPosition
-;   var_3           - xDir
-;   var_4           - yDir, now one byte will be reduced
-;   address_4       - flame sprite config
+;   var1           - xPosition
+;   var2           - yPosition
+;   var3           - xDir
+;   var4           - yDir, now one byte will be reduced
+;   ptr4       - flame sprite config
 ;
 ; RETURN:
-;   address_1       - address of player entity
+;   ptr1       - address of player entity
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .proc create_player
-    lda var_4
+    lda var4
     pha
 
-    lda var_3
-    pha                                     ; push var_3 (xDir) to stack
+    lda var3
+    pha                                     ; push var3 (xDir) to stack
 
     lda #$00                                ; load component mask: sprite &&  movement component mask
     ora #MOVEMENT_CMP
     ora #SPRITE_CMP
     ora #COLLISION_CMP
     ora #ACTOR_CMP
-    sta var_3
+    sta var3
 
     ; 1. Create Entity
-    jsr create_entity                       ; None -> address_1 entity address
+    jsr create_entity                       ; None -> ptr1 entity address
 
     pla
-    sta var_3                               ; get xDir from stack, store to var_3 again
+    sta var3                               ; get xDir from stack, store to var3 again
 
     pla
-    sta var_4
+    sta var4
 
     ; 2. Create MOVEMENT component
-    jsr create_movement_component           ; arguments (address_1: owner, var_1-4: config) => return address_2 of component
+    jsr create_movement_component           ; arguments (ptr1: owner, var1-4: config) => return ptr2 of component
 
     ; 3. store address of movement component in entity component buffer
     ldy #$04
-    lda address_2
-    sta (address_1), y
+    lda ptr2
+    sta (ptr1), y
     iny
 
-    lda address_2 + 1
-    sta (address_1), y
+    lda ptr2 + 1
+    sta (ptr1), y
     iny
 
     ; 4. Create SPRITE component
     lda #<player_ship_anim
-    sta address_2
+    sta ptr2
 
     lda #>player_ship_anim
-    sta address_2 + 1
+    sta ptr2 + 1
 
-    jsr create_sprite             ; arguments (address_1: owner, address_2: sprite config) => return address_3 of component
+    jsr create_sprite             ; arguments (ptr1: owner, ptr2: sprite config) => return ptr3 of component
 
     ; 5. Store sprite component address in entity component buffer
     ldy #$06
-    lda address_3
-    sta (address_1), y
+    lda ptr3
+    sta (ptr1), y
     iny
 
-    lda address_3 + 1
-    sta (address_1), y
+    lda ptr3 + 1
+    sta (ptr1), y
     iny
 
     ; 6. Create COLLISON component
@@ -99,50 +99,50 @@ player_ship_anim:
     lda #$00
     ora #PROJECTILE_LYR
     ora #ENEMY_LYR
-    sta var_1
+    sta var1
 
     ; set collision layer
     lda #$00
     ora #PLAYER_LYR
-    sta var_2
+    sta var2
 
     ; get width and height from animation for the AABB
     ldy #$04
-    lda (address_2), y
-    sta var_3
-    sta var_4
+    lda (ptr2), y
+    sta var3
+    sta var4
 
-    jsr create_collision_component             ; arguments (var_1: mask, var_2: layer, var_3: w, var_4:h ) => return address_2 of component
+    jsr create_collision_component             ; arguments (var1: mask, var2: layer, var3: w, var4:h ) => return ptr2 of component
 
     ; 5. Store collision component address in entity component buffer
     ldy #$0a
-    lda address_2
-    sta (address_1), y
+    lda ptr2
+    sta (ptr1), y
     iny
 
-    lda address_2 + 1
-    sta (address_1), y
+    lda ptr2 + 1
+    sta (ptr1), y
     iny
 
     ; 6. Create actor component
     lda #PLAYER_ROLE
-    sta var_1
+    sta var1
 
     lda #<JOYPAD1              ; low byte
-    sta address_3
+    sta ptr3
 
     lda #>JOYPAD1              ; high byte
-    sta address_3  + 1
+    sta ptr3  + 1
 
-    jsr create_actor_component              ; arguments (var_1: role, address_3: joystick, address_4: flame ) => return address_2 of component
+    jsr create_actor_component              ; arguments (var1: role, ptr3: joystick, ptr4: flame ) => return ptr2 of component
 
     ldy #$0e
-    lda address_2
-    sta (address_1), y
+    lda ptr2
+    sta (ptr1), y
     iny
 
-    lda address_2 + 1
-    sta (address_1), y
+    lda ptr2 + 1
+    sta (ptr1), y
 
     rts
 .endproc

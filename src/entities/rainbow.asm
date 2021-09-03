@@ -28,38 +28,38 @@ num_rainbows: .res 1
     rts
 :
     lda #$79                                ; xPos
-    sta var_1
+    sta var1
     lda #$b4                                ; yPos
-    sta var_2
+    sta var2
     lda #$00                                ; xDir
-    sta var_3
+    sta var3
     lda #$00                                ; yDir
-    sta var_4
+    sta var4
 
     lda #$00                          ; load component mask: sprite &&  movement component mask
     ora #SPRITE_CMP
-    sta var_3
+    sta var3
 
     ; 1. Create Entity
-    jsr create_entity                       ; None -> address_1 entity address
+    jsr create_entity                       ; None -> ptr1 entity address
 
     ; 4. Create SPRITE component
     lda #<rainbow_default_anim
-    sta address_2
+    sta ptr2
 
     lda #>rainbow_default_anim
-    sta address_2 + 1
+    sta ptr2 + 1
 
-    jsr create_sprite             ; arguments (address_1: owner, address_2: sprite config) => return address_3 of component
+    jsr create_sprite             ; arguments (ptr1: owner, ptr2: sprite config) => return ptr3 of component
 
     ; 5. Store sprite component address in entity component buffer
     ldy #$04
-    lda address_3
-    sta (address_1), y
+    lda ptr3
+    sta (ptr1), y
     iny
 
-    lda address_3 + 1
-    sta (address_1), y
+    lda ptr3 + 1
+    sta (ptr1), y
     iny
 
     inc num_rainbows
