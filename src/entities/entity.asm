@@ -4,8 +4,8 @@
 .import init_flame_entities
 .import init_enemy_components
 .import init_collision_components
-.import init_projectile_components
-.import init_sprites
+; .import init_projectile_components
+; .import init_sprites
 .import init_movement_components
 
 .export initialize_entities
@@ -32,8 +32,8 @@ num_current_entities:   .res 1
     lda #$00
     sta num_current_entities
     jsr init_movement_components
-    jsr init_sprites
-    jsr init_projectile_components
+    ; jsr init_sprites
+    ; jsr init_projectile_components
     jsr init_collision_components
     jsr init_enemy_components
     jsr init_flame_entities

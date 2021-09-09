@@ -9,6 +9,8 @@
 .import load_color_palettes
 .import background_palettes
 .import spawn_enemy_kind
+.import spawn_projectile
+.import tick_projectiles
 
 
 ;
@@ -47,20 +49,12 @@
 ; Zero-page RAM layout.
 ;
 .zeropage
-    frame_counter:      .res 1  ; current frame, wraps at $ff
-
     ; moving player
     player_speed:       .res 1  ; current player speed
     player_direction:   .res 1  ; current direction bit set  (0000 LEFT DOWN RIGHT UP)
     player_entity_adr:  .res 2  ; Player entity address
 
-    ; scroll
-    scroll_y:           .res 1
-    scroll_x:           .res 1
-
-    ; draw flags
-    update_flags:       .res 1  ; flags what to update (0000 000 UPDATE_POSITIONS)
-    draw_flags:         .res 1  ; flags what to draw in the next frame (0000 000 DRAW_FLAME)
+    scroll_y:           .res 1  ; background vertical scroll offset
     sleeping:           .res 1  ; is waiting for vblank?
 
     ; temporary variables, for subroutine internal use, unprotected, may be
@@ -102,11 +96,6 @@
     ptr9:               .res 2
     ptr10:              .res 2
 
-    ; game mode stuff
-    kill_count:         .res 1
-    shoot_cooldown:     .res 1
-    num_enemies_alive:  .res 1
-
     ; enemy entities
     enemies: .res .sizeof(Enemy) * NUM_ENEMIES
     enemies_end:
@@ -115,8 +104,6 @@
 .exportzp tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8, tmp9, tmp10
 .exportzp var1, var2, var3, var4, var5, var6, var7, var8, var9, var10
 .exportzp ptr1, ptr2, ptr3, ptr4, ptr5, ptr6, ptr7, ptr8, ptr9, ptr10
-.exportzp update_flags, draw_flags
-.exportzp kill_count, num_enemies_alive
 .exportzp enemies, enemies_end
 
 
@@ -202,6 +189,19 @@ vblankwait2:
             lda #EnemyKind::UFO     ; enemy kind
             sta var3
             jsr spawn_enemy_kind
+
+            ; Spawn an enemy projectile
+            lda #3
+            sta var3
+            jsr spawn_projectile
+
+            ; Spawn a player projectile
+            lda #200
+            sta var2
+            lda #2
+            sta var3
+            jsr spawn_projectile
+
 
             ;
             ; Here we setup the PPU for drawing by writing apropriate
@@ -337,9 +337,8 @@ vblankwait2:
             ; the NMI handler during VBlank!
             ;
 main:
-            jsr wait_frame          ; just waste cycles until a new frame is ready
-
-            ldy #0                  ; oam,y is used as shadow OAM cursor, zero it
+            jsr wait_frame
+            jsr tick_projectiles
             jsr draw_sprites
 
             jmp main
@@ -390,7 +389,7 @@ nmi_handler:
 
             ; set scroll, what pixel of the NT should be on the left top of the
             ; screen
-            lda scroll_x
+            lda #0
             sta PPUSCRL
             lda scroll_y
             sta PPUSCRL

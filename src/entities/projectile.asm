@@ -1,205 +1,243 @@
-.export init_projectile_components
-.export create_player_projectile
-.export spawn_projectile
-.export update_projectile_position
-
 .include "constants.asm"
 .include "globals.asm"
 .include "macros.asm"
+.include "structs.asm"
 
-.import create_collision_component
+.export spawn_projectile
+.export tick_projectiles
+
 .import create_sprite
-.import create_movement_component
-.import create_entity
-.import disable_all_entity_components
+.import destroy_sprite
+
 
 ;
-; Projectile configuration
+; Projectile.
 ;
+; Attribute field bits:
+;   Bit 0: Owner/Direction.
+;       0 = player / goes up
+;       1 = enemy / goes down
+;
+;   Bit 1: Kind.
+;       00  - disabled (the value of the whole attribute should be 0)
+;       01  - bullet
+;       10  - missile   (TODO)
+;       11  - laser     (TODO)
+;
+.struct Projectile
+    sprite  .addr   ; sprite address
+    attr    .byte   ; attribute bits, 0 = projectile disabled
+.endstruct
+
+
+OWNER_BIT = %00000001
+KIND_BITS = %00000110
+
+
 .rodata
-projectile_default_anim:
-    .byte $01                               ; length frames
-    .byte $00                               ; speed
-    .byte $13                               ; starting tile ID
-    .byte $01                               ; attribute set
-    .byte $01                               ; padding x, z -> 2 tiles wide and high
+;
+; Bullet projectile animation.
+;
+bullet_anim:
+    .byte $01   ; length frames
+    .byte $00   ; speed
+    .byte $13   ; starting tile ID
+    .byte $01   ; attribute set
+    .byte $01   ; padding x, z -> 2 tiles wide and high
 
 
-;bullet_properties_config:
-;    .byte $10                               ; damage points
+;
+; Projectile speeds table, in pixels per frame.
+;
+speeds_table:
+    .byte 0    ; disabled
+    .byte 1    ; bullet
+    .byte 2    ; missile
+    .byte 10   ; laser
 
 
-;PROJECTILE_SIZE = 12                         ; BYTES
+.bss
+; FIXME! Probably, due to non-POT size of the Projectile, the projectiles array
+; either crosses page boundary or something similar, due to which the iter_ptr
+; macro breaks, does not stop on projectiles_end and the hell unleashes.
+.align 256
 
-MAX_PROJECTILES_IN_BUFFER = 1
+;
+; Array of projectiles.
+;
+projectiles: .res (.sizeof(Projectile) * 8)
+projectiles_end:
 
-.segment "BSS"
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; PROJECTILE:
-;    .addr entity
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-projectile_component_container:     .res 20             ; 5 Projectiles (2x5)
-
-num_current_projectiles:            .res 1
-last_updated_projectile:            .res 1
 
 .code
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; INIT CODE .. reset all variables
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-.proc init_projectile_components
-    lda #$00
-    sta num_current_projectiles
-    sta last_updated_projectile
-    rts
-.endproc
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; FILL PROJECTILE POOL
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-.proc create_player_projectile
-    lda #$ff                                ; xPos
-    sta var1
-    lda #$32                                ; yPos
-    sta var2
-    lda #$00                                ; xDir
-    sta var3
-    lda #$02                                ; yDir
-    clc
-    eor #$ff
-    adc #$01
-    sta var4
-
-    jsr spawn_projectile
-    jsr disable_all_entity_components
-
-    rts
-.endproc
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; spawn a projectile
-; ARGS:
-;   var1           - xPosition
-;   var2           - yPosition
-;   var3           - xDir
-;   var4           - yDir, now one byte will be reduced
 ;
-; RETURN:
-;   ptr1       - projectile entity
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Spawn a projectile.
+;
+; Parameters:
+;   var1    - X coord
+;   var2    - Y coord
+;   var3    - attribute
+;
+; Returns:
+;   ptr1    - projectile address
+;
 .proc spawn_projectile
-    ; get offset in projectile buffer for new projectile
+            ;
+            ; Create the sprite
+            ;
+            ; TODO: support other projectile types
+            lda #<bullet_anim       ; point ptr1 to projectile animation (only bullet for now)
+            sta ptr1
+            lda #>bullet_anim
+            sta ptr1 + 1
+            jsr create_sprite       ; arguments (ptr1: sprite config, var1: x, var2: y) => ptr2: sprite component
 
-    lda num_current_projectiles
-    cmp #MAX_PROJECTILES_IN_BUFFER
-    bcc :+
-    ; in case the projectile buffer is already full .. just take one projectile of this buffer and update it with the most recent
-    ; data
-    jsr update_projectile_position
-    rts
-:
-    lda var4
-    pha
+            ;
+            ; Initialize the projectile object
+            ;
+            lda #<projectiles       ; point ptr1 to projectiles array beinning
+            sta ptr1
+            lda #>projectiles
+            sta ptr1 + 1
+            ldy #Projectile::attr   ; load 'attr' field offset to y for indexing
 
-    lda var3
-    pha                                     ; push var3 (xDir) to stack
+            ; find the first free projectile object, use ptr1 as cursor
+.mac find_none
+            lda (ptr1),y            ; if 'attr' is 0, Z is set and iteration stops
+.endmac
+            find_ptr ptr1, projectiles_end, .sizeof(Projectile), find_none
 
-    lda #$00                          ; load component mask: sprite &&  movement component mask
-    ora #MOVEMENT_CMP
-    ora #SPRITE_CMP
-    ora #COLLISION_CMP
-    sta var3
+            ; set the 'attr' field, conveniently, y still holds the offset to it
+            lda var3
+            sta (ptr1),y
 
-    ; 1. Create Entity
-    jsr create_entity                       ; None -> ptr1 entity address
+            ; set the 'sprite' field, address of sprite component is in ptr2
+            ldy #Projectile::sprite
+            lda ptr2
+            sta (ptr1),y
+            iny
+            lda ptr2 + 1
+            sta (ptr1),y
 
-    pla
-    sta var3                               ; get xDir from stack, store to var3 again
+    ; ; 5. Store sprite component address in entity component buffer
+    ;         ldy #$06
+    ;         lda ptr3
+    ;         sta (ptr1), y
+    ;         iny
 
-    pla
-    sta var4
+    ;         lda ptr3 + 1
+    ;         sta (ptr1), y
+    ;         iny
 
-    ; 2. Create MOVEMENT component
-    jsr create_movement_component           ; arguments (ptr1: owner, var1-4: config) => return ptr2 of component
+    ; ; 6. Create COLLISON component
+    ; ; set collision mask
+    ;         lda #$00
+    ;         ora #ENEMY_LYR
+    ;         ora #PLAYER_LYR
+    ;         sta var1
 
-    ; 3. store address of movement component in entity component buffer
-    ldy #$04
-    lda ptr2
-    sta (ptr1), y
-    iny
+    ; ; set collision layer
+    ;         lda #$00
+    ;         ora #PROJECTILE_LYR
+    ;         sta var2
 
-    lda ptr2 + 1
-    sta (ptr1), y
-    iny
+    ; ; get width and height from animation for the AABB
+    ;         ldy #$04
+    ;         lda (ptr2), y
+    ;         sta var3
+    ;         sta var4
 
-    ; 4. Create SPRITE component
-    lda #<projectile_default_anim
-    sta ptr2
+    ;         jsr create_collision_component; arguments (var1: mask, var2: layer, var3: w, var4:h ) => return ptr2 of component
 
-    lda #>projectile_default_anim
-    sta ptr2 + 1
+    ; ; 7. Store collision component address in entity component buffer
+    ;         ldy #$08
+    ;         lda ptr2
+    ;         sta (ptr1), y
+    ;         iny
 
-    jsr create_sprite             ; arguments (ptr1: owner, ptr2: sprite config) => return ptr3 of component
+    ;         lda ptr2 + 1
+    ;         sta (ptr1), y
+    ;         iny
 
-    ; 5. Store sprite component address in entity component buffer
-    ldy #$06
-    lda ptr3
-    sta (ptr1), y
-    iny
+    ; ; fill projectile buffer:
+    ; ; store link to projectile entities in projectile buffer
+    ; mult_with_constant num_current_projectiles, #2, var1
+    ; calc_address_with_offset projectile_component_container, var1, ptr3
 
-    lda ptr3 + 1
-    sta (ptr1), y
-    iny
+    ;         ldy #$00                ; owner lo
+    ;         lda ptr1
+    ;         sta (ptr3), y
 
-    ; 6. Create COLLISON component
-    ; set collision mask
-    lda #$00
-    ora #ENEMY_LYR
-    ora #PLAYER_LYR
-    sta var1
+    ;         iny
+    ;         lda ptr1 + 1            ; owner hi
+    ;         sta (ptr3), y
+    ;         iny
 
-    ; set collision layer
-    lda #$00
-    ora #PROJECTILE_LYR
-    sta var2
+    ;         inc num_current_projectiles
 
-    ; get width and height from animation for the AABB
-    ldy #$04
-    lda (ptr2), y
-    sta var3
-    sta var4
+            rts
+.endproc
 
-    jsr create_collision_component             ; arguments (var1: mask, var2: layer, var3: w, var4:h ) => return ptr2 of component
 
-    ; 7. Store collision component address in entity component buffer
-    ldy #$08
-    lda ptr2
-    sta (ptr1), y
-    iny
+;
+; Tick projectiles logic.
+;
+; Moves the projectiles, checks for collisions and collects exhausted ones.
+;
+.proc tick_projectiles
 
-    lda ptr2 + 1
-    sta (ptr1), y
-    iny
+.mac iter_proj
+            ;
+            ; Move projectiles based on their direction bit (up/down)
+            ;
+            ldy #Projectile::attr   ; offset to 'attr' field
+            lda (ptr2),y            ; load attribute value
+            sta tmp1                ; back it up to tmp1
+            beq @end                ; skip if disabled component encountered
+            and #KIND_BITS          ; AND with kind bit mask
+            lsr                     ; extract the kind value, to be used as index in 'speed_table'
+            tay                     ; move to y for using as index
+            lda speeds_table,y      ; load the speed value for the given projectile kind
+            sta tmp2                ; back it up to tmp2
+            ldy #Projectile::sprite ; offset to 'sprite' field
+            lda (ptr2),y            ; load lo part
+            sta ptr1                ; save lo part to ptr1
+            iny
+            lda (ptr2),y            ; load hi part
+            sta ptr1 + 1            ; save hi part to ptr1 + 1
+            ldy #Sprite::pos + 1    ; index to Y coord in the sprite component
+            lda (ptr1),y            ; load current Y coord value
+            pha                     ; push to stack
+            lda #OWNER_BIT          ; owner bit mask
+            bit tmp1                ; check whether it's player or enemy
+            beq @if_player
+@if_enemy:  pla                     ; pull back the Y coord value
+            clc
+            adc tmp2                ; in case of enemy, add the speed to it (move down)
+            bcs @destroy            ; on reaching the lower pixel row, destroy the projectile
+            jmp @update_y
+@if_player: pla                     ; pull back the Y coord value
+            sec
+            sbc tmp2                ; in case of player, subtract the speed from it (move up)
+            bcc @destroy            ; on reaching the topmost pixel row, destroy the projectile
+            jmp @update_y
+@destroy:   ldy #Projectile::attr
+            lda #0
+            sta (ptr2),y            ; clear the attribute bits
+            jsr destroy_sprite      ; destroy_sprite: (ptr1) => none
+@update_y:  sta (ptr1),y            ; save the update Y coord back to the sprite component
+@end:
+.endmac
 
-    ; fill projectile buffer:
-    ; store link to projectile entities in projectile buffer
-    mult_with_constant num_current_projectiles, #2, var1
-    calc_address_with_offset projectile_component_container, var1, ptr3
+            lda #<projectiles       ; point ptr2 to projectiles array beginning
+            sta ptr2
+            lda #>projectiles
+            sta ptr2 + 1
 
-    ldy #$00                                ; owner lo
-    lda ptr1
-    sta (ptr3), y
+            ; execute the macro above for each projectile
+            iter_ptr ptr2, projectiles_end, .sizeof(Projectile), iter_proj
 
-    iny
-    lda ptr1 + 1                        ; owner hi
-    sta (ptr3), y
-    iny
-
-    inc num_current_projectiles
-
-    rts
+            rts
 .endproc
 
 
@@ -218,64 +256,64 @@ last_updated_projectile:            .res 1
 ; MODIFIES:
 ;   ptr10, ptr9, ptr8
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-.proc update_projectile_position
-    lda #<projectile_component_container
-    sta ptr10
+; .proc update_projectile_position
+;             lda #<projectile_component_container
+;             sta ptr10
 
-    lda #>projectile_component_container
-    sta ptr10 + 1
+;             lda #>projectile_component_container
+;             sta ptr10 + 1
 
-    mult_with_constant last_updated_projectile, #2, var6
+;     mult_with_constant last_updated_projectile, #2, var6
 
-    ldy var6
-    lda (ptr10), y
-    sta ptr9
+;             ldy var6
+;             lda (ptr10), y
+;             sta ptr9
 
-    iny
-    lda (ptr10), Y
-    sta ptr9 + 1
+;             iny
+;             lda (ptr10), Y
+;             sta ptr9 + 1
 
-    ldy #$00
-    lda var1                               ; store x and y pos
-    sta (ptr9), Y
-    iny
+;             ldy #$00
+;             lda var1                ; store x and y pos
+;             sta (ptr9), Y
+;             iny
 
-    lda var2
-    sta (ptr9), Y
+;             lda var2
+;             sta (ptr9), Y
 
-    ; update active component mask
-    ldy #$03                                ; go over component mask
-    lda (ptr9), Y
-    ora #MOVEMENT_CMP
-    ora #SPRITE_CMP
-    ora #COLLISION_CMP
-    sta (ptr9), Y
+;     ; update active component mask
+;             ldy #$03                ; go over component mask
+;             lda (ptr9), Y
+;             ora #MOVEMENT_CMP
+;             ora #SPRITE_CMP
+;             ora #COLLISION_CMP
+;             sta (ptr9), Y
 
-    ; offset to movement_component
-    lda var6
-    clc
-    adc #$04
-    tay
-    lda (ptr9), Y
-    sta ptr8
-    iny
+;     ; offset to movement_component
+;             lda var6
+;             clc
+;             adc #$04
+;             tay
+;             lda (ptr9), Y
+;             sta ptr8
+;             iny
 
-    lda (ptr9), Y
-    sta ptr8 + 1
+;             lda (ptr9), Y
+;             sta ptr8 + 1
 
-    ldy #$03
-    lda var3
-    sta (ptr8), y                              ; xDir
+;             ldy #$03
+;             lda var3
+;             sta (ptr8), y           ; xDir
 
-    iny
-    lda var4                                       ; yDir
-    sta (ptr8), Y
+;             iny
+;             lda var4                ; yDir
+;             sta (ptr8), Y
 
-    inc last_updated_projectile
-    lda last_updated_projectile
-    cmp #MAX_PROJECTILES_IN_BUFFER
-    bcc :+
-    lda #$00
-    sta last_updated_projectile
- :  rts
-.endproc
+;             inc last_updated_projectile
+;             lda last_updated_projectile
+;             cmp #MAX_PROJECTILES_IN_BUFFER
+;             bcc :+
+;             lda #$00
+;             sta last_updated_projectile
+; :           rts
+; .endproc

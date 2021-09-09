@@ -2,36 +2,16 @@
 .include "globals.asm"
 .include "macros.asm"
 .include "nes.asm"
+.include "structs.asm"
 
-.export init_sprites
 .export create_sprite
+.export destroy_sprite
 .export draw_sprites
 
+.bss
 ;
-; Sprite instance.
+; Array of sprite components
 ;
-.struct Sprite
-    pos     .word   ; X,Y coordinates
-    anim    .addr   ; animation descriptor
-    frame   .byte   ; current animation frame index
-    elapsed .byte   ; number of frames elapsed since last frame advance
-.endstruct
-
-
-;
-; Animation descriptor (read-only).
-;
-.struct Animation
-    length  .byte   ; length in frames
-    speed   .byte   ; playback speed
-    tile0   .byte   ; starting tile ID
-    attr    .byte   ; attribute set
-    size    .byte   ; frame size in tiles
-.endstruct
-
-
-.segment "BSS"
-; array of sprite components
 sprites: .res (.sizeof(Sprite) * 8)
 sprites_end:
 
@@ -45,24 +25,15 @@ tile_offsets: .byte 0, PIXELS_PER_TILE, PIXELS_PER_TILE * 2, PIXELS_PER_TILE * 3
 
 .code
 ;
-; Inititalize sprites subsystem.
-;
-.proc init_sprites
-    ; FIXME: is this really necessary?
-            rts
-.endproc
-
-
-;
 ; Create a sprite.
 ;
 ; Parameters:
-;   var1       - X coord
-;   var2       - Y coord
-;   ptr1   - animation descriptor address
+;   var1    - X coord
+;   var2    - Y coord
+;   ptr1    - animation descriptor address
 ;
 ; Returns:
-;   ptr2   - address of created sprite
+;   ptr2    - address of created sprite
 ;
 ; Allocates an entry in the sprites array, initializes it and returns its
 ; address.
@@ -107,16 +78,37 @@ tile_offsets: .byte 0, PIXELS_PER_TILE, PIXELS_PER_TILE * 2, PIXELS_PER_TILE * 3
             rts
 .endproc
 
+
 ;
-; ARGS:
-; y                      - oam offset
+; Destroy a sprite.
 ;
-; RETURN:
-; y                      - oam offset
+; Arguments:
+;   ptr1    - address of the sprite to destroy
+;
+.proc destroy_sprite
+            lda #0
+            tay
+@clr:       sta (ptr1),y
+            iny
+            cpy #(.sizeof(Sprite) - 1)
+            bne @clr
+            rts
+.endproc
+
+
+;
+; Draw currently active sprites to shadow OAM, which will be copied over next
+; update.
 ;
 .proc draw_sprites
-            tya                     ; OAM offset to A
-            tax                     ; OAM offset to X
+            ;
+            ; Clear shadow OAM
+            ;
+            lda #0
+            tax
+@clr_oam:   sta oam,x
+            inx
+            bne @clr_oam
 
 .mac iter_sprite
             ldy #Sprite::pos        ; load X,Y coords into var5 and var6
@@ -190,8 +182,6 @@ tile_offsets: .byte 0, PIXELS_PER_TILE, PIXELS_PER_TILE * 2, PIXELS_PER_TILE * 3
             sta ptr1 + 1
             iter_ptr ptr1, sprites_end, .sizeof(Sprite), iter_sprite
 
-            txa                     ; OAM offset to A
-            tay                     ; OAM offset to Y
             rts
 .endproc
 

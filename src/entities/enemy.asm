@@ -321,7 +321,7 @@ ufo_2_idle_animation:
 
 .mac tick_enemy
             ldy #Enemy::kind    ; load 'kind' field offset to Y for indexing
-            lda (ptr1),y   ; if 'kind' is 0, Z is set and iteration stops
+            lda (ptr1),y        ; if 'kind' is 0, Z is set and iteration stops
 
             ; TODO: skip if 'kind' is NONE
             ; TODO: check for collision detection

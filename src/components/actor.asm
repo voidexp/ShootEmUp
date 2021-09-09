@@ -2,12 +2,9 @@
 .include "globals.asm"
 .include "constants.asm"
 
-.importzp update_flags, draw_flags
-
 .import enable_one_entity_component
 .import disable_one_entity_component
 .import update_movement_direction
-.import update_projectile_position
 
 .export create_actor_component
 .export init_actor_components
@@ -284,7 +281,7 @@ actor_component_container:              .res 30
 .proc update_player_role
     ; reset draw flags, set them one by one for the elements
     lda #$00
-    sta draw_flags
+    ; sta draw_flags
 
     ; reset x and y direction variables
     lda #$00
@@ -374,7 +371,7 @@ actor_component_container:              .res 30
     ; sta var5
 
     ; requires var1, var2 (entity position), var3, var4 (projectile_direction)
-    jsr update_projectile_position
+    ; jsr update_projectile_position
 
     pla
     sta var3
@@ -425,6 +422,6 @@ actor_component_container:              .res 30
     ; reset frame counter and player direction and update the position in the next second
     ; so that the next time
 :   lda #$00
-    sta update_flags
+    ; sta update_flags
     rts
 .endproc

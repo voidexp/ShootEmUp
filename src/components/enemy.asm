@@ -1,7 +1,6 @@
 .include "globals.asm"
 .include "macros.asm"
 
-.importzp kill_count, num_enemies_alive
 .import collision_results, num_collision_results
 
 .export create_enemy_component
@@ -153,8 +152,8 @@ num_enemy_components: .res 1
     cmp var4                               ; compare entity hi-byte
     bne @jump_to_next_result
 
-    inc kill_count
-    dec num_enemies_alive
+    ; inc kill_count
+    ; dec num_enemies_alive
     jmp @reset_sprite                       ; change sprite component
 
 @jump_to_next_result:
