@@ -8,13 +8,6 @@
 .export destroy_sprite
 .export draw_sprites
 
-.bss
-;
-; Array of sprite components
-;
-sprites: .res (.sizeof(Sprite) * 8)
-sprites_end:
-
 
 .rodata
 ;
@@ -86,12 +79,7 @@ tile_offsets: .byte 0, PIXELS_PER_TILE, PIXELS_PER_TILE * 2, PIXELS_PER_TILE * 3
 ;   ptr1    - address of the sprite to destroy
 ;
 .proc destroy_sprite
-            lda #0
-            tay
-@clr:       sta (ptr1),y
-            iny
-            cpy #(.sizeof(Sprite) - 1)
-            bne @clr
+            fill_mem ptr1, .sizeof(Sprite), #0
             rts
 .endproc
 

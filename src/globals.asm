@@ -3,4 +3,6 @@
 .importzp ptr1, ptr2, ptr3, ptr4, ptr5, ptr6, ptr7, ptr8, ptr9, ptr10
 .import oam
 
-.importzp enemies, enemies_end
+.import enemies, enemies_end
+.import sprites, sprites_end
+.import projectiles, projectiles_end

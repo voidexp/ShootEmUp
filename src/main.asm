@@ -96,15 +96,39 @@
     ptr9:               .res 2
     ptr10:              .res 2
 
-    ; enemy entities
+    ; export the stuff above, so it could be accessed by other code during linkage
+    .exportzp tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8, tmp9, tmp10
+    .exportzp var1, var2, var3, var4, var5, var6, var7, var8, var9, var10
+    .exportzp ptr1, ptr2, ptr3, ptr4, ptr5, ptr6, ptr7, ptr8, ptr9, ptr10
+
+;
+; Main RAM section layout.
+;
+.bss
+    ;
+    ; Array of enemy objects.
+    ;
+    .align 16
     enemies: .res .sizeof(Enemy) * NUM_ENEMIES
     enemies_end:
 
-; export the stuff above, so it could be accessed by other code during linkage
-.exportzp tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8, tmp9, tmp10
-.exportzp var1, var2, var3, var4, var5, var6, var7, var8, var9, var10
-.exportzp ptr1, ptr2, ptr3, ptr4, ptr5, ptr6, ptr7, ptr8, ptr9, ptr10
-.exportzp enemies, enemies_end
+    ;
+    ; Array of sprite objects.
+    ;
+    .align 16
+    sprites: .res (.sizeof(Sprite) * 8)
+    sprites_end:
+
+    ;
+    ; Array of projectile objects.
+    ;
+    .align 16
+    projectiles: .res (.sizeof(Projectile) * 8)
+    projectiles_end:
+
+    .export enemies, enemies_end
+    .export sprites, sprites_end
+    .export projectiles, projectiles_end
 
 
 ;
@@ -113,8 +137,7 @@
 ;
 .segment "OAM"
     oam: .res 256
-
-.export oam
+    .export oam
 
 
 .code

@@ -10,26 +10,6 @@
 .import destroy_sprite
 
 
-;
-; Projectile.
-;
-; Attribute field bits:
-;   Bit 0: Owner/Direction.
-;       0 = player / goes up
-;       1 = enemy / goes down
-;
-;   Bit 1: Kind.
-;       00  - disabled (the value of the whole attribute should be 0)
-;       01  - bullet
-;       10  - missile   (TODO)
-;       11  - laser     (TODO)
-;
-.struct Projectile
-    sprite  .addr   ; sprite address
-    attr    .byte   ; attribute bits, 0 = projectile disabled
-.endstruct
-
-
 OWNER_BIT = %00000001
 KIND_BITS = %00000110
 
@@ -54,19 +34,6 @@ speeds_table:
     .byte 1    ; bullet
     .byte 2    ; missile
     .byte 10   ; laser
-
-
-.bss
-; FIXME! Probably, due to non-POT size of the Projectile, the projectiles array
-; either crosses page boundary or something similar, due to which the iter_ptr
-; macro breaks, does not stop on projectiles_end and the hell unleashes.
-.align 256
-
-;
-; Array of projectiles.
-;
-projectiles: .res (.sizeof(Projectile) * 8)
-projectiles_end:
 
 
 .code
@@ -215,16 +182,15 @@ projectiles_end:
             clc
             adc tmp2                ; in case of enemy, add the speed to it (move down)
             bcs @destroy            ; on reaching the lower pixel row, destroy the projectile
-            jmp @update_y
+            bcc @update_y
 @if_player: pla                     ; pull back the Y coord value
             sec
             sbc tmp2                ; in case of player, subtract the speed from it (move up)
             bcc @destroy            ; on reaching the topmost pixel row, destroy the projectile
-            jmp @update_y
-@destroy:   ldy #Projectile::attr
-            lda #0
-            sta (ptr2),y            ; clear the attribute bits
-            jsr destroy_sprite      ; destroy_sprite: (ptr1) => none
+            bcs @update_y
+@destroy:   fill_mem ptr2, .sizeof(Projectile), #0  ; destroy the projectile
+            fill_mem ptr1, .sizeof(Sprite), #0      ; destroy the sprite
+            bvc @end                ; cheaper then jmp
 @update_y:  sta (ptr1),y            ; save the update Y coord back to the sprite component
 @end:
 .endmac

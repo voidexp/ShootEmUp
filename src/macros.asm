@@ -143,9 +143,31 @@
 .endmacro
 
 ;
+; Fill memory area with given value.
+;
+; At most 255 bytes long regions are accepted.
+;
+; Parameters:
+;   ptr     - pointer to the memory region start
+;   len     - length in bytes, at most 255
+;   expr    - fill value expression (immediate or address)
+;
+.macro fill_mem ptr, len, expr
+            .local @clr
+            ldy #0
+            lda expr
+@clr:       sta (ptr),y
+            iny
+            cpy #len
+            bne @clr
+.endmacro
+
+;
 ; Iterate a pointer with fixed increments.
 ;
 .macro iter_ptr ptr, end, offset, pred
+            .local @loop
+            .local @body
 @loop:      lda ptr             ; load the low address
             cmp #<end           ; compare it with target low part
             bne @body           ; if doesnt match, execute the body
