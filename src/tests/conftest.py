@@ -9,7 +9,8 @@ from py65.devices.mpu6502 import MPU
 
 INC_DIR = pathlib.Path(os.getcwd()).joinpath('src')
 ROM_CFG = pathlib.Path(__file__).parent.joinpath(f'test_rom.cfg')
-ORG = 0xC000
+ORG = 0x8000
+BSS = 0x0300
 
 
 class CompileError(Exception):
@@ -58,6 +59,7 @@ class Compiler:
 
     def __init__(self, build_dir):
         self.build_dir = build_dir
+        self.link_with = []
 
     def compile(self, srcfile: pathlib.Path) -> pathlib.Path:
         name = srcfile.stem
@@ -70,7 +72,7 @@ class Compiler:
 
     def link(self, obj_files: List[pathlib.Path], rom_name: str) -> pathlib.Path:
         rom_file = self.build_dir.joinpath(rom_name)
-        cl65(obj_files, rom_file)
+        cl65(obj_files + self.link_with, rom_file)
         return rom_file
 
 
@@ -80,7 +82,7 @@ class CPU(MPU):
         super().__init__()
         self.compiler = compiler
         self.org = ORG
-        self.bss = 0x200
+        self.bss = BSS
 
     def compile_and_run(self, code: str, link_with: Sequence[pathlib.Path]=()):
         self.reset()
@@ -98,7 +100,7 @@ class CPU(MPU):
 
         with open(romfile, 'rb') as rom:
             mem = rom.read()
-            self.memory[ORG:ORG + len(mem)] = mem
+            self.memory[0:len(mem)] = mem
 
         self.pc = ORG
 
@@ -114,4 +116,6 @@ def compiler():
 
 @pytest.fixture(scope='session')
 def cpu(compiler):
+    memory_obj = compiler.compile(pathlib.Path(os.getcwd()).joinpath('src', 'memory.asm'))
+    compiler.link_with.append(memory_obj)
     yield CPU(compiler)
