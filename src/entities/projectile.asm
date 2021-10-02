@@ -87,62 +87,6 @@ speeds_table:
             lda ptr2 + 1
             sta (ptr1),y
 
-    ; ; 5. Store sprite component address in entity component buffer
-    ;         ldy #$06
-    ;         lda ptr3
-    ;         sta (ptr1), y
-    ;         iny
-
-    ;         lda ptr3 + 1
-    ;         sta (ptr1), y
-    ;         iny
-
-    ; ; 6. Create COLLISON component
-    ; ; set collision mask
-    ;         lda #$00
-    ;         ora #ENEMY_LYR
-    ;         ora #PLAYER_LYR
-    ;         sta var1
-
-    ; ; set collision layer
-    ;         lda #$00
-    ;         ora #PROJECTILE_LYR
-    ;         sta var2
-
-    ; ; get width and height from animation for the AABB
-    ;         ldy #$04
-    ;         lda (ptr2), y
-    ;         sta var3
-    ;         sta var4
-
-    ;         jsr create_collision_component; arguments (var1: mask, var2: layer, var3: w, var4:h ) => return ptr2 of component
-
-    ; ; 7. Store collision component address in entity component buffer
-    ;         ldy #$08
-    ;         lda ptr2
-    ;         sta (ptr1), y
-    ;         iny
-
-    ;         lda ptr2 + 1
-    ;         sta (ptr1), y
-    ;         iny
-
-    ; ; fill projectile buffer:
-    ; ; store link to projectile entities in projectile buffer
-    ; mult_with_constant num_current_projectiles, #2, var1
-    ; calc_address_with_offset projectile_component_container, var1, ptr3
-
-    ;         ldy #$00                ; owner lo
-    ;         lda ptr1
-    ;         sta (ptr3), y
-
-    ;         iny
-    ;         lda ptr1 + 1            ; owner hi
-    ;         sta (ptr3), y
-    ;         iny
-
-    ;         inc num_current_projectiles
-
             rts
 .endproc
 
@@ -150,24 +94,20 @@ speeds_table:
 ;
 ; Tick projectiles logic.
 ;
-; Moves the projectiles, checks for collisions and collects exhausted ones.
+; Moves the projectiles, checks for collisions and destroys exhausted ones.
 ;
 .proc tick_projectiles
-            lda ptr1
-            pha
-            lda ptr1 + 1
-            pha
-            lda ptr2
-            pha
-            lda ptr2 + 1
-            pha
+            lda #<projectiles       ; point tmp5 to projectiles array beginning
+            sta tmp5
+            lda #>projectiles
+            sta tmp5 + 1
 
 .mac iter_proj
             ;
             ; Move projectiles based on their direction bit (up/down)
             ;
             ldy #Projectile::attr   ; offset to 'attr' field
-            lda (ptr2),y            ; load attribute value
+            lda (tmp5),y            ; load attribute value
             sta tmp1                ; back it up to tmp1
             beq @end                ; skip if disabled component encountered
             and #KIND_BITS          ; AND with kind bit mask
@@ -176,13 +116,13 @@ speeds_table:
             lda speeds_table,y      ; load the speed value for the given projectile kind
             sta tmp2                ; back it up to tmp2
             ldy #Projectile::sprite ; offset to 'sprite' field
-            lda (ptr2),y            ; load lo part
-            sta ptr1                ; save lo part to ptr1
+            lda (tmp5),y            ; load lo part
+            sta tmp7                ; save lo part to tmp7
             iny
-            lda (ptr2),y            ; load hi part
-            sta ptr1 + 1            ; save hi part to ptr1 + 1
+            lda (tmp5),y            ; load hi part
+            sta tmp7 + 1            ; save hi part to tmp7 + 1
             ldy #Sprite::pos + 1    ; index to Y coord in the sprite component
-            lda (ptr1),y            ; load current Y coord value
+            lda (tmp7),y            ; load current Y coord value
             pha                     ; push to stack
             lda #OWNER_BIT          ; owner bit mask
             bit tmp1                ; check whether it's player or enemy
@@ -191,43 +131,32 @@ speeds_table:
             clc
             adc tmp2                ; in case of enemy, add the speed to it (move down)
             bcs @destroy            ; on reaching the lower pixel row, destroy the projectile
-            sta (ptr1),y            ; update Y
+            sta (tmp7),y            ; update Y
             jmp @end
 @if_player: pla                     ; pull back the Y coord value
             sec
             sbc tmp2                ; in case of player, subtract the speed from it (move up)
             bcc @destroy            ; on reaching the topmost pixel row, destroy the projectile
-            sta (ptr1),y            ; update Y
-            jsr collide_with_enemies
-            bcc @end                ; if no collision, skip over, otherwise destroy the projectile
-@destroy:   fill_mem ptr2, .sizeof(Projectile), #0  ; destroy the projectile
-            fill_mem ptr1, .sizeof(Sprite), #0      ; destroy the sprite
+            sta (tmp7),y            ; update Y
+            jsr __collide_with_enemies
+            bcc @end                ; carry clear if no collision, skip over, otherwise destroy the projectile
+@destroy:   fill_mem tmp5, .sizeof(Projectile), #0  ; destroy the projectile
+            fill_mem tmp7, .sizeof(Sprite), #0      ; destroy the sprite
 @end:
 .endmac
-
-            lda #<projectiles       ; point ptr2 to projectiles array beginning
-            sta ptr2
-            lda #>projectiles
-            sta ptr2 + 1
-
             ; execute the macro above for each projectile
-            iter_ptr ptr2, projectiles_end, .sizeof(Projectile), iter_proj
-
-            pla
-            sta ptr2 + 1
-            pla
-            sta ptr2
-            pla
-            sta ptr1 + 1
-            pla
-            sta ptr1
+            iter_ptr tmp5, projectiles_end, .sizeof(Projectile), iter_proj
 
             rts
 .endproc
 
 
-
-.proc collide_with_enemies
+.proc __collide_with_enemies
+            ; (tmp3,tmp4) = pointer to current enemy (lo,hi)
+            lda #<enemies
+            sta tmp3
+            lda #>enemies
+            sta tmp4
 
 .mac collide_enemy
             ldy #Enemy::pos
@@ -244,13 +173,13 @@ speeds_table:
             sta var4                ; var4 = enemy bottom side
 
             ldy #Sprite::pos
-            lda (ptr1),y            ; load projectile X coord
+            lda (tmp7),y            ; load projectile X coord
             sta var5                ; var5 = projectile left side
             clc
             adc #8                  ; add projectile width
             sta var7                ; var7 = projectile right side
             iny
-            lda (ptr1),y            ; load projectile Y coord
+            lda (tmp7),y            ; load projectile Y coord
             sta var6                ; var6 = projectile top side
             clc
             adc #8                  ; add projectile height
@@ -266,15 +195,8 @@ speeds_table:
             rts
 @nohit:
 .endmac
-
-            ; (tmp3,tmp4) = pointer to current enemy (lo,hi)
-            lda #<enemies
-            sta tmp3
-            lda #>enemies
-            sta tmp4
-
             iter_ptr tmp3, enemies_end, .sizeof(Enemy), collide_enemy
 
-            clc
+            clc                     ; clear the carry, no collisions with enemies
             rts
 .endproc
