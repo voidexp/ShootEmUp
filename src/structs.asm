@@ -5,7 +5,7 @@
     pos     .word   ; X,Y position
     kind    .byte   ; kind of enemy: determines appearance and behavior
     sprite  .addr   ; address of enemy's ship sprite
-    hits    .byte   ; counter of hits received since last tick, modified by projectiles
+    hits    .byte   ; counter of hits received since last tick; modified by projectiles
 .endstruct
 
 

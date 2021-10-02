@@ -9,10 +9,10 @@
 .import sprite_palettes
 .import load_color_palettes
 .import background_palettes
-.import spawn_enemy_kind
+.import spawn_enemy
 .import spawn_projectile
 .import tick_projectiles
-
+.import tick_enemies
 
 ;
 ; iNES header for the emulators.
@@ -117,7 +117,7 @@ vblankwait2:
             sta var2
             lda #EnemyKind::UFO     ; enemy kind
             sta var3
-            jsr spawn_enemy_kind
+            jsr spawn_enemy
 
             ; Spawn an enemy projectile
             lda #3
@@ -268,6 +268,7 @@ vblankwait2:
 main:
             jsr wait_frame
             jsr tick_projectiles
+            jsr tick_enemies
             jsr draw_sprites
 
             jmp main

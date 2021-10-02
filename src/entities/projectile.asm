@@ -8,6 +8,7 @@
 
 .import create_sprite
 .import destroy_sprite
+.import check_rect_intersection
 
 
 OWNER_BIT = %00000001
@@ -152,6 +153,14 @@ speeds_table:
 ; Moves the projectiles, checks for collisions and collects exhausted ones.
 ;
 .proc tick_projectiles
+            lda ptr1
+            pha
+            lda ptr1 + 1
+            pha
+            lda ptr2
+            pha
+            lda ptr2 + 1
+            pha
 
 .mac iter_proj
             ;
@@ -182,16 +191,17 @@ speeds_table:
             clc
             adc tmp2                ; in case of enemy, add the speed to it (move down)
             bcs @destroy            ; on reaching the lower pixel row, destroy the projectile
-            bcc @update_y
+            sta (ptr1),y            ; update Y
+            jmp @end
 @if_player: pla                     ; pull back the Y coord value
             sec
             sbc tmp2                ; in case of player, subtract the speed from it (move up)
             bcc @destroy            ; on reaching the topmost pixel row, destroy the projectile
-            bcs @update_y
+            sta (ptr1),y            ; update Y
+            jsr collide_with_enemies
+            bcc @end                ; if no collision, skip over, otherwise destroy the projectile
 @destroy:   fill_mem ptr2, .sizeof(Projectile), #0  ; destroy the projectile
             fill_mem ptr1, .sizeof(Sprite), #0      ; destroy the sprite
-            bvc @end                ; cheaper then jmp
-@update_y:  sta (ptr1),y            ; save the update Y coord back to the sprite component
 @end:
 .endmac
 
@@ -203,83 +213,68 @@ speeds_table:
             ; execute the macro above for each projectile
             iter_ptr ptr2, projectiles_end, .sizeof(Projectile), iter_proj
 
+            pla
+            sta ptr2 + 1
+            pla
+            sta ptr2
+            pla
+            sta ptr1 + 1
+            pla
+            sta ptr1
+
             rts
 .endproc
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Update an existing projectile with a new position information
-; ARGS:
-;   var1           - xPosition
-;   var2           - yPosition
-;   var3           - xDir
-;   var4           - yDir, now one byte will be reduced
-;   var5           - speed
-;
-; RETURN:
-;   None
-; TODO: also update movement dir
-; MODIFIES:
-;   ptr10, ptr9, ptr8
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; .proc update_projectile_position
-;             lda #<projectile_component_container
-;             sta ptr10
 
-;             lda #>projectile_component_container
-;             sta ptr10 + 1
+.proc collide_with_enemies
 
-;     mult_with_constant last_updated_projectile, #2, var6
+.mac collide_enemy
+            ldy #Enemy::pos
+            lda (tmp3),y            ; load enemy X coord
+            sta var1                ; var1 = enemy left side
+            clc
+            adc #16                 ; add the width
+            sta var3                ; var3 = enemy right side
+            iny
+            lda (tmp3),y            ; load enemy Y coord
+            sta var2                ; var2 = enemy top side
+            clc
+            adc #16                 ; add the height
+            sta var4                ; var4 = enemy bottom side
 
-;             ldy var6
-;             lda (ptr10), y
-;             sta ptr9
+            ldy #Sprite::pos
+            lda (ptr1),y            ; load projectile X coord
+            sta var5                ; var5 = projectile left side
+            clc
+            adc #8                  ; add projectile width
+            sta var7                ; var7 = projectile right side
+            iny
+            lda (ptr1),y            ; load projectile Y coord
+            sta var6                ; var6 = projectile top side
+            clc
+            adc #8                  ; add projectile height
+            sta var8                ; var8 = projectile bottom side
 
-;             iny
-;             lda (ptr10), Y
-;             sta ptr9 + 1
+            jsr check_rect_intersection
+            bcc @nohit
+            ldy #Enemy::hits
+            lda (tmp3),y            ; load the number of hits
+            adc #1                  ; increase by 1 (carry is set!)
+            sta (tmp3),y            ; save it back
+            sec                     ; set carry and return
+            rts
+@nohit:
+.endmac
 
-;             ldy #$00
-;             lda var1                ; store x and y pos
-;             sta (ptr9), Y
-;             iny
+            ; (tmp3,tmp4) = pointer to current enemy (lo,hi)
+            lda #<enemies
+            sta tmp3
+            lda #>enemies
+            sta tmp4
 
-;             lda var2
-;             sta (ptr9), Y
+            iter_ptr tmp3, enemies_end, .sizeof(Enemy), collide_enemy
 
-;     ; update active component mask
-;             ldy #$03                ; go over component mask
-;             lda (ptr9), Y
-;             ora #MOVEMENT_CMP
-;             ora #SPRITE_CMP
-;             ora #COLLISION_CMP
-;             sta (ptr9), Y
-
-;     ; offset to movement_component
-;             lda var6
-;             clc
-;             adc #$04
-;             tay
-;             lda (ptr9), Y
-;             sta ptr8
-;             iny
-
-;             lda (ptr9), Y
-;             sta ptr8 + 1
-
-;             ldy #$03
-;             lda var3
-;             sta (ptr8), y           ; xDir
-
-;             iny
-;             lda var4                ; yDir
-;             sta (ptr8), Y
-
-;             inc last_updated_projectile
-;             lda last_updated_projectile
-;             cmp #MAX_PROJECTILES_IN_BUFFER
-;             bcc :+
-;             lda #$00
-;             sta last_updated_projectile
-; :           rts
-; .endproc
+            clc
+            rts
+.endproc
