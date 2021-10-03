@@ -45,9 +45,9 @@ ufo2_anim:
 ; Spawn an enemy of a given kind.
 ;
 ; Parameters:
-;   var1       - kind of enemy to spawn, see 'EnemyKind' enum
-;   var2       - X coord
-;   var3       - Y coord
+;   var1       - X coord
+;   var2       - Y coord
+;   var3       - kind of enemy to spawn, see 'EnemyKind' enum
 ;
 ; Returns:
 ;   ptr1   - address of the enemy object
@@ -56,50 +56,33 @@ ufo2_anim:
 ; address.
 ;
 .proc spawn_enemy
-
-.mac find_none
-            ldy #Enemy::kind
-            lda (ptr1),y            ; load 'kind'; if 0, Z is set and iteration stops
-.endmac
-
-            lda #<enemies           ; let 'ptr1' point to 'enemies' array
-            sta ptr1
-            lda #>enemies
-            sta ptr1 + 1
-            find_ptr ptr1, enemies_end, .sizeof(Enemy), find_none
-
-            lda var3                ; enemy kind value
-            sta (ptr1),y            ; save it to 'kind' field
-            lda var1                ; X coord value
-            ldy #Enemy::pos         ; offset to X component of 'pos' field
-            sta (ptr1),y            ; save X coord
-            lda var2                ; Y coord value
-            iny                     ; offset to Y component of 'pos' field
-            sta (ptr1),y            ; save Y coord
-
-            lda ptr1                ; backup ptr1 on stack
-            pha                     ; lo part
-            lda ptr1 + 1
-            pha                     ; hi part
-
-            lda #<octi_anim    ; point ptr1 to desired animation
+            lda #<octi_anim         ; point ptr1 to octi_anim
             sta ptr1
             lda #>octi_anim
             sta ptr1 + 1
 
-            jsr create_sprite       ; create a sprite, result in ptr2
+            jsr create_sprite       ; create a sprite for the enemy, address is in ptr2
 
-            pla                     ; enemy address hi
-            sta ptr1 + 1            ; restore to ptr1 hi
-            pla                     ; enemy address lo part
-            sta ptr1                ; restore to ptr1 lo
+.mac find_none
+            ldy #Enemy::kind
+            lda (ptr1),y            ; load 'kind'; if 0, iteration stops
+.endmac
 
-            ldy #Enemy::sprite      ; offset to sprite field
-            lda ptr2                ; sprite addr lo byte
-            sta (ptr1),y            ; write to sprite field lo
+            lda #<enemies           ; point ptr1 to enemies array
+            sta ptr1
+            lda #>enemies
+            sta ptr1 + 1
+            find_ptr ptr1, enemies_end, .sizeof(Enemy), find_none   ; find the first empty enemy record
+
+            lda var3
+            sta (ptr1),y            ; set 'kind' field; y already has the right index
+
+            ldy #Enemy::sprite
+            lda ptr2
+            sta (ptr1),y            ; set 'sprite' field lo
             iny
-            lda ptr2 + 1            ; sprite addr hi byte
-            sta (ptr1),y            ; write to sprite field hi
+            lda ptr2 + 1
+            sta (ptr1),y            ; set 'sprite' field hi
 
             rts
 .endproc

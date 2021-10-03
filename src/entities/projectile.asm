@@ -152,21 +152,23 @@ speeds_table:
 
 
 .proc __collide_with_enemies
-            ; (tmp3,tmp4) = pointer to current enemy (lo,hi)
-            lda #<enemies
-            sta tmp3
-            lda #>enemies
-            sta tmp4
-
 .mac collide_enemy
-            ldy #Enemy::pos
-            lda (tmp3),y            ; load enemy X coord
+            lda #$aa
+            ldy #Enemy::sprite
+            lda (tmp3),y            ; load sprite lo
+            sta tmp9                ; save to tmp9
+            iny
+            lda (tmp3),y            ; load sprite hi
+            sta tmp10               ; save to tmp10 (tmp9 + 1)
+
+            ldy #Sprite::pos
+            lda (tmp9),y            ; load enemy X coord
             sta var1                ; var1 = enemy left side
             clc
             adc #16                 ; add the width
             sta var3                ; var3 = enemy right side
             iny
-            lda (tmp3),y            ; load enemy Y coord
+            lda (tmp9),y            ; load enemy Y coord
             sta var2                ; var2 = enemy top side
             clc
             adc #16                 ; add the height
@@ -195,6 +197,12 @@ speeds_table:
             rts
 @nohit:
 .endmac
+
+            ; (tmp3,tmp4) = pointer to current enemy (lo,hi)
+            lda #<enemies
+            sta tmp3
+            lda #>enemies
+            sta tmp4
             iter_ptr tmp3, enemies_end, .sizeof(Enemy), collide_enemy
 
             clc                     ; clear the carry, no collisions with enemies
