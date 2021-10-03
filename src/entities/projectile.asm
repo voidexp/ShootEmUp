@@ -138,7 +138,7 @@ speeds_table:
             sbc tmp2                ; in case of player, subtract the speed from it (move up)
             bcc @destroy            ; on reaching the topmost pixel row, destroy the projectile
             sta (tmp7),y            ; update Y
-            jsr __collide_with_enemies
+            jsr _collide_with_enemies
             bcc @end                ; carry clear if no collision, skip over, otherwise destroy the projectile
 @destroy:   fill_mem tmp5, .sizeof(Projectile), #0  ; destroy the projectile
             fill_mem tmp7, .sizeof(Sprite), #0      ; destroy the sprite
@@ -151,9 +151,8 @@ speeds_table:
 .endproc
 
 
-.proc __collide_with_enemies
+.proc _collide_with_enemies
 .mac collide_enemy
-            lda #$aa
             ldy #Enemy::sprite
             lda (tmp3),y            ; load sprite lo
             sta tmp9                ; save to tmp9

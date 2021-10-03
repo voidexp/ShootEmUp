@@ -112,7 +112,6 @@ ufo2_anim:
             lda (tmp1),y
             sta ptr1 + 1            ; 'sprite' hi to ptr1 + 1
             jsr destroy_sprite      ; destroy the sprite associated with the enemy
-            lda #$cc
             fill_mem tmp1, .sizeof(Enemy), #0   ; zero the enemy record
 @end:
 .endmac
