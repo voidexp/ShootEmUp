@@ -11,6 +11,7 @@
 .import background_palettes
 .import spawn_enemy
 .import spawn_projectile
+.import spawn_player
 .import tick_projectiles
 .import tick_enemies
 
@@ -110,6 +111,7 @@ vblankwait2:
             ; initialize subystems, load levels, spawn enemies, etc.
             ; All covered by a nice black screen.
             ;
+
             ; Spawn an enemy
             lda #130                ; X coord
             sta var1
@@ -123,6 +125,13 @@ vblankwait2:
             lda #3
             sta var3
             jsr spawn_projectile
+
+            ; Spawn a player
+            lda #130
+            sta var1                ; X coord
+            lda #220
+            sta var2                ; Y coord
+            jsr spawn_player
 
             ; Spawn a player projectile
             lda #200

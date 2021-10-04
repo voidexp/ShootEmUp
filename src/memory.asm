@@ -72,6 +72,13 @@
     projectiles: .res (.sizeof(Projectile) * 8)
     projectiles_end:
 
+    ;
+    ; Array of players.
+    ;
+    .align 16
+    players: .res (.sizeof(Player) * 2)
+    players_end:
+
 
 ;
 ; PPU Object Attribute Memory - shadow RAM which holds rendering attributes
@@ -88,4 +95,5 @@
 .export enemies, enemies_end
 .export sprites, sprites_end
 .export projectiles, projectiles_end
+.export players, players_end
 .export oam

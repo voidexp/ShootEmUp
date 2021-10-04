@@ -59,3 +59,15 @@
     sprite  .addr   ; sprite address
     attr    .byte   ; attribute bits, 0 = projectile disabled
 .endstruct
+
+
+;
+; Player.
+;
+.struct Player
+    ship        .addr   ; ship sprite address
+    flame       .addr   ; flame sprite address
+    cooldown    .byte   ; shot cooldown
+    hits        .byte   ; damage hits since last tick
+    score       .word   ; player's score
+.endstruct
