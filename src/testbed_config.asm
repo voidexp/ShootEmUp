@@ -23,7 +23,6 @@ test_data_address = $0330
 ; INITIALIZE SETTINGS FOR THE TESTS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 initialize_test:
-    jsr initialize_entities
     jsr test_spawn_projectile
     jsr test_spawn_squady
     ; jsr spawn_squady
