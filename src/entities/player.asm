@@ -162,21 +162,21 @@ flame_anim:
             and #BUTTON_LEFT        ; should we move left?
             beq @right
             lda tmp5                ; load x coord
-            beq @update_x           ; no update if left border is reached
+            beq @update_x           ; if x is zero, we reached left border, do not update
             dec tmp5                ; move left if there's room
-            bvc @update_x
+            bvc @update_x           ; "unconditional" jump
 @right:     lda pad1,x              ; load player's buttons state
             and #BUTTON_RIGHT       ; should we move right?
             beq @update_x
             lda tmp5                ; load x coord
-            cmp #255 - SHIP_WIDTH   ; check against right screen border
+            cmp #255 - SHIP_WIDTH   ; check against right screen border minus ship width
             beq @update_x           ; no update if right border is reached
             inc tmp5                ; move right if there's room
 @update_x:  ldy #Sprite::pos
             lda tmp5
-            sta (tmp3),y            ; update ship sprite pos
+            sta (tmp3),y            ; update ship sprite x pos
             clc
-            adc #FLAME_XOFFSET
+            adc #FLAME_XOFFSET      ; add the flame offset
             sta (tmp6),y            ; update flame sprite pos
             rts
 .endproc
