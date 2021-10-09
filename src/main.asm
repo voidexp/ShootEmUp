@@ -9,13 +9,8 @@
 .import draw_sprites
 .import load_color_palettes
 .import poll_joypads
-.import spawn_enemy
-.import spawn_player
-.import spawn_projectile
 .import sprite_palettes
-.import tick_enemies
-.import tick_players
-.import tick_projectiles
+.import shooter_mode
 
 
 ;
@@ -115,31 +110,20 @@ vblankwait2:
             ; All covered by a nice black screen.
             ;
 
-            ; Spawn an enemy
-            lda #130                ; X coord
-            sta var1
-            lda #100                ; Y coord
-            sta var2
-            lda #EnemyKind::UFO     ; enemy kind
-            sta var3
-            jsr spawn_enemy
+            ; Set initial game mode
+            lda #<shooter_mode
+            sta game_mode
+            lda #>shooter_mode
+            sta game_mode + 1
 
-            ; Spawn an enemy projectile
-            lda #130
-            sta var1
-            lda #110
-            sta var2
-            lda #%011
-            sta var3
-            jsr spawn_projectile
-
-            ; Spawn a player
-            lda #130
-            sta var1                ; X coord
-            lda #210
-            sta var2                ; Y coord
-            jsr spawn_player
-
+            ; Initialize the game mode
+            ldy #GameMode::init
+            lda (game_mode),y
+            sta ptr1                ; ptr1 lo = init() lo
+            iny
+            lda (game_mode),y
+            sta ptr1 + 1            ; ptr1 hi = init() hi
+            call_ptr ptr1           ; call the game mode init() subroutine pointed to by ptr1
 
             ;
             ; Here we setup the PPU for drawing by writing apropriate
@@ -277,12 +261,48 @@ vblankwait2:
 main:
             jsr wait_frame
             jsr poll_joypads
-            jsr tick_projectiles
-            jsr tick_enemies
-            jsr tick_players
+
+            ;
+            ; Tick the current game mode
+            ;
+            ldy #GameMode::tick
+            lda (game_mode),y
+            sta ptr1                ; ptr1 lo = tick() lo
+            iny
+            lda (game_mode),y
+            sta ptr1 + 1            ; ptr1 hi = tick() hi
+            call_ptr ptr1           ; call the tick() subroutine pointed to by ptr1
+
             jsr draw_sprites
 
-            jmp main
+            ;
+            ; Switch game mode, if needed
+            ;
+            lda next_game_mode + 1  ; check next game mode hi
+            beq :+                  ; if zero, skip over
+            ldy #GameMode::fini
+            lda (game_mode),y
+            sta ptr1                ; ptr1 lo = fini() lo
+            iny
+            lda (game_mode),y
+            sta ptr1 + 1            ; ptr1 hi = fini() hi
+            call_ptr ptr1           ; invoke fini() subroutine of the current game mode
+            lda next_game_mode
+            sta game_mode           ; copy next lo
+            lda next_game_mode + 1
+            sta game_mode + 1       ; copy next
+            lda #0
+            sta next_game_mode      ; clear next lo
+            sta next_game_mode + 1  ; clear next hi
+            ldy #GameMode::init
+            lda (game_mode),y
+            sta ptr1                ; ptr1 lo = init() lo
+            iny
+            lda (next_game_mode),y
+            sta ptr1 + 1            ; ptr1 hi = init() hi
+            call_ptr ptr1           ; invoke init() subroutine of the new game mode
+
+:           jmp main                ; loop forever
 
 
 ;

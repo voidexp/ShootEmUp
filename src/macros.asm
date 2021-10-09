@@ -227,3 +227,20 @@
     lda #$ff
 @exit:
 .endmacro
+
+
+;
+; Invoke a subroutine via a pointer.
+;
+; Parameters:
+;   ptr     - pointer holding the address of the subroutine to call
+;
+.macro call_ptr ptr
+            .local @retaddr
+            lda #>(@retaddr - 1)
+            pha
+            lda #<(@retaddr - 1)
+            pha
+            jmp (ptr)
+@retaddr:
+.endmacro

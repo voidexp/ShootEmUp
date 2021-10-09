@@ -71,3 +71,13 @@
     hits        .byte   ; damage hits since last tick
     score       .word   ; player's score
 .endstruct
+
+
+;
+; Game mode.
+;
+.struct GameMode
+    init    .addr   ; enter subroutine
+    fini    .addr   ; exit subroutine
+    tick    .addr   ; tick subroutine
+.endstruct
