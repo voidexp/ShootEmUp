@@ -132,7 +132,9 @@ speeds_table:
             adc tmp2                ; in case of enemy, add the speed to it (move down)
             bcs @destroy            ; on reaching the lower pixel row, destroy the projectile
             sta (tmp7),y            ; update Y
-            jmp @end
+            jsr _collide_with_players
+            bcs @destroy            ; destroy if carry is set (we have a collision)
+            bcc @end                ; no hit, continue
 @if_player: pla                     ; pull back the Y coord value
             sec
             sbc tmp2                ; in case of player, subtract the speed from it (move up)
@@ -158,6 +160,7 @@ speeds_table:
             sta tmp9                ; save to tmp9
             iny
             lda (tmp3),y            ; load sprite hi
+            beq @nohit              ; skip the check if the enemy sprite hi addr is null
             sta tmp10               ; save to tmp10 (tmp9 + 1)
 
             ldy #Sprite::pos
@@ -190,6 +193,7 @@ speeds_table:
             bcc @nohit
             ldy #Enemy::hits
             lda (tmp3),y            ; load the number of hits
+            clc
             adc #1                  ; increase by 1 (carry is set!)
             sta (tmp3),y            ; save it back
             sec                     ; set carry and return
@@ -203,6 +207,66 @@ speeds_table:
             lda #>enemies
             sta tmp4
             iter_ptr tmp3, enemies_end, .sizeof(Enemy), collide_enemy
+
+            clc                     ; clear the carry, no collisions with enemies
+            rts
+.endproc
+
+
+.proc _collide_with_players
+.mac collide_player
+            ldy #Player::ship
+            lda (tmp3),y            ; load ship sprite lo
+            sta tmp9                ; save to tmp9
+            iny
+            lda (tmp3),y            ; load ship sprite hi
+            beq @nohit              ; skip the check if the player ship sprite hi addr is null
+            sta tmp10               ; save to tmp10 (tmp9 + 1)
+
+            ldy #Sprite::pos
+            lda (tmp9),y            ; load player X coord
+            sta var1                ; var1 = player left side
+            clc
+            adc #16                 ; add the width
+            sta var3                ; var3 = player right side
+            iny
+            lda (tmp9),y            ; load player Y coord
+            sta var2                ; var2 = player top side
+            clc
+            adc #16                 ; add the height
+            sta var4                ; var4 = player bottom side
+
+            ldy #Sprite::pos
+            lda (tmp7),y            ; load projectile X coord
+            sta var5                ; var5 = projectile left side
+            clc
+            adc #8                  ; add projectile width
+            sta var7                ; var7 = projectile right side
+            iny
+            lda (tmp7),y            ; load projectile Y coord
+            sta var6                ; var6 = projectile top side
+            clc
+            adc #8                  ; add projectile height
+            sta var8                ; var8 = projectile bottom side
+
+            jsr check_rect_intersection
+            bcc @nohit
+            ldy #Player::hits
+            lda (tmp3),y            ; load the number of hits
+            clc
+            adc #1                  ; increase by 1 (carry is set!)
+            sta (tmp3),y            ; save it back
+            sec                     ; set carry and return
+            rts
+@nohit:
+.endmac
+
+            ; (tmp3,tmp4) = pointer to current player (lo,hi)
+            lda #<players
+            sta tmp3
+            lda #>players
+            sta tmp4
+            iter_ptr tmp3, players_end, .sizeof(Player), collide_player
 
             clc                     ; clear the carry, no collisions with enemies
             rts

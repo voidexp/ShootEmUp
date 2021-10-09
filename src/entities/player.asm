@@ -5,6 +5,7 @@
 .include "macros.asm"
 
 .import create_sprite
+.import destroy_sprite
 .import spawn_projectile
 
 .export spawn_player
@@ -106,6 +107,57 @@ flame_anim:
 .endproc
 
 
+;
+; Destroy the player at given address.
+;
+; Args:
+;   ptr1    - address to a valid player object
+;
+.proc destroy_player
+            lda ptr2
+            pha                     ; back up ptr2 lo
+            lda ptr2 + 1
+            pha                     ; back up ptr2 hi
+
+            lda ptr1
+            sta ptr2                ; copy lo to ptr2 hi
+            lda ptr1 + 1
+            sta ptr2 + 1            ; copy hi to ptr2 hi
+
+            ldy #Player::ship
+            lda (ptr2),y
+            sta ptr1                ; ptr1 lo = ship sprite lo
+            iny
+            lda (ptr2),y
+            sta ptr1 + 1            ; ptr1 hi = ship sprite hi
+            jsr destroy_sprite      ; destroy ship sprite
+
+            ldy #Player::flame
+            lda (ptr2),y
+            sta ptr1                ; ptr1 lo = flame sprite lo
+            iny
+            lda (ptr2),y
+            sta ptr1 + 1            ; ptr1 hi = flame sprite hi
+            jsr destroy_sprite      ; destroy flame sprite
+
+            ; zero the player object
+            fill_mem ptr2, .sizeof(Player), #0
+
+            pla
+            sta ptr2 + 1            ; restore ptr2 hi
+            pla
+            sta ptr2                ; restore ptr2 lo
+
+            rts
+.endproc
+
+
+;
+; Tick players.
+;
+; Moves active players based on joypad button presses, handles shooting, death,
+; etc.
+;
 .proc tick_players
 .mac iter_player
             ldy #Player::ship + 1   ; hi byte of the player ship, is null if the player is disabled
@@ -132,6 +184,7 @@ flame_anim:
 
             jsr _handle_movement
             jsr _handle_shooting
+            jsr _handle_hits
 
 @skip:      inx
 .endmac
@@ -141,6 +194,7 @@ flame_anim:
             sta tmp2
             ldx #0
             iter_ptr tmp1, players_end, .sizeof(Player), iter_player
+            rts
 .endproc
 
 
@@ -248,4 +302,32 @@ flame_anim:
             pla
             sta tmp1
 @end:       rts
+.endproc
+
+
+;
+; Handle hits.
+;
+; (tmp1,tmp2)   - pointer to player
+;
+.proc _handle_hits
+            lda ptr1
+            pha                     ; save ptr1 lo
+            lda ptr1 + 1
+            pha                     ; save ptr1 hi
+
+            ldy #Player::hits
+            lda (tmp1),y            ; load the hits counter since last frame
+            beq :+                  ; do nothing if there were no projectile hits
+            lda tmp1
+            sta ptr1                ; ptr1 lo = player lo addr
+            lda tmp2
+            sta ptr1 + 1            ; ptr1 hi = player hi addr
+            jsr destroy_player      ; destroy the player
+
+:           pla
+            sta ptr1 + 1            ; restore ptr1 hi
+            pla
+            sta ptr1                ; restore ptr1 lo
+            rts
 .endproc
