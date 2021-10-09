@@ -26,6 +26,7 @@ entity_container:       .res 300             ; contains .. entities
 num_current_entities:   .res 1
 
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Creates the entity by calculating the storage address of the entity, setting
 ; the position, mask

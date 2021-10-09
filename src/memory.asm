@@ -46,6 +46,9 @@
 
     scroll_y:           .res 1  ; background vertical scroll offset
     sleeping:           .res 1  ; is waiting for vblank?
+    pad1:               .res 1  ; joypad 1 state
+    pad2:               .res 1  ; joypad 2 state
+
 
 ;
 ; Main RAM layout.
@@ -91,7 +94,7 @@
 .exportzp tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8, tmp9, tmp10
 .exportzp var1, var2, var3, var4, var5, var6, var7, var8, var9, var10
 .exportzp ptr1, ptr2, ptr3, ptr4, ptr5, ptr6, ptr7, ptr8, ptr9, ptr10
-.exportzp scroll_y, sleeping
+.exportzp scroll_y, sleeping, pad1, pad2
 .export enemies, enemies_end
 .export sprites, sprites_end
 .export projectiles, projectiles_end

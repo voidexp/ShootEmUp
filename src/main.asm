@@ -4,16 +4,18 @@
 .include "structs.asm"
 .include "globals.asm"
 
-.import draw_sprites
-.import copy_to_vram
-.import sprite_palettes
-.import load_color_palettes
 .import background_palettes
+.import copy_to_vram
+.import draw_sprites
+.import load_color_palettes
+.import poll_joypads
 .import spawn_enemy
-.import spawn_projectile
 .import spawn_player
-.import tick_projectiles
+.import spawn_projectile
+.import sprite_palettes
 .import tick_enemies
+.import tick_projectiles
+
 
 ;
 ; iNES header for the emulators.
@@ -129,7 +131,7 @@ vblankwait2:
             ; Spawn a player
             lda #130
             sta var1                ; X coord
-            lda #220
+            lda #210
             sta var2                ; Y coord
             jsr spawn_player
 
@@ -276,6 +278,7 @@ vblankwait2:
             ;
 main:
             jsr wait_frame
+            jsr poll_joypads
             jsr tick_projectiles
             jsr tick_enemies
             jsr draw_sprites
