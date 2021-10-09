@@ -14,6 +14,7 @@
 .import spawn_projectile
 .import sprite_palettes
 .import tick_enemies
+.import tick_players
 .import tick_projectiles
 
 
@@ -281,6 +282,7 @@ main:
             jsr poll_joypads
             jsr tick_projectiles
             jsr tick_enemies
+            jsr tick_players
             jsr draw_sprites
 
             jmp main
