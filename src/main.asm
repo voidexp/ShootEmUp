@@ -124,25 +124,12 @@ vblankwait2:
             sta var3
             jsr spawn_enemy
 
-            ; Spawn an enemy projectile
-            lda #3
-            sta var3
-            jsr spawn_projectile
-
             ; Spawn a player
             lda #130
             sta var1                ; X coord
             lda #210
             sta var2                ; Y coord
             jsr spawn_player
-
-            ; Spawn a player projectile
-            lda #200
-            sta var2
-            lda #2
-            sta var3
-            jsr spawn_projectile
-
 
             ;
             ; Here we setup the PPU for drawing by writing apropriate

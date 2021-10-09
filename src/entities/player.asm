@@ -5,6 +5,8 @@
 .include "macros.asm"
 
 .import create_sprite
+.import spawn_projectile
+
 .export spawn_player
 .export tick_players
 
@@ -12,6 +14,9 @@
 FLAME_XOFFSET = 4
 FLAME_YOFFSET = 14
 SHIP_WIDTH = 16
+SHOOT_COOLDOWN = 60
+PROJECTILE_XOFFSET = 4
+PROJECTILE_YOFFSET = 255 - 4 ; -4 using two's complement
 
 .rodata
 ;
@@ -103,43 +108,10 @@ flame_anim:
 
 .proc tick_players
 .mac iter_player
-            pla                     ; pull the player index from stack
-            tax                     ; move to x
-
-            ;
-            ; Check whether the player is enabled
-            ;
             ldy #Player::ship + 1   ; hi byte of the player ship, is null if the player is disabled
             lda (tmp1),y
             beq @skip               ; skip the player if there's no ship sprite
 
-            ;
-            ; Handle movement
-            ;
-            jsr _handle_movement
-
-            inx
-            txa
-            pha
-@skip:
-.endmac
-            lda #<players
-            sta tmp1
-            lda #>players
-            sta tmp2
-            lda #0
-            pha
-            iter_ptr tmp1, players_end, .sizeof(Player), iter_player
-.endproc
-
-
-;
-; Handle player movement based on the state of the related joypad buttons.
-;
-; (tmp1,tmp2)   - pointer to player
-; x             - player index
-;
-.proc _handle_movement
             ldy #Player::ship
             lda (tmp1),y
             sta tmp3                ; tmp3 - ship sprite lo
@@ -158,6 +130,29 @@ flame_anim:
             lda (tmp3),y            ; load x coord
             sta tmp5                ; save to tmp5
 
+            jsr _handle_movement
+            jsr _handle_shooting
+
+@skip:      inx
+.endmac
+            lda #<players
+            sta tmp1
+            lda #>players
+            sta tmp2
+            ldx #0
+            iter_ptr tmp1, players_end, .sizeof(Player), iter_player
+.endproc
+
+
+;
+; Handle player movement based on the state of the related joypad buttons.
+;
+; (tmp1,tmp2)   - pointer to player
+; (tmp3,tmp4)   - ship sprite
+; (tmp6,tmp7)   - flame sprite
+; x             - player index
+;
+.proc _handle_movement
 @left:      lda pad1,x              ; load player's buttons state
             and #BUTTON_LEFT        ; should we move left?
             beq @right
@@ -179,4 +174,78 @@ flame_anim:
             adc #FLAME_XOFFSET      ; add the flame offset
             sta (tmp6),y            ; update flame sprite pos
             rts
+.endproc
+
+
+;
+; Handle shooting.
+;
+; (tmp1,tmp2)   - pointer to player
+; (tmp3,tmp4)   - ship sprite
+; (tmp6,tmp7)   - flame sprite
+; x             - player index
+;
+.proc _handle_shooting
+            ldy #Player::cooldown
+            lda (tmp1),y            ; load cooldown value
+            beq @shoot              ; cooldown elapsed, we can shoot
+            clc
+            sbc #1                  ; subtract a tick
+            sta (tmp1),y            ; update the cooldown
+            rts                     ; early return
+@shoot:     lda pad1,x              ; load buttons for given player
+            and #BUTTON_A           ; fire button pressed?
+            beq @end
+            lda #SHOOT_COOLDOWN
+            sta (tmp1),y            ; reset cooldown, y still has the right offset
+            lda tmp5                ; load x coord
+            clc
+            adc #PROJECTILE_XOFFSET ; add x offset
+            sta var1                ; var1 = projectile x coord
+            ldy #Sprite::pos + 1
+            lda (tmp3),y            ; load y coord
+            clc
+            adc #PROJECTILE_YOFFSET ; add y offset
+            sta var2                ; var2 = projectile y coord
+            lda #%010               ; projectile attribute: player owned, bullet kind
+            sta var3                ; var3 = projectile attribute
+
+            ; save temporaries
+            lda tmp1
+            pha
+            lda tmp2
+            pha
+            lda tmp3
+            pha
+            lda tmp4
+            pha
+            lda tmp5
+            pha
+            lda tmp6
+            pha
+            lda tmp7
+            pha
+            txa
+            pha
+
+            jsr spawn_projectile    ; spawn the projectile
+
+            ; restore temporaries
+            pla
+            tax
+            pla
+            sta tmp7
+            pla
+            sta tmp6
+            pla
+            sta tmp5
+            pla
+            sta tmp4
+            pla
+            sta tmp3
+            pla
+            sta tmp2
+            pla
+            sta tmp1
+@end:       rts
 .endproc
