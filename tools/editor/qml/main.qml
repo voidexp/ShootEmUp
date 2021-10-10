@@ -9,7 +9,7 @@ Window {
     width: 800
     height: 800
     visible: true
-    title: qsTr("ShootEmUp level editor")
+    title: qsTr("Level Editor")
 
     Canvas {
         id: editorCanvas
