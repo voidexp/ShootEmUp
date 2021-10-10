@@ -1,5 +1,4 @@
 .include "nes.asm"
-.include "constants.asm"
 .include "macros.asm"
 .include "structs.asm"
 .include "globals.asm"
@@ -138,7 +137,7 @@ vblankwait2:
             lda #<VRAM_BGCOLOR
             sta PPUADDR
 
-            lda #BG_COLOR
+            lda #$0d
             sta PPUDATA
 
             ; write the background palette color indices

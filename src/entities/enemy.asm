@@ -1,5 +1,4 @@
 .include "globals.asm"
-.include "constants.asm"
 .include "macros.asm"
 .include "structs.asm"
 

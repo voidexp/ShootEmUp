@@ -1,4 +1,3 @@
-.include "constants.asm"
 .include "globals.asm"
 .include "nes.asm"
 .include "structs.asm"

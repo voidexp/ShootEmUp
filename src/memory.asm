@@ -1,5 +1,4 @@
 .include "structs.asm"
-.include "constants.asm"
 
 ;
 ; Zero-page RAM layout.
@@ -59,7 +58,7 @@
     ; Array of enemy objects.
     ;
     .align 16
-    enemies: .res .sizeof(Enemy) * NUM_ENEMIES
+    enemies: .res .sizeof(Enemy) * 5
     enemies_end:
 
     ;

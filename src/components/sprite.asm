@@ -1,4 +1,3 @@
-.include "constants.asm"
 .include "globals.asm"
 .include "macros.asm"
 .include "nes.asm"
@@ -14,7 +13,7 @@
 ;
 ; Table with pre-multiplied tile offsets in pixels
 ;
-tile_offsets: .byte 0, PIXELS_PER_TILE, PIXELS_PER_TILE * 2, PIXELS_PER_TILE * 3
+tile_offsets: .byte 0, 8, 16, 24
 
 
 .code
