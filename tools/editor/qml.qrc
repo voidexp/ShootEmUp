@@ -3,5 +3,7 @@
         <file>qml/main.qml</file>
         <file>qml/Style.qml</file>
         <file>qml/qmldir</file>
+        <file>fontawesome.otf</file>
+        <file>qml/Controls/Button.qml</file>
     </qresource>
 </RCC>
