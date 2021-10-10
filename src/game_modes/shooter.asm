@@ -82,26 +82,11 @@ shooter_mode:
             jsr tick_players
 
             ;
-            ; Count the number of alive players and in case there are none,
-            ; switch to game over mode.
+            ; Check the alive players counter and switch to game over mode if
+            ; everyone is dead.
             ;
-.mac check_player
-            ldy #Player::ship + 1
-            lda (tmp1),y            ; load and check the player ship sprite hi addr
-            beq @skipdead
-            inc tmp3                ; increment the counter of alive players
-@skipdead:
-.endmac
-            lda #0
-            sta tmp3                ; tmp3 is the counter of alive players
-            lda #<players
-            sta tmp1
-            lda #>players
-            sta tmp2
-            iter_ptr tmp1, players_end, .sizeof(Player), check_player
-
-            lda tmp3                ; check if there are alive players
-            bne @end                ; if there are, bail out
+            lda players_alive       ; anybody alive?
+            bne @end                ; if there is, bail out
             lda #<game_over_mode
             sta next_game_mode      ; set next game mode lo
             lda #>game_over_mode

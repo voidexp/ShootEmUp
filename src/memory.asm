@@ -49,6 +49,7 @@
     pad2:               .res 1  ; joypad 2 state
     game_mode:          .res 2  ; current game mode
     next_game_mode:     .res 2  ; next game mode
+    players_alive:      .res 1  ; number of currently alive players
 
 ;
 ; Main RAM layout.
@@ -94,7 +95,7 @@
 .exportzp tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8, tmp9, tmp10
 .exportzp var1, var2, var3, var4, var5, var6, var7, var8, var9, var10
 .exportzp ptr1, ptr2, ptr3, ptr4, ptr5, ptr6, ptr7, ptr8, ptr9, ptr10
-.exportzp scroll_y, sleeping, pad1, pad2, game_mode, next_game_mode
+.exportzp scroll_y, sleeping, pad1, pad2, game_mode, next_game_mode, players_alive
 .export enemies, enemies_end
 .export sprites, sprites_end
 .export projectiles, projectiles_end

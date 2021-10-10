@@ -163,6 +163,8 @@ flame_anim:
             lda (tmp1),y
             beq @skip               ; skip the player if there's no ship sprite
 
+            inc players_alive       ; increase the counter of alive players
+
             ldy #Player::ship
             lda (tmp1),y
             sta tmp3                ; tmp3 - ship sprite lo
@@ -187,11 +189,12 @@ flame_anim:
 
 @skip:      inx
 .endmac
+            ldx #0                  ; use x as player index for subroutines below
+            stx players_alive       ; conveniently also reset the number of alive players
             lda #<players
             sta tmp1
             lda #>players
             sta tmp2
-            ldx #0
             iter_ptr tmp1, players_end, .sizeof(Player), iter_player
             rts
 .endproc
