@@ -1,8 +1,9 @@
-import QtQuick
+import QtQuick 2.0
 import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Dialogs
 import QtQuick.Layouts
+
 
 Window {
     width: 800
@@ -16,15 +17,18 @@ Window {
         height: width
         onPaint: {
             var ctx = getContext("2d");
-            ctx.fillStyle = Qt.black;
-            ctx.strokeStyle = Qt.rgba(0.3, 0.3, 0.3, 1.0);
-            ctx.lineWidth = 0.5;
+
+            /* Draw the background */
+            ctx.fillStyle = Style.bg;
             ctx.fillRect(0, 0, width, height);
 
+            /* Draw the grid */
+            ctx.strokeStyle = Style.fg;
+            ctx.lineWidth = 0.5;
             var size = width;
-            var step = 1.0 / 32 * size;
-
-            for (var c = 0; c < 32; c++) {
+            const cells = 32;
+            var step = 1.0 / cells * size;
+            for (var c = 0; c < cells; c++) {
                 ctx.beginPath();
                 ctx.moveTo(c * step, 0);
                 ctx.lineTo(c * step, size);
