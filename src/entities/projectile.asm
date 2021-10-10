@@ -4,6 +4,8 @@
 
 .export spawn_projectile
 .export tick_projectiles
+.export destroy_projectile
+.export destroy_projectiles
 
 .import create_sprite
 .import destroy_sprite
@@ -91,6 +93,56 @@ speeds_table:
 
 
 ;
+; Destroy a projectile.
+;
+; Parameters:
+;   ptr1    - projectile to destroy.
+;
+.proc destroy_projectile
+            lda ptr1
+            sta tmp1
+            lda ptr1 + 1
+            sta tmp2
+
+            ldy #Projectile::sprite
+            lda (tmp1),y
+            sta ptr1
+            iny
+            lda (tmp1),y
+            sta ptr1 + 1
+            jsr destroy_sprite
+
+            lda tmp1
+            sta ptr1
+            lda tmp2
+            sta ptr1 + 1
+
+            fill_mem ptr1, .sizeof(Projectile), #0
+
+            rts
+.endproc
+
+
+;
+; Destroy all projectiles.
+;
+.proc destroy_projectiles
+.mac iter_projectile
+            ldy #Projectile::attr
+            lda (ptr1),y
+            beq @skip
+            jsr destroy_projectile
+@skip:
+.endmac
+            lda #<projectiles
+            sta ptr1
+            lda #>projectiles
+            sta ptr1 + 1
+            iter_ptr ptr1, projectiles_end, .sizeof(Projectile), iter_projectile
+            rts
+.endproc
+
+;
 ; Tick projectiles logic.
 ;
 ; Moves the projectiles, checks for collisions and destroys exhausted ones.
@@ -141,8 +193,11 @@ speeds_table:
             sta (tmp7),y            ; update Y
             jsr _collide_with_enemies
             bcc @end                ; carry clear if no collision, skip over, otherwise destroy the projectile
-@destroy:   fill_mem tmp5, .sizeof(Projectile), #0  ; destroy the projectile
-            fill_mem tmp7, .sizeof(Sprite), #0      ; destroy the sprite
+@destroy:   lda tmp5
+            sta ptr1
+            lda tmp6
+            sta ptr1 + 1
+            jsr destroy_projectile
 @end:
 .endmac
             ; execute the macro above for each projectile

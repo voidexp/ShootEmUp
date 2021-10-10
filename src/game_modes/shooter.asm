@@ -3,6 +3,7 @@
 .include "macros.asm"
 
 .import destroy_enemies
+.import destroy_projectiles
 .import game_over_mode
 .import spawn_enemy
 .import spawn_player
@@ -10,7 +11,6 @@
 .import tick_enemies
 .import tick_players
 .import tick_projectiles
-
 
 .rodata
 ;
@@ -69,6 +69,7 @@ shooter_mode:
 ;
 .proc shooter_fini
             jsr destroy_enemies
+            jsr destroy_projectiles
             rts
 .endproc
 
