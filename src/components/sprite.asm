@@ -6,6 +6,7 @@
 
 .export create_sprite
 .export destroy_sprite
+.export destroy_sprites
 .export draw_sprites
 
 
@@ -80,6 +81,23 @@ tile_offsets: .byte 0, PIXELS_PER_TILE, PIXELS_PER_TILE * 2, PIXELS_PER_TILE * 3
 ;
 .proc destroy_sprite
             fill_mem ptr1, .sizeof(Sprite), #0
+            rts
+.endproc
+
+
+;
+; Destroy all sprites.
+;
+.proc destroy_sprites
+.mac cleanup
+            fill_mem tmp1, .sizeof(Sprite), #0
+.endmac
+            lda #<sprites
+            sta tmp1
+            lda #>sprites
+            sta tmp2
+            iter_ptr tmp1, sprites_end, .sizeof(Sprite), cleanup
+
             rts
 .endproc
 

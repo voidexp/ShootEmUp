@@ -6,6 +6,8 @@
 .import create_sprite
 .import destroy_sprite
 
+.export destroy_enemies
+.export destroy_enemy
 .export spawn_enemy
 .export tick_enemies
 
@@ -89,38 +91,101 @@ ufo2_anim:
 
 
 ;
+; Destroy a given enemy.
+;
+; Parameters:
+;   ptr1    - address of a valid enemy object.
+;
+.proc destroy_enemy
+            ldy #Enemy::sprite
+            lda (ptr1),y
+            sta ptr2                ; ptr2 lo = sprite lo
+            iny
+            lda (ptr1),y
+            sta ptr2 + 1            ; ptr2 hi = sprite hi
+            lda ptr1
+            pha                     ; save ptr1 lo to stack
+            lda ptr1 + 1
+            pha                     ; save ptr1 hi to stack
+            lda ptr2
+            sta ptr1                ; ptr1 lo = sprite lo
+            lda ptr2 + 1
+            sta ptr1 + 1            ; ptr1 hi = sprite hi
+            jsr destroy_sprite      ; destroy the sprite associated with the enemy
+            pla
+            sta ptr1 + 1            ; restore ptr1 hi
+            pla
+            sta ptr1                ; restore ptr1 lo
+            fill_mem ptr1, .sizeof(Enemy), #0   ; clear the enemy record
+            rts
+.endproc
+
+
+;
+; Destroy all enemies.
+;
+.proc destroy_enemies
+            lda ptr1
+            pha                     ; save ptr1 lo
+            lda ptr1 + 1
+            pha                     ; save ptr1 hi
+
+.mac iter_enemy
+            ldy #Enemy::kind
+            lda (ptr1),y            ; load enemy kind
+            beq @skip               ; if 0 (disabled), skip this enemy
+            jsr destroy_enemy
+@skip:
+.endmac
+            lda #<enemies
+            sta ptr1
+            lda #>enemies
+            sta ptr1 + 1
+            iter_ptr ptr1, enemies_end, .sizeof(Enemy), iter_enemy
+
+            pla
+            sta ptr1 + 1            ; restore ptr1 hi
+            pla
+            sta ptr1                ; restore ptr1 lo
+
+            rts
+.endproc
+
+
+;
 ; Tick enemies.
 ;
 ; Iterates all enemy objects and performs collision detection, movement and
 ; rendering.
 ;
 .proc tick_enemies
+            lda ptr1
+            pha
+            lda ptr1 + 1
+            pha
 
 .mac tick_enemy
             ldy #Enemy::kind
-            lda (tmp1),y            ; load 'kind' attribute
+            lda (ptr1),y            ; load 'kind' attribute
             beq @end                ; skip this enemy if zero
 
             ldy #Enemy::hits
-            lda (tmp1),y            ; load 'hits' attribute
+            lda (ptr1),y            ; load 'hits' attribute
             beq @end                ; skip if this enemy wasn't hit
-
-            ldy #Enemy::sprite
-            lda (tmp1),y
-            sta ptr1                ; 'sprite' lo to ptr1
-            iny
-            lda (tmp1),y
-            sta ptr1 + 1            ; 'sprite' hi to ptr1 + 1
-            jsr destroy_sprite      ; destroy the sprite associated with the enemy
-            fill_mem tmp1, .sizeof(Enemy), #0   ; zero the enemy record
+            jsr destroy_enemy       ; destroy if there were hits
 @end:
 .endmac
 
             lda #<enemies
-            sta tmp1
+            sta ptr1
             lda #>enemies
-            sta tmp2
-            iter_ptr tmp1, enemies_end, .sizeof(Enemy), tick_enemy
+            sta ptr1 + 1
+            iter_ptr ptr1, enemies_end, .sizeof(Enemy), tick_enemy
+
+            pla
+            sta ptr1 + 1
+            pla
+            sta ptr1
 
             rts
 .endproc

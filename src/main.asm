@@ -298,7 +298,7 @@ main:
             lda (game_mode),y
             sta ptr1                ; ptr1 lo = init() lo
             iny
-            lda (next_game_mode),y
+            lda (game_mode),y
             sta ptr1 + 1            ; ptr1 hi = init() hi
             call_ptr ptr1           ; invoke init() subroutine of the new game mode
 
