@@ -4,10 +4,11 @@ import ".."
 
 Rectangle {
     property alias icon: iconText.text
-    width: 40
-    height: 40
+    width: height
+    height: parent.height - 2
     color: Style.bg
     border.color: area.containsMouse ? (area.pressed ? Style.hi : Style.lo) : Style.bg
+    border.width: 1
 
     MouseArea {
         id: area
