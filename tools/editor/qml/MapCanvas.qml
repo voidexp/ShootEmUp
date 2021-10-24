@@ -9,6 +9,8 @@ Canvas {
         const size = Math.min(width, height);
         const x0 = (width - size) / 2;
         const y0 = (height - size) / 2;
+        const cells = 32;
+        var step = 1.0 / cells * size;
 
         /* Draw the background */
         ctx.fillStyle = Style.bg;
@@ -17,8 +19,6 @@ Canvas {
         /* Draw the grid */
         ctx.strokeStyle = Style.fg;
         ctx.lineWidth = 0.5;
-        const cells = 32;
-        var step = 1.0 / cells * size;
         for (var c = 0; c < cells; c++) {
             ctx.beginPath();
             ctx.moveTo(x0 + c * step, y0);
@@ -41,7 +41,6 @@ Canvas {
             ctx.strokeStyle = Style.lo;
             ctx.rect(x0 + col * step, y0 + row * step, step, step);
             ctx.stroke();
-            ctx.endPath();
         }
     }
 

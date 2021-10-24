@@ -7,9 +7,18 @@ CONFIG += c++11
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+        gameobject.cpp \
         main.cpp
 
 RESOURCES += qml.qrc
+
+INCLUDEPATH += $$PWD/include
+
+debug {
+    LIBS += $$PWD/lib/yaml-cppd.lib
+} else {
+    LIBS += $$PWD/lib/yaml-cpp.lib
+}
 
 # Additional import path used to resolve QML modules in Qt Creator's code model
 QML_IMPORT_PATH = qml
@@ -24,6 +33,11 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 DISTFILES += \
     qml/Controls/Button.qml \
+    qml/MapCanvas.qml \
+    qml/ObjectsPanel.qml \
     qml/Style.qml \
     qml/main.qml \
     qml/qmldir
+
+HEADERS += \
+    gameobject.h

@@ -1,0 +1,14 @@
+- name: Octi
+  type: enemy
+  sheet: ships.bmp
+  rect: [48, 0, 16, 16]
+
+- name: Ufo
+  type: enemy
+  sheet: ships.bmp
+  rect: [0, 32, 16, 16]
+
+- name: Rainbow
+  type: object
+  sheet: ships.bmp
+  rect: [32, 48, 16, 16]

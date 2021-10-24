@@ -31,15 +31,16 @@ Window {
             Layout.fillHeight: true
             Layout.fillWidth: true
 
-            // Left panel
-            Item {
-                id: leftPanel
+            // Left panel - objects
+            ObjectsPanel {
                 Layout.fillHeight: true
                 Layout.fillWidth: true
+                model: gameObjects
             }
 
             // Map canvas
             MapCanvas {
+                id: mapCanvas
                 Layout.fillHeight: true
                 Layout.preferredWidth: parent.width > parent.height ? parent.height : parent.width * 0.6
             }

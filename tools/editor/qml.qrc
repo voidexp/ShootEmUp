@@ -6,5 +6,6 @@
         <file>fontawesome.otf</file>
         <file>qml/Controls/Button.qml</file>
         <file>qml/MapCanvas.qml</file>
+        <file>qml/ObjectsPanel.qml</file>
     </qresource>
 </RCC>
