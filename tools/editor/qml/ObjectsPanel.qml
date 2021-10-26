@@ -10,8 +10,6 @@ GridView {
     currentIndex: -1
     delegate: objectDelegate
 
-    onCurrentIndexChanged: objectSelected(model[currentIndex])
-
     Component {
         id: objectDelegate
 
@@ -39,7 +37,10 @@ GridView {
             MouseArea {
                 hoverEnabled: true
                 anchors.fill: parent
-                onClicked: gridView.currentIndex = index
+                onClicked: {
+                    gridView.currentIndex = index
+                    gridView.objectSelected(gridView.model[index])
+                }
                 onEntered: {
                     tooltip.visible = true
                     parent.hovered = true

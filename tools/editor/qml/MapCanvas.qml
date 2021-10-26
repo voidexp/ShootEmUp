@@ -2,6 +2,7 @@ import QtQuick 2.0
 import QtQuick.Layouts 1.3
 
 Canvas {
+    id: canvas
     property vector2d cursor: Qt.vector2d(-1, -1)
     property QtObject brush: null
     property string _brushImage
@@ -71,6 +72,7 @@ Canvas {
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
+        acceptedButtons: Qt.AllButtons
 
         onPositionChanged: function (mouse) {
             parent.cursor = Qt.vector2d(mouse.x, mouse.y);
@@ -78,6 +80,12 @@ Canvas {
 
         onExited: {
             parent.cursor = Qt.vector2d(-1, -1); // special invalid vector
+        }
+
+        onClicked: function (mouse) {
+            if (mouse.button === Qt.RightButton) {
+                canvas.brush = null;
+            }
         }
     }
 }
