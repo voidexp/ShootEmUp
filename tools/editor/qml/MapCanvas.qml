@@ -3,9 +3,20 @@ import QtQuick.Layouts 1.3
 
 Canvas {
     property vector2d cursor: Qt.vector2d(-1, -1)
+    property QtObject brush: null
+    property string _brushImage
+
+    onBrushChanged: {
+        _brushImage = brush ? ("image://gameObjects/" + brush.name) : '';
+        if (brush) {
+            loadImage(_brushImage);
+        }
+        markDirty(Qt.rect(0, 0, width, height));
+    }
 
     onPaint: {
         var ctx = getContext("2d");
+        const tileSize = 8;
         const size = Math.min(width, height);
         const x0 = (width - size) / 2;
         const y0 = (height - size) / 2;
@@ -33,13 +44,22 @@ Canvas {
         ctx.rect(x0, y0, size, size);
         ctx.stroke();
 
-        /* Highlight the hovered cell */
-        if (cursor.x >= x0 && cursor.y >= y0 && cursor.y <= width - x0 && cursor.y <= height - y0) {
-            ctx.beginPath();
+        /* Draw the brush */
+        if (brush && cursor.x >= x0 && cursor.y >= y0 && cursor.y <= width - x0 && cursor.y <= height - y0) {
             const col = Math.floor((cursor.x - x0) / step);
             const row = Math.floor((cursor.y - y0) / step);
+            const brushWidth = step * (brush.rect.width / tileSize);
+            const brushHeight = step * (brush.rect.height / tileSize);
+            const brushX = x0 + col * step;
+            const brushY = y0 + row * step;
+
+            if (isImageLoaded(_brushImage)) {
+                ctx.drawImage(_brushImage, brushX, brushY, brushWidth, brushHeight);
+            }
+
+            ctx.beginPath();
             ctx.strokeStyle = Style.lo;
-            ctx.rect(x0 + col * step, y0 + row * step, step, step);
+            ctx.rect(brushX, brushY, brushWidth, brushHeight);
             ctx.stroke();
         }
     }

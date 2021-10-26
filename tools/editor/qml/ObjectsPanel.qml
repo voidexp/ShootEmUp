@@ -3,11 +3,14 @@ import QtQuick 2.0
 GridView {
     id: gridView
 
-    cellWidth: width / 8
+    signal objectSelected(QtObject object /*GameObject*/)
+
+    cellWidth: 32
     cellHeight: cellWidth
     currentIndex: -1
-
     delegate: objectDelegate
+
+    onCurrentIndexChanged: objectSelected(model[currentIndex])
 
     Component {
         id: objectDelegate
@@ -74,6 +77,7 @@ GridView {
                 anchors.fill: parent
                 anchors.margins: 1
                 source: "image://gameObjects/" + modelData.name
+                smooth: false
             }
         }
     }

@@ -36,6 +36,10 @@ Window {
                 Layout.fillHeight: true
                 Layout.fillWidth: true
                 model: gameObjects
+
+                onObjectSelected: function (object) {
+                    mapCanvas.brush = object;
+                }
             }
 
             // Map canvas
