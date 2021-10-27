@@ -1,6 +1,5 @@
 import QtQuick 2.0
-
-import ".."
+import Editor 1.0
 
 Rectangle {
     property alias icon: iconText.text

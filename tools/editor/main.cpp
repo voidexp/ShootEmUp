@@ -112,8 +112,9 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     engine.addImageProvider("gameObjects", provider);
     engine.rootContext()->setContextProperty("gameObjects", QVariant::fromValue(objectsSpecData));
+    engine.addImportPath("qrc:/");
 
-    const QUrl url(QStringLiteral("qrc:/qml/main.qml"));
+    const QUrl url(QStringLiteral("qrc:/Editor/main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
                      &app, [url](QObject *obj, const QUrl &objUrl) {
         if (!obj && url == objUrl)

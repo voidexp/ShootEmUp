@@ -1,11 +1,11 @@
 <RCC>
     <qresource prefix="/">
-        <file>qml/main.qml</file>
-        <file>qml/Style.qml</file>
-        <file>qml/qmldir</file>
         <file>fontawesome.otf</file>
-        <file>qml/Controls/Button.qml</file>
-        <file>qml/MapCanvas.qml</file>
-        <file>qml/ObjectsPanel.qml</file>
+        <file>Editor/main.qml</file>
+        <file>Editor/Style.qml</file>
+        <file>Editor/qmldir</file>
+        <file>Editor/Controls/Button.qml</file>
+        <file>Editor/MapCanvas.qml</file>
+        <file>Editor/ObjectsPanel.qml</file>
     </qresource>
 </RCC>

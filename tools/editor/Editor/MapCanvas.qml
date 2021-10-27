@@ -1,5 +1,7 @@
 import QtQuick 2.0
 import QtQuick.Layouts 1.3
+import Editor 1.0
+
 
 Canvas {
     id: canvas

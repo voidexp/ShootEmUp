@@ -1,0 +1,3 @@
+module Editor
+singleton Style 1.0 Style.qml
+typeinfo editor.qmltypes
