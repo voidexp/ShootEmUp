@@ -4,10 +4,12 @@
 #include <QObject>
 #include <QString>
 #include <QRect>
+#include <qqml.h>
 
 class GameObject : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
 
     QString m_name;
     QRect m_rect;

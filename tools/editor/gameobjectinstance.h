@@ -1,8 +1,6 @@
 #ifndef GAMEOBJECTINSTANCE_H
 #define GAMEOBJECTINSTANCE_H
 
-#include <memory>
-
 #include <QObject>
 #include <QString>
 #include <QtQml/qqml.h>
@@ -14,23 +12,23 @@ class GameObjectInstance : public QObject
     Q_OBJECT
     QML_ELEMENT
 
-    Q_PROPERTY(QString name READ getName CONSTANT)
-    Q_PROPERTY(QRect rect READ getRect CONSTANT)
+    Q_PROPERTY(GameObject* prototype READ getPrototype WRITE setPrototype NOTIFY prototypeChanged)
     Q_PROPERTY(QPoint position READ getPosition WRITE setPosition NOTIFY positionChanged)
 
-    std::shared_ptr<GameObject> m_prototype;
+    GameObject *m_prototype;
     QPoint m_position;
 
 public:
-    explicit GameObjectInstance(std::shared_ptr<GameObject> prototype, QObject *parent = nullptr);
+    explicit GameObjectInstance(QObject *parent = nullptr, GameObject *prototype = nullptr);
 
-    QString getName() const;
-    QRect getRect() const;
     QPoint getPosition() const;
     void setPosition(const QPoint &position);
+    GameObject* getPrototype() const;
+    void setPrototype(GameObject *prototype);
 
 signals:
     void positionChanged(QPoint position);
+    void prototypeChanged(GameObject *prototype);
 };
 
 #endif // GAMEOBJECTINSTANCE_H

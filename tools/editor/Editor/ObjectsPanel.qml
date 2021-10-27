@@ -1,9 +1,10 @@
 import QtQuick 2.0
+import Editor 1.0
 
 GridView {
     id: gridView
 
-    signal objectSelected(QtObject object /*GameObject*/)
+    signal objectSelected(GameObject object)
 
     cellWidth: 32
     cellHeight: cellWidth

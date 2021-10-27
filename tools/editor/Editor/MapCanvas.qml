@@ -6,7 +6,7 @@ import Editor 1.0
 Canvas {
     id: canvas
     property vector2d cursor: Qt.vector2d(-1, -1)
-    property QtObject brush: null
+    property GameObject brush: null
     property string _brushImage
 
     onBrushChanged: {
@@ -87,6 +87,15 @@ Canvas {
         onClicked: function (mouse) {
             if (mouse.button === Qt.RightButton) {
                 canvas.brush = null;
+            } else {
+                var inst = Qt.createQmlObject(`
+                    import Editor 1.0
+                    GameObjectInstance {
+                        prototype: canvas.brush
+                        position: Qt.point(${mouse.x}, ${mouse.y})
+                    }
+                `, canvas);
+                console.log(inst, inst.prototype, inst.position, inst.prototype.name, inst.prototype.rect);
             }
         }
     }

@@ -2,21 +2,10 @@
 
 #include <QVariant>
 
-GameObjectInstance::GameObjectInstance(std::shared_ptr<GameObject> prototype, QObject *parent) :
+GameObjectInstance::GameObjectInstance(QObject *parent, GameObject *prototype) :
     QObject(parent),
     m_prototype(prototype)
 {
-
-}
-
-QString GameObjectInstance::getName() const
-{
-    return m_prototype->property("name").toString();
-}
-
-QRect GameObjectInstance::getRect() const
-{
-    return m_prototype->property("rect").toRect();
 }
 
 QPoint GameObjectInstance::getPosition() const
@@ -28,4 +17,15 @@ void GameObjectInstance::setPosition(const QPoint &position)
 {
     m_position = position;
     emit positionChanged(m_position);
+}
+
+GameObject* GameObjectInstance::getPrototype() const
+{
+    return m_prototype;
+}
+
+void GameObjectInstance::setPrototype(GameObject *prototype)
+{
+    m_prototype = prototype;
+    emit prototypeChanged(m_prototype);
 }
