@@ -3,6 +3,9 @@ import Editor 1.0
 
 Rectangle {
     property alias icon: iconText.text
+
+    signal clicked
+
     width: height
     height: parent.height - 2
     color: Style.bg
@@ -21,5 +24,7 @@ Rectangle {
             font.pointSize: Style.iconSize
             color: area.pressed ? Style.hi : Style.lo
         }
+
+        onClicked: parent.clicked()
     }
 }

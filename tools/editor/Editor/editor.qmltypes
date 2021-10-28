@@ -13,7 +13,7 @@ Module {
         prototype: "QObject"
         exports: ["Editor/GameObject 1.0"]
         exportMetaObjectRevisions: [256]
-        Property { name: "name"; type: "QString"; index: 0 }
+        Property { name: "name"; type: "QString"; read: "getName"; index: 0; isReadonly: true }
         Property { name: "rect"; type: "QRect"; index: 1 }
     }
     Component {
@@ -67,6 +67,14 @@ Module {
         Signal {
             name: "gameObjectsChanged"
             Parameter { name: "gameObjects"; type: "QVariant" }
+        }
+        Method {
+            name: "save"
+            Parameter { name: "filename"; type: "QUrl" }
+        }
+        Method {
+            name: "load"
+            Parameter { name: "filename"; type: "QUrl" }
         }
     }
 }

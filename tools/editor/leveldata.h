@@ -21,6 +21,9 @@ public:
     QVariant getGameObjects();
     void setGameObjects(const QVariant &gameObjectsList);
 
+    Q_INVOKABLE void save(const QUrl &filename);
+    Q_INVOKABLE void load(const QUrl &filename);
+
 signals:
     void gameObjectsChanged(QVariant gameObjects);
 

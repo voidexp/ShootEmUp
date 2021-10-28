@@ -16,6 +16,9 @@
 const QString objectsSpecFile = "../../assets/objects.yaml";
 
 
+QList<GameObject*> g_gameObjects;
+
+
 class GameObjectImageProvider : public QQuickImageProvider
 {
     QMap<QString, QImage> m_images;
@@ -101,17 +104,16 @@ int main(int argc, char *argv[])
     assert(QFileInfo::exists(resPath));
 
     // Read objects specs and populate the model for QML
-    QList<QObject *> objectsSpecData;
     YAML::Node spec = YAML::LoadFile(objectsSpecFile.toStdString());
     for (int i = 0; i < spec.size(); i++)
     {
         const auto& objSpec = spec[i];
-        objectsSpecData.append(readObjectEntry(objSpec, resPath, images, provider));
+        g_gameObjects.append(readObjectEntry(objSpec, resPath, images, provider));
     }
 
     QQmlApplicationEngine engine;
     engine.addImageProvider("gameObjects", provider);
-    engine.rootContext()->setContextProperty("gameObjects", QVariant::fromValue(objectsSpecData));
+    engine.rootContext()->setContextProperty("gameObjects", QVariant::fromValue(g_gameObjects));
     engine.addImportPath("qrc:/");
 
     const QUrl url(QStringLiteral("qrc:/main.qml"));

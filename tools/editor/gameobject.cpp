@@ -12,3 +12,8 @@ GameObject::GameObject(const QString &name, const QRect &rect) :
 {
 
 }
+
+QString GameObject::getName() const
+{
+    return m_name;
+}

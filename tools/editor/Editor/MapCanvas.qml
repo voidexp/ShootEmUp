@@ -11,9 +11,7 @@ Canvas {
     property GameObject brush: null
 
     // Underlying level data model (gameobjects, backgrounds, etc)
-    property LevelData levelData: LevelData {
-        onGameObjectsChanged: canvas.repaint()
-    }
+    property LevelData levelData
 
     /* PRIVATE STUFF */
     property string brushImage
@@ -76,8 +74,12 @@ Canvas {
         return -1;
     }
 
+    function getImageName(gameobject) {
+        return `image://gameObjects/${gameobject.name}`
+    }
+
     onBrushChanged: {
-        brushImage = brush ? ("image://gameObjects/" + brush.name) : '';
+        brushImage = brush ? getImageName(brush) : '';
         if (brush) {
             loadImage(brushImage);
         }
@@ -91,6 +93,17 @@ Canvas {
     onCursorChanged: repaint()
 
     Component.onCompleted: repaint()
+
+    Connections {
+        target: levelData
+
+        function onGameObjectsChanged() {
+            for (var obj of levelData.gameObjects) {
+                loadImage(getImageName(obj.prototype));
+            }
+            canvas.repaint();
+        }
+    }
 
     onPaint: {
         var ctx = getContext("2d");
@@ -124,7 +137,7 @@ Canvas {
         for (var i = 0; i < levelData.gameObjects.length; i++) {
             const object = levelData.gameObjects[i];
             const proto = object.prototype;
-            const image = "image://gameObjects/" + proto.name;
+            const image = getImageName(proto);
             const x0 = gridX + object.position.x * gridScale;
             const y0 = gridY + object.position.y * gridScale;
             const w = proto.rect.width * gridScale;
