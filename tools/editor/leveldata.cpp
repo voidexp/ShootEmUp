@@ -39,6 +39,7 @@ void LevelData::save(const QUrl &filename)
     Q_ASSERT(filename.isLocalFile());
 
     YAML::Emitter yaml;
+    yaml << YAML::Comment("\nShoot'em Up level file\n");
     yaml << YAML::BeginMap;
 
     yaml << YAML::Key << "gameobjects";
