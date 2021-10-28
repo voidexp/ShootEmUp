@@ -5,28 +5,74 @@ import Editor 1.0
 
 Canvas {
     id: canvas
-    property vector2d cursor: Qt.vector2d(-1, -1)
+    // Mouse cursor position in world coords
+    property point cursor: Qt.point(-1, -1)
+
+    // Active game object to be used as brush
     property GameObject brush: null
 
-    /* private stuff */
+    /* PRIVATE STUFF */
     property string brushImage
     property var objects: []
-
     readonly property real tileSize: 8
-    readonly property real gridCells: 32
+    readonly property real tiles: 32
     property real gridSize
     property real gridStep
+    property real gridScale
     property real gridX
     property real gridY
 
-    Component.onCompleted: redrawGrid();
-
-    function redrawGrid() {
+    function repaint() {
         gridSize = Math.min(width, height);
-        gridStep = 1.0 / gridCells * gridSize;
+        gridStep = 1.0 / tiles * gridSize;
+        gridScale = (1.0 / tileSize) * gridStep
         gridX = (width - gridSize) / 2;
         gridY = (height - gridSize) / 2;
         markDirty(Qt.rect(0, 0, width, height));
+    }
+
+    /* Add an instance of current brush game object at current cursor */
+    function addObject() {
+        // snap the coords to "world grid"
+        const x = Math.floor(cursor.x / tileSize) * tileSize;
+        const y = Math.floor(cursor.y / tileSize) * tileSize;
+
+        var obj = Qt.createQmlObject(`
+            import Editor 1.0
+            GameObjectInstance {
+                prototype: {prototype = brush;}
+                position: Qt.point(${x}, ${y})
+            }
+        `, canvas);
+        console.log("Adding", obj, obj.prototype.name, obj.position);
+        canvas.objects.push(obj);
+        canvas.objects = [...canvas.objects];
+    }
+
+    /* Remove an object at current cursor */
+    function removeObject() {
+        const i = objectIndexAt(cursor.x, cursor.y);
+        if (i !== -1) {
+            const obj = objects[i];
+            console.log("Removing", obj, obj.prototype.name, obj.position);
+            objects.splice(i, 1);
+            objects = [...objects];
+        }
+    }
+
+    /* Retrieve the index of the top-most object at given world coords */
+    function objectIndexAt(x, y) {
+        for (var i = objects.length - 1; i >= 0; i--) {
+            const obj = objects[i];
+            const top = obj.position.y;
+            const bottom = obj.position.y + obj.prototype.rect.height;
+            const left = obj.position.x;
+            const right = obj.position.x + obj.prototype.rect.width;
+            if (x >= left && x <= right && y >= top && y <= bottom) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     onBrushChanged: {
@@ -34,17 +80,25 @@ Canvas {
         if (brush) {
             loadImage(brushImage);
         }
-        redrawGrid();
+        repaint();
     }
 
-    onObjectsChanged: redrawGrid();
+    onObjectsChanged: repaint()
 
-    onWidthChanged: redrawGrid();
+    onWidthChanged: repaint()
 
-    onHeightChanged: redrawGrid();
+    onHeightChanged: repaint()
+
+    onCursorChanged: repaint()
+
+    Component.onCompleted: repaint()
 
     onPaint: {
         var ctx = getContext("2d");
+
+        // cursor position in view coordinates
+        const x = Math.floor(cursor.x / tileSize) * gridStep + gridX;
+        const y = Math.floor(cursor.y / tileSize) * gridStep + gridY;
 
         /* Draw the background */
         ctx.fillStyle = Style.bg;
@@ -53,7 +107,7 @@ Canvas {
         /* Draw the grid */
         ctx.strokeStyle = Style.fg;
         ctx.lineWidth = 0.5;
-        for (var c = 0; c < gridCells; c++) {
+        for (var c = 0; c < tiles; c++) {
             ctx.beginPath();
             ctx.moveTo(gridX + c * gridStep, gridY);
             ctx.lineTo(gridX + c * gridStep, gridY + gridSize);
@@ -72,40 +126,42 @@ Canvas {
             const object = objects[i];
             const proto = object.prototype;
             const image = "image://gameObjects/" + proto.name;
+            const x0 = gridX + object.position.x * gridScale;
+            const y0 = gridY + object.position.y * gridScale;
+            const w = proto.rect.width * gridScale;
+            const h = proto.rect.height * gridScale;
+            var isHovered = !brush && x >= x0 && x <= x0 + w && y >= y0 && y <= y0 + h;
+
+            // draw the object image
             if (isImageLoaded(image)) {
-                const scaleFactor = (1.0 / tileSize) * gridStep;
-                ctx.drawImage(
-                    image,
-                    gridX + object.position.x * scaleFactor,
-                    gridY + object.position.y * scaleFactor,
-                    proto.rect.width * scaleFactor,
-                    proto.rect.height * scaleFactor
-                );
+                ctx.drawImage(image, x0, y0, w, h);
+            }
+
+            // highlight the object if it's hovered onto and there's no active brush
+            if (!brush && isHovered) {
+                ctx.beginPath();
+                ctx.strokeStyle = Style.lo;
+                ctx.rect(x0, y0, w, h);
+                ctx.stroke();
             }
         }
 
         /* Draw the brush */
-        if (brush && cursor.x >= gridX && cursor.y >= gridY && cursor.y <= width - gridX && cursor.y <= height - gridY) {
-            const col = Math.floor((cursor.x - gridX) / gridStep);
-            const row = Math.floor((cursor.y - gridY) / gridStep);
+        if (brush && cursor.x >= 0 && cursor.y >= 0) {
             const brushWidth = gridStep * (brush.rect.width / tileSize);
             const brushHeight = gridStep * (brush.rect.height / tileSize);
-            const brushX = gridX + col * gridStep;
-            const brushY = gridY + row * gridStep;
 
+            // draw the object image
             if (isImageLoaded(brushImage)) {
-                ctx.drawImage(brushImage, brushX, brushY, brushWidth, brushHeight);
+                ctx.drawImage(brushImage, x, y, brushWidth, brushHeight);
             }
 
+            // draw the outline
             ctx.beginPath();
             ctx.strokeStyle = Style.lo;
-            ctx.rect(brushX, brushY, brushWidth, brushHeight);
+            ctx.rect(x, y, brushWidth, brushHeight);
             ctx.stroke();
         }
-    }
-
-    onCursorChanged: {
-        markDirty(Qt.rect(0, 0, width, height));
     }
 
     MouseArea {
@@ -113,33 +169,37 @@ Canvas {
         hoverEnabled: true
         acceptedButtons: Qt.AllButtons
 
+        function toWorldCoords(x, y) {
+            const scaleFactor = 1.0 / canvas.gridSize * (canvas.tileSize * canvas.tiles);
+            const col = Math.floor((x - canvas.gridX) / canvas.gridStep);
+            const row = Math.floor((y - canvas.gridY) / canvas.gridStep);
+            const worldX = (x - canvas.gridX) * scaleFactor;
+            const worldY = (y - canvas.gridY) * scaleFactor;
+            return Qt.point(Math.floor(worldX), Math.floor(worldY));
+        }
+
         onPositionChanged: function (mouse) {
-            parent.cursor = Qt.vector2d(mouse.x, mouse.y);
+            parent.cursor = toWorldCoords(mouse.x, mouse.y);
         }
 
         onExited: {
-            parent.cursor = Qt.vector2d(-1, -1); // special invalid vector
+            parent.cursor = Qt.point(-1, -1); // special invalid point
         }
 
         onClicked: function (mouse) {
+            parent.cursor = toWorldCoords(mouse.x, mouse.y);
             if (mouse.button === Qt.RightButton) {
-                canvas.brush = null;
-            } else {
-                const col = Math.floor((mouse.x - gridX) / gridStep);
-                const row = Math.floor((mouse.y - gridY) / gridStep);
-                const x = col * tileSize;
-                const y = row * tileSize;
-
-                var inst = Qt.createQmlObject(`
-                    import Editor 1.0
-                    GameObjectInstance {
-                        prototype: {prototype = canvas.brush;}
-                        position: Qt.point(${x}, ${y})
-                    }
-                `, canvas);
-                console.log(inst, inst.prototype, inst.position, inst.prototype.name, inst.prototype.rect);
-                canvas.objects.push(inst);
-                canvas.objects = [...canvas.objects];
+                if (canvas.brush) {
+                    canvas.brush = null;
+                } else {
+                    removeObject();
+                }
+            } else if (mouse.button === Qt.LeftButton) {
+                if (canvas.brush) {
+                    addObject();
+                } else {
+                    // todo
+                }
             }
         }
     }
