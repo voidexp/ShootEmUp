@@ -46,7 +46,7 @@ Canvas {
                 prototype: {prototype = brush;}
                 position: Qt.point(${x}, ${y})
             }
-        `, canvas);
+        `, levelData);
         var objs = [...levelData.gameObjects, obj];
         levelData.gameObjects = objs;
     }
