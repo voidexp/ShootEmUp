@@ -9,10 +9,10 @@ DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs depr
 QML_IMPORT_NAME = Editor
 QML_IMPORT_MAJOR_VERSION = 1
 
-COPIES += qmltypes
-
 qmltypes.files = $$files($$OUT_PWD/*.qmltypes)
 qmltypes.path = $$PWD/Editor
+
+COPIES += qmltypes
 
 # Additional import path used to resolve QML modules in Qt Creator's code model
 QML_IMPORT_PATH += $$PWD

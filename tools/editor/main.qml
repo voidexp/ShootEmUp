@@ -2,7 +2,8 @@ import QtQuick 2.12
 import QtQuick.Window
 import QtQuick.Layouts
 
-import "Controls"
+import "Editor"
+import "Editor/Controls"
 
 Window {
     minimumWidth: 1200

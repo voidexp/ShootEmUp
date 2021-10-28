@@ -1,7 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>fontawesome.otf</file>
-        <file>Editor/main.qml</file>
+        <file>main.qml</file>
         <file>Editor/Style.qml</file>
         <file>Editor/qmldir</file>
         <file>Editor/Controls/Button.qml</file>

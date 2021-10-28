@@ -7,25 +7,66 @@ import QtQuick.tooling 1.2
 
 Module {
     Component {
+        file: "gameobject.h"
+        name: "GameObject"
+        accessSemantics: "reference"
+        prototype: "QObject"
+        exports: ["Editor/GameObject 1.0"]
+        exportMetaObjectRevisions: [256]
+        Property { name: "name"; type: "QString"; index: 0 }
+        Property { name: "rect"; type: "QRect"; index: 1 }
+    }
+    Component {
         file: "gameobjectinstance.h"
         name: "GameObjectInstance"
         accessSemantics: "reference"
         prototype: "QObject"
         exports: ["Editor/GameObjectInstance 1.0"]
         exportMetaObjectRevisions: [256]
-        Property { name: "name"; type: "QString"; read: "getName"; index: 0; isReadonly: true }
-        Property { name: "rect"; type: "QRect"; read: "getRect"; index: 1; isReadonly: true }
+        Property {
+            name: "prototype"
+            type: "GameObject"
+            isPointer: true
+            read: "getPrototype"
+            write: "setPrototype"
+            notify: "prototypeChanged"
+            index: 0
+        }
         Property {
             name: "position"
             type: "QPoint"
             read: "getPosition"
             write: "setPosition"
             notify: "positionChanged"
-            index: 2
+            index: 1
         }
         Signal {
             name: "positionChanged"
             Parameter { name: "position"; type: "QPoint" }
+        }
+        Signal {
+            name: "prototypeChanged"
+            Parameter { name: "prototype"; type: "GameObject"; isPointer: true }
+        }
+    }
+    Component {
+        file: "leveldata.h"
+        name: "LevelData"
+        accessSemantics: "reference"
+        prototype: "QObject"
+        exports: ["Editor/LevelData 1.0"]
+        exportMetaObjectRevisions: [256]
+        Property {
+            name: "gameObjects"
+            type: "QVariant"
+            read: "getGameObjects"
+            write: "setGameObjects"
+            notify: "gameObjectsChanged"
+            index: 0
+        }
+        Signal {
+            name: "gameObjectsChanged"
+            Parameter { name: "gameObjects"; type: "QVariant" }
         }
     }
 }

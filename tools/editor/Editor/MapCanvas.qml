@@ -2,7 +2,6 @@ import QtQuick 2.0
 import QtQuick.Layouts 1.3
 import Editor 1.0
 
-
 Canvas {
     id: canvas
     // Mouse cursor position in world coords
@@ -11,9 +10,13 @@ Canvas {
     // Active game object to be used as brush
     property GameObject brush: null
 
+    // Underlying level data model (gameobjects, backgrounds, etc)
+    property LevelData levelData: LevelData {
+        onGameObjectsChanged: canvas.repaint()
+    }
+
     /* PRIVATE STUFF */
     property string brushImage
-    property var objects: []
     readonly property real tileSize: 8
     readonly property real tiles: 32
     property real gridSize
@@ -44,26 +47,24 @@ Canvas {
                 position: Qt.point(${x}, ${y})
             }
         `, canvas);
-        console.log("Adding", obj, obj.prototype.name, obj.position);
-        canvas.objects.push(obj);
-        canvas.objects = [...canvas.objects];
+        var objs = [...levelData.gameObjects, obj];
+        levelData.gameObjects = objs;
     }
 
     /* Remove an object at current cursor */
     function removeObject() {
         const i = objectIndexAt(cursor.x, cursor.y);
         if (i !== -1) {
-            const obj = objects[i];
-            console.log("Removing", obj, obj.prototype.name, obj.position);
-            objects.splice(i, 1);
-            objects = [...objects];
+            var objs = [...levelData.gameObjects];
+            objs.splice(i, 1);
+            levelData.gameObjects = objs;
         }
     }
 
     /* Retrieve the index of the top-most object at given world coords */
     function objectIndexAt(x, y) {
-        for (var i = objects.length - 1; i >= 0; i--) {
-            const obj = objects[i];
+        for (var i = levelData.gameObjects.length - 1; i >= 0; i--) {
+            const obj = levelData.gameObjects[i];
             const top = obj.position.y;
             const bottom = obj.position.y + obj.prototype.rect.height;
             const left = obj.position.x;
@@ -82,8 +83,6 @@ Canvas {
         }
         repaint();
     }
-
-    onObjectsChanged: repaint()
 
     onWidthChanged: repaint()
 
@@ -122,8 +121,8 @@ Canvas {
         ctx.stroke();
 
         /* Draw the foreground objects */
-        for (var i = 0; i < objects.length; i++) {
-            const object = objects[i];
+        for (var i = 0; i < levelData.gameObjects.length; i++) {
+            const object = levelData.gameObjects[i];
             const proto = object.prototype;
             const image = "image://gameObjects/" + proto.name;
             const x0 = gridX + object.position.x * gridScale;
