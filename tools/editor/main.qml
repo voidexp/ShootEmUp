@@ -50,11 +50,12 @@ Window {
         RowLayout {
             width: parent.width
             height: parent.height - toolbar.height
+            Layout.alignment: Qt.AlignLeft
 
             // Left panel - objects
             ObjectsPanel {
                 Layout.fillHeight: true
-                Layout.preferredWidth: parent.width * 0.2
+                Layout.preferredWidth: parent.width * 0.24
                 model: gameObjects
 
                 onObjectSelected: function (object) {
@@ -62,55 +63,62 @@ Window {
                 }
             }
 
-            // Map canvas
-            MapCanvas {
-                id: mapCanvas
-                levelData: levelData
-                Layout.fillHeight: true
+            Row {
                 Layout.fillWidth: true
-            }
+                Layout.fillHeight: true
+                spacing: 10
 
-            // Map scroller widget
-            ColumnLayout {
-                id: scrollerPanel
-                Layout.fillWidth: false
-                Layout.preferredWidth: parent.width * 0.1
-
-                ListView {
-                    id: mapScrollerView
-                    Layout.fillHeight: true
-                    Layout.fillWidth: true
-                    model: levelData
-                    verticalLayoutDirection: ListView.VerticalBottomToTop
-
-                    onCurrentIndexChanged: mapCanvas.currentStageIndex = currentIndex
-
-                    delegate: Rectangle {
-                        width: mapScrollerView.width
-                        height: width
-                        color: "black"
-                        border.color: ListView.isCurrentItem ? Style.fg : Style.bg
-                        border.width: 1
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: mapScrollerView.currentIndex = index
-                        }
-
-                    }
+                // Map canvas
+                MapCanvas {
+                    id: mapCanvas
+                    levelData: levelData
+                    width: parent.height
+                    height: parent.height
                 }
 
-                RowLayout {
-                    Layout.alignment: Qt.AlignHCenter
-                    Button {
-                        icon: Style.icons.add
-                        onClicked: levelData.addNewStage()
+                // Map scroller widget
+                ColumnLayout {
+                    id: scrollerPanel
+                    width: mapCanvas.width * 0.1
+                    height: parent.height
+
+                    ListView {
+                        id: mapScrollerView
+                        Layout.fillHeight: true
+                        Layout.fillWidth: true
+                        model: levelData
+                        verticalLayoutDirection: ListView.VerticalBottomToTop
+                        clip: true
+
+                        onCurrentIndexChanged: mapCanvas.currentStageIndex = currentIndex
+
+                        delegate: Rectangle {
+                            width: mapScrollerView.width
+                            height: width
+                            color: "black"
+                            border.color: ListView.isCurrentItem ? Style.fg : Style.bg
+                            border.width: 1
+
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: mapScrollerView.currentIndex = index
+                            }
+
+                        }
                     }
 
-                    Button {
-                        icon: Style.icons.remove
-                        enabled: levelData.size > 1
-                        onClicked: levelData.removeStage(mapScrollerView.currentIndex)
+                    RowLayout {
+                        Layout.alignment: Qt.AlignHCenter
+                        Button {
+                            icon: Style.icons.add
+                            onClicked: levelData.addNewStage()
+                        }
+
+                        Button {
+                            icon: Style.icons.remove
+                            enabled: levelData.size > 1
+                            onClicked: levelData.removeStage(mapScrollerView.currentIndex)
+                        }
                     }
                 }
             }

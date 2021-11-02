@@ -161,11 +161,6 @@ Canvas {
         ctx.rect(gridX, gridY, gridSize, gridSize);
         ctx.stroke();
 
-        /* Define the clipping area */
-        ctx.beginPath();
-        ctx.rect(gridX, gridY, gridSize, gridSize);
-        ctx.clip();
-
         /* Draw the foreground objects */
         for (var i = 0; i < currentStage.gameObjects.length; i++) {
             const object = currentStage.gameObjects[i];
