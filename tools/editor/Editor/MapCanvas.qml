@@ -132,6 +132,14 @@ Canvas {
         }
     }
 
+    Connections {
+        target: currentStage
+
+        function onGameObjectsChanged() {
+            canvas.repaint();
+        }
+    }
+
     onPaint: {
         var ctx = getContext("2d");
 
