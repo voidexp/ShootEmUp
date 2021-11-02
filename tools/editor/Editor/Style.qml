@@ -17,5 +17,7 @@ QtObject {
         readonly property string file: "\uf15b"
         readonly property string folderOpen: "\uf07c"
         readonly property string save: "\uf0c7"
+        readonly property string add: "\uf0fe"
+        readonly property string remove: "\uf146"
     }
 }

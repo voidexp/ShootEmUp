@@ -12,20 +12,22 @@ Window {
     minimumWidth: 1200
     minimumHeight: 680
     visible: true
-    title: qsTr("Level Editor")
+    title: qsTr("Shoot'em Up Editor") + " - " + fileDialog.selectedFile || "<new level>"
 
     color: Style.bg
 
-    ColumnLayout {
+    Column {
         anchors.fill: parent
+        anchors.margins: 5
 
         // Toolbar
-        RowLayout {
+        Row {
             id: toolbar
-            Layout.fillWidth: true
-            height: 50;
 
-            Button { icon: Style.icons.file }
+            Button {
+                icon: Style.icons.file
+                onClicked: levelData.clear()
+            }
 
             Button {
                 icon: Style.icons.folderOpen
@@ -46,13 +48,13 @@ Window {
 
         // Main area
         RowLayout {
-            Layout.fillHeight: true
-            Layout.fillWidth: true
+            width: parent.width
+            height: parent.height - toolbar.height
 
             // Left panel - objects
             ObjectsPanel {
                 Layout.fillHeight: true
-                Layout.fillWidth: true
+                Layout.preferredWidth: parent.width * 0.2
                 model: gameObjects
 
                 onObjectSelected: function (object) {
@@ -65,14 +67,52 @@ Window {
                 id: mapCanvas
                 levelData: levelData
                 Layout.fillHeight: true
-                Layout.preferredWidth: parent.width > parent.height ? parent.height : parent.width * 0.6
+                Layout.fillWidth: true
             }
 
-            // Right panel
-            Item {
-                id: rightPanel
-                Layout.fillHeight: true
-                Layout.fillWidth: true
+            // Map scroller widget
+            ColumnLayout {
+                id: scrollerPanel
+                Layout.fillWidth: false
+                Layout.preferredWidth: parent.width * 0.1
+
+                ListView {
+                    id: mapScrollerView
+                    Layout.fillHeight: true
+                    Layout.fillWidth: true
+                    model: levelData
+                    verticalLayoutDirection: ListView.VerticalBottomToTop
+
+                    onCurrentIndexChanged: mapCanvas.currentStageIndex = currentIndex
+
+                    delegate: Rectangle {
+                        width: mapScrollerView.width
+                        height: width
+                        color: "black"
+                        border.color: ListView.isCurrentItem ? Style.fg : Style.bg
+                        border.width: 1
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: mapScrollerView.currentIndex = index
+                        }
+
+                    }
+                }
+
+                RowLayout {
+                    Layout.alignment: Qt.AlignHCenter
+                    Button {
+                        icon: Style.icons.add
+                        onClicked: levelData.addNewStage()
+                    }
+
+                    Button {
+                        icon: Style.icons.remove
+                        enabled: levelData.size > 1
+                        onClicked: levelData.removeStage(mapScrollerView.currentIndex)
+                    }
+                }
             }
         }
     }

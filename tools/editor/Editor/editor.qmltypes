@@ -53,8 +53,53 @@ Module {
         file: "leveldata.h"
         name: "LevelData"
         accessSemantics: "reference"
-        prototype: "QObject"
+        prototype: "QAbstractListModel"
         exports: ["Editor/LevelData 1.0"]
+        exportMetaObjectRevisions: [256]
+        Property {
+            name: "size"
+            type: "int"
+            read: "getSize"
+            notify: "sizeChanged"
+            index: 0
+            isReadonly: true
+        }
+        Signal {
+            name: "sizeChanged"
+            Parameter { name: "size"; type: "int" }
+        }
+        Method {
+            name: "save"
+            Parameter { name: "filename"; type: "QUrl" }
+        }
+        Method {
+            name: "load"
+            Parameter { name: "filename"; type: "QUrl" }
+        }
+        Method { name: "clear" }
+        Method {
+            name: "get"
+            type: "QVariant"
+            Parameter { name: "index"; type: "int" }
+        }
+        Method { name: "addNewStage" }
+        Method {
+            name: "removeStage"
+            Parameter { name: "index"; type: "int" }
+        }
+    }
+    Component {
+        file: "qabstractitemmodel.h"
+        name: "QAbstractListModel"
+        accessSemantics: "reference"
+        prototype: "QAbstractItemModel"
+    }
+    Component {
+        file: "leveldata.h"
+        name: "Stage"
+        accessSemantics: "reference"
+        prototype: "QObject"
+        exports: ["Editor/Stage 1.0"]
         exportMetaObjectRevisions: [256]
         Property {
             name: "gameObjects"
@@ -67,14 +112,6 @@ Module {
         Signal {
             name: "gameObjectsChanged"
             Parameter { name: "gameObjects"; type: "QVariant" }
-        }
-        Method {
-            name: "save"
-            Parameter { name: "filename"; type: "QUrl" }
-        }
-        Method {
-            name: "load"
-            Parameter { name: "filename"; type: "QUrl" }
         }
     }
 }

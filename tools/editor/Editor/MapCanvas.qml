@@ -10,8 +10,12 @@ Canvas {
     // Active game object to be used as brush
     property GameObject brush: null
 
-    // Underlying level data model (gameobjects, backgrounds, etc)
+    // Underlying level data model (stages, gameobjects, backgrounds, etc)
     property LevelData levelData
+
+    property int currentStageIndex: 0
+
+    readonly property Stage currentStage: currentStageIndex !== -1 ? levelData.get(currentStageIndex) : null
 
     /* PRIVATE STUFF */
     property string brushImage
@@ -44,25 +48,25 @@ Canvas {
                 prototype: {prototype = brush;}
                 position: Qt.point(${x}, ${y})
             }
-        `, levelData);
-        var objs = [...levelData.gameObjects, obj];
-        levelData.gameObjects = objs;
+        `, currentStage);
+        var objs = [...currentStage.gameObjects, obj];
+        currentStage.gameObjects = objs;
     }
 
     /* Remove an object at current cursor */
     function removeObject() {
         const i = objectIndexAt(cursor.x, cursor.y);
         if (i !== -1) {
-            var objs = [...levelData.gameObjects];
+            var objs = [...currentStage.gameObjects];
             objs.splice(i, 1);
-            levelData.gameObjects = objs;
+            currentStage.gameObjects = objs;
         }
     }
 
     /* Retrieve the index of the top-most object at given world coords */
     function objectIndexAt(x, y) {
-        for (var i = levelData.gameObjects.length - 1; i >= 0; i--) {
-            const obj = levelData.gameObjects[i];
+        for (var i = currentStage.gameObjects.length - 1; i >= 0; i--) {
+            const obj = currentStage.gameObjects[i];
             const top = obj.position.y;
             const bottom = obj.position.y + obj.prototype.rect.height;
             const left = obj.position.x;
@@ -92,15 +96,38 @@ Canvas {
 
     onCursorChanged: repaint()
 
+    onCurrentStageChanged: repaint()
+
     Component.onCompleted: repaint()
 
     Connections {
         target: levelData
 
-        function onGameObjectsChanged() {
-            for (var obj of levelData.gameObjects) {
-                loadImage(getImageName(obj.prototype));
+        function onModelReset() {
+            for (var i = 0; i < levelData.size; i++) {
+                const stage = levelData.get(i);
+                for (var obj of stage.gameObjects) {
+                    loadImage(getImageName(obj.prototype));
+                }
             }
+
+            // force-trigger the reset of the current stage
+            currentStageIndex = -1;
+            currentStageIndex = 0;
+
+            canvas.repaint();
+        }
+
+        function onSizeChanged(newSize) {
+            // force-trigger the reset of the current stage
+            if (currentStageIndex < newSize) {
+                const index = currentStageIndex;
+                currentStageIndex = -1;
+                currentStageIndex = index;
+            } else {
+                currentStageIndex = newSize - 1;
+            }
+
             canvas.repaint();
         }
     }
@@ -108,13 +135,14 @@ Canvas {
     onPaint: {
         var ctx = getContext("2d");
 
-        // cursor position in view coordinates
+        // cursor position in target screen coordinates
         const x = Math.floor(cursor.x / tileSize) * gridStep + gridX;
         const y = Math.floor(cursor.y / tileSize) * gridStep + gridY;
+        const screenSize = tiles * tileSize;
 
         /* Draw the background */
         ctx.fillStyle = Style.bg;
-        ctx.fillRect(gridX, gridY, gridSize, gridSize);
+        ctx.fillRect(0, 0, width, height);
 
         /* Draw the grid */
         ctx.strokeStyle = Style.fg;
@@ -133,9 +161,14 @@ Canvas {
         ctx.rect(gridX, gridY, gridSize, gridSize);
         ctx.stroke();
 
+        /* Define the clipping area */
+        ctx.beginPath();
+        ctx.rect(gridX, gridY, gridSize, gridSize);
+        ctx.clip();
+
         /* Draw the foreground objects */
-        for (var i = 0; i < levelData.gameObjects.length; i++) {
-            const object = levelData.gameObjects[i];
+        for (var i = 0; i < currentStage.gameObjects.length; i++) {
+            const object = currentStage.gameObjects[i];
             const proto = object.prototype;
             const image = getImageName(proto);
             const x0 = gridX + object.position.x * gridScale;
@@ -159,7 +192,7 @@ Canvas {
         }
 
         /* Draw the brush */
-        if (brush && cursor.x >= 0 && cursor.y >= 0) {
+        if (brush && cursor.x >= 0 && cursor.x < screenSize && cursor.y >= 0 && cursor.y < screenSize) {
             const brushWidth = gridStep * (brush.rect.width / tileSize);
             const brushHeight = gridStep * (brush.rect.height / tileSize);
 
