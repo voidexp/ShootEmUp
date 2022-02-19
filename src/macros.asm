@@ -142,27 +142,105 @@
     bne @loop
 .endmacro
 
+;
+; Fill memory area with given value.
+;
+; At most 255 bytes long regions are accepted.
+;
+; Parameters:
+;   ptr     - pointer to the memory region start
+;   len     - length in bytes, at most 255
+;   expr    - fill value expression (immediate or address)
+;
+.macro fill_mem ptr, len, expr
+            .local @clr
+            ldy #0
+            lda expr
+@clr:       sta (ptr),y
+            iny
+            cpy #len
+            bne @clr
+.endmacro
 
-.macro iter_ptr ptr, address, increment, body
+;
+; Iterate a pointer with fixed increments.
+;
+.macro iter_ptr ptr, end, offset, pred
+            .local @loop
+            .local @body
+@loop:      lda ptr             ; load the low address
+            cmp #<end           ; compare it with target low part
+            bne @body           ; if doesnt match, execute the body
+            lda ptr + 1         ; load high address
+            cmp #>end           ; compare with target high part
+            bne @body           ; if doesn't match, execute the body
+            jmp @exit           ; otherwise do a long jump to the exit
+@body:      pred                ; inlined code macro
+            lda ptr             ; re-load the pointer
+            clc
+            adc #offset         ; increment the low part
+            sta ptr             ; write it back
+            bcs :+              ; repeat if no overflow occurred
+            jmp @loop
+:           lda ptr + 1         ; load the high part
+            adc 0               ; add carry
+            sta ptr + 1         ; write it back
+            bcs @exit           ; repeat
+            jmp @body
+@exit:
+.endmacro
+
+
+;
+; Iterate a pointer over an array until Z flag is not set.
+;
+; Parameters:
+;   ptr     - iterator
+;   end     - end address (excluded)
+;   offset  - iteration offset
+;   pred    - predicate macro to execute on each iteration;
+;             should set Z flag as true condition
+;
+.macro find_ptr ptr, end, offset, pred
 @loop:
     lda ptr
-    cmp #<address
+    cmp #<end
     bne @body
     lda ptr + 1
-    cmp #>address
-    beq @end
+    cmp #>end
+    beq @not_found
 
 @body:
-    body
+    pred
+    beq @exit
 
     lda ptr
     clc
-    adc #increment
+    adc #offset
     sta ptr
     bcc @loop
     lda ptr + 1
     adc 0
     sta ptr + 1
     bcc @loop
-@end:
+@not_found:
+    lda #$ff
+@exit:
+.endmacro
+
+
+;
+; Invoke a subroutine via a pointer.
+;
+; Parameters:
+;   ptr     - pointer holding the address of the subroutine to call
+;
+.macro call_ptr ptr
+            .local @retaddr
+            lda #>(@retaddr - 1)
+            pha
+            lda #<(@retaddr - 1)
+            pha
+            jmp (ptr)
+@retaddr:
 .endmacro

@@ -1,4 +1,9 @@
-.importzp temp_1, temp_2, temp_3, temp_4, temp_5, temp_6
-.importzp var_1, var_2, var_3, var_4, var_5, var_6, var_7, var_8, var_9, var_10
-.importzp address_1, address_2, address_3, address_4, address_5, address_6, address_7, address_8, address_9, address_10
+.importzp tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7, tmp8, tmp9, tmp10
+.importzp var1, var2, var3, var4, var5, var6, var7, var8, var9, var10
+.importzp ptr1, ptr2, ptr3, ptr4, ptr5, ptr6, ptr7, ptr8, ptr9, ptr10
+.importzp scroll_y, sleeping, pad1, pad2, game_mode, next_game_mode, players_alive
 .import oam
+.import enemies, enemies_end
+.import sprites, sprites_end
+.import projectiles, projectiles_end
+.import players, players_end

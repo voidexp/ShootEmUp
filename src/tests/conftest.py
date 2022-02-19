@@ -2,14 +2,15 @@ import os
 import pathlib
 import subprocess as sp
 import tempfile
-from typing import List
+from typing import List, Sequence
 
 import pytest
 from py65.devices.mpu6502 import MPU
 
 INC_DIR = pathlib.Path(os.getcwd()).joinpath('src')
 ROM_CFG = pathlib.Path(__file__).parent.joinpath(f'test_rom.cfg')
-ORG = 0xC000
+ORG = 0x8000
+BSS = 0x0300
 
 
 class CompileError(Exception):
@@ -58,6 +59,7 @@ class Compiler:
 
     def __init__(self, build_dir):
         self.build_dir = build_dir
+        self.link_with = []
 
     def compile(self, srcfile: pathlib.Path) -> pathlib.Path:
         name = srcfile.stem
@@ -70,7 +72,7 @@ class Compiler:
 
     def link(self, obj_files: List[pathlib.Path], rom_name: str) -> pathlib.Path:
         rom_file = self.build_dir.joinpath(rom_name)
-        cl65(obj_files, rom_file)
+        cl65(obj_files + self.link_with, rom_file)
         return rom_file
 
 
@@ -80,24 +82,25 @@ class CPU(MPU):
         super().__init__()
         self.compiler = compiler
         self.org = ORG
-        self.bss = 0x200
+        self.bss = BSS
 
-    def compile_and_run(self, code):
+    def compile_and_run(self, code: str, link_with: Sequence[pathlib.Path]=()):
         self.reset()
 
         with tempfile.NamedTemporaryFile(suffix='.asm', delete=False) as srcfile:
             srcfile.write(code.encode('utf8'))
 
-        objfile = self.compiler.compile(pathlib.Path(srcfile.name))
+        objfiles = [self.compiler.compile(pathlib.Path(srcfile.name))]
+        objfiles.extend(link_with)
 
         pathlib.Path(srcfile.name).unlink()
 
         test_name = os.environ.get('PYTEST_CURRENT_TEST').split()[0].split(':')[-1]
-        romfile = self.compiler.link([objfile], f'{test_name}.nes')
+        romfile = self.compiler.link(objfiles, f'{test_name}.nes')
 
         with open(romfile, 'rb') as rom:
             mem = rom.read()
-            self.memory[ORG:ORG + len(mem)] = mem
+            self.memory[0:len(mem)] = mem
 
         self.pc = ORG
 
@@ -106,7 +109,13 @@ class CPU(MPU):
 
 
 @pytest.fixture(scope='session')
-def cpu(request):
+def compiler():
     with tempfile.TemporaryDirectory() as build_dir:
-        compiler = Compiler(pathlib.Path(build_dir))
-        yield CPU(compiler)
+        yield Compiler(pathlib.Path(build_dir))
+
+
+@pytest.fixture(scope='session')
+def cpu(compiler):
+    memory_obj = compiler.compile(pathlib.Path(os.getcwd()).joinpath('src', 'memory.asm'))
+    compiler.link_with.append(memory_obj)
+    yield CPU(compiler)

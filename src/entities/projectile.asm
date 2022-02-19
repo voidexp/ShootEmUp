@@ -1,281 +1,327 @@
-.export init_projectile_components
-.export create_player_projectile
-.export spawn_projectile
-.export update_projectile_position
-
-.include "constants.asm"
 .include "globals.asm"
 .include "macros.asm"
+.include "structs.asm"
 
-.import create_collision_component
-.import create_sprite_component
-.import create_movement_component
-.import create_entity
-.import disable_all_entity_components
+.export spawn_projectile
+.export tick_projectiles
+.export destroy_projectile
+.export destroy_projectiles
 
-;
-; Projectile configuration
-;
+.import create_sprite
+.import destroy_sprite
+.import check_rect_intersection
+
+
+OWNER_BIT = %00000001
+KIND_BITS = %00000110
+
+
 .rodata
-projectile_default_anim:
-    .byte $01                               ; length frames
-    .byte $00                               ; speed
-    .byte $13                               ; starting tile ID
-    .byte $01                               ; attribute set
-    .byte $01                               ; padding x, z -> 2 tiles wide and high
+;
+; Bullet projectile animation.
+;
+bullet_anim:
+    .byte $01   ; length frames
+    .byte $00   ; speed
+    .byte $13   ; starting tile ID
+    .byte $01   ; attribute set
+    .byte $01   ; padding x, z -> 2 tiles wide and high
 
 
-;bullet_properties_config:
-;    .byte $10                               ; damage points
+;
+; Projectile speeds table, in pixels per frame.
+;
+speeds_table:
+    .byte 0    ; disabled
+    .byte 1    ; bullet
+    .byte 2    ; missile
+    .byte 10   ; laser
 
-
-;PROJECTILE_SIZE = 12                         ; BYTES
-
-MAX_PROJECTILES_IN_BUFFER = 1
-
-.segment "BSS"
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; PROJECTILE:
-;    .addr entity
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-projectile_component_container:     .res 20             ; 5 Projectiles (2x5)
-
-num_current_projectiles:            .res 1
-last_updated_projectile:            .res 1
 
 .code
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; INIT CODE .. reset all variables
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-.proc init_projectile_components
-    lda #$00
-    sta num_current_projectiles
-    sta last_updated_projectile
-    rts
-.endproc
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; FILL PROJECTILE POOL
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-.proc create_player_projectile
-    lda #$ff                                ; xPos
-    sta var_1
-    lda #$32                                ; yPos
-    sta var_2
-    lda #$00                                ; xDir
-    sta var_3
-    lda #$02                                ; yDir
-    clc
-    eor #$ff
-    adc #$01
-    sta var_4
-
-    jsr spawn_projectile
-    jsr disable_all_entity_components
-
-    rts
-.endproc
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; spawn a projectile
-; ARGS:
-;   var_1           - xPosition
-;   var_2           - yPosition
-;   var_3           - xDir
-;   var_4           - yDir, now one byte will be reduced
 ;
-; RETURN:
-;   address_1       - projectile entity
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Spawn a projectile.
+;
+; Parameters:
+;   var1    - X coord
+;   var2    - Y coord
+;   var3    - attribute
+;
+; Returns:
+;   ptr1    - projectile address
+;
 .proc spawn_projectile
-    ; get offset in projectile buffer for new projectile
+            ;
+            ; Create the sprite
+            ;
+            ; TODO: support other projectile types
+            lda #<bullet_anim       ; point ptr1 to projectile animation (only bullet for now)
+            sta ptr1
+            lda #>bullet_anim
+            sta ptr1 + 1
+            jsr create_sprite       ; arguments (ptr1: sprite config, var1: x, var2: y) => ptr2: sprite component
 
-    lda num_current_projectiles
-    cmp #MAX_PROJECTILES_IN_BUFFER
-    bcc :+
-    ; in case the projectile buffer is already full .. just take one projectile of this buffer and update it with the most recent
-    ; data
-    jsr update_projectile_position
-    rts
-:
-    lda var_4
-    pha
+            ;
+            ; Initialize the projectile object
+            ;
+            lda #<projectiles       ; point ptr1 to projectiles array beinning
+            sta ptr1
+            lda #>projectiles
+            sta ptr1 + 1
+            ldy #Projectile::attr   ; load 'attr' field offset to y for indexing
 
-    lda var_3
-    pha                                     ; push var_3 (xDir) to stack
+            ; find the first free projectile object, use ptr1 as cursor
+.mac find_none
+            lda (ptr1),y            ; if 'attr' is 0, Z is set and iteration stops
+.endmac
+            find_ptr ptr1, projectiles_end, .sizeof(Projectile), find_none
 
-    lda #$00                          ; load component mask: sprite &&  movement component mask
-    ora #MOVEMENT_CMP
-    ora #SPRITE_CMP
-    ora #COLLISION_CMP
-    sta var_3
+            ; set the 'attr' field, conveniently, y still holds the offset to it
+            lda var3
+            sta (ptr1),y
 
-    ; 1. Create Entity
-    jsr create_entity                       ; None -> address_1 entity address
+            ; set the 'sprite' field, address of sprite component is in ptr2
+            ldy #Projectile::sprite
+            lda ptr2
+            sta (ptr1),y
+            iny
+            lda ptr2 + 1
+            sta (ptr1),y
 
-    pla
-    sta var_3                               ; get xDir from stack, store to var_3 again
-
-    pla
-    sta var_4
-
-    ; 2. Create MOVEMENT component
-    jsr create_movement_component           ; arguments (address_1: owner, var_1-4: config) => return address_2 of component
-
-    ; 3. store address of movement component in entity component buffer
-    ldy #$04
-    lda address_2
-    sta (address_1), y
-    iny
-
-    lda address_2 + 1
-    sta (address_1), y
-    iny
-
-    ; 4. Create SPRITE component
-    lda #<projectile_default_anim
-    sta address_2
-
-    lda #>projectile_default_anim
-    sta address_2 + 1
-
-    jsr create_sprite_component             ; arguments (address_1: owner, address_2: sprite config) => return address_3 of component
-
-    ; 5. Store sprite component address in entity component buffer
-    ldy #$06
-    lda address_3
-    sta (address_1), y
-    iny
-
-    lda address_3 + 1
-    sta (address_1), y
-    iny
-
-    ; 6. Create COLLISON component
-    ; set collision mask
-    lda #$00
-    ora #ENEMY_LYR
-    ora #PLAYER_LYR
-    sta var_1
-
-    ; set collision layer
-    lda #$00
-    ora #PROJECTILE_LYR
-    sta var_2
-
-    ; get width and height from animation for the AABB
-    ldy #$04
-    lda (address_2), y
-    sta var_3
-    sta var_4
-
-    jsr create_collision_component             ; arguments (var_1: mask, var_2: layer, var_3: w, var_4:h ) => return address_2 of component
-
-    ; 7. Store collision component address in entity component buffer
-    ldy #$08
-    lda address_2
-    sta (address_1), y
-    iny
-
-    lda address_2 + 1
-    sta (address_1), y
-    iny
-
-    ; fill projectile buffer:
-    ; store link to projectile entities in projectile buffer
-    mult_with_constant num_current_projectiles, #2, var_1
-    calc_address_with_offset projectile_component_container, var_1, address_3
-
-    ldy #$00                                ; owner lo
-    lda address_1
-    sta (address_3), y
-
-    iny
-    lda address_1 + 1                        ; owner hi
-    sta (address_3), y
-    iny
-
-    inc num_current_projectiles
-
-    rts
+            rts
 .endproc
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Update an existing projectile with a new position information
-; ARGS:
-;   var_1           - xPosition
-;   var_2           - yPosition
-;   var_3           - xDir
-;   var_4           - yDir, now one byte will be reduced
-;   var_5           - speed
 ;
-; RETURN:
-;   None
-; TODO: also update movement dir
-; MODIFIES:
-;   address_10, address_9, address_8
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-.proc update_projectile_position
-    lda #<projectile_component_container
-    sta address_10
+; Destroy a projectile.
+;
+; Parameters:
+;   ptr1    - projectile to destroy.
+;
+.proc destroy_projectile
+            lda ptr1
+            sta tmp1
+            lda ptr1 + 1
+            sta tmp2
 
-    lda #>projectile_component_container
-    sta address_10 + 1
+            ldy #Projectile::sprite
+            lda (tmp1),y
+            sta ptr1
+            iny
+            lda (tmp1),y
+            sta ptr1 + 1
+            jsr destroy_sprite
 
-    mult_with_constant last_updated_projectile, #2, var_6
+            lda tmp1
+            sta ptr1
+            lda tmp2
+            sta ptr1 + 1
 
-    ldy var_6
-    lda (address_10), y
-    sta address_9
+            fill_mem ptr1, .sizeof(Projectile), #0
 
-    iny
-    lda (address_10), Y
-    sta address_9 + 1
+            rts
+.endproc
 
-    ldy #$00
-    lda var_1                               ; store x and y pos
-    sta (address_9), Y
-    iny
 
-    lda var_2
-    sta (address_9), Y
+;
+; Destroy all projectiles.
+;
+.proc destroy_projectiles
+.mac iter_projectile
+            ldy #Projectile::attr
+            lda (ptr1),y
+            beq @skip
+            jsr destroy_projectile
+@skip:
+.endmac
+            lda #<projectiles
+            sta ptr1
+            lda #>projectiles
+            sta ptr1 + 1
+            iter_ptr ptr1, projectiles_end, .sizeof(Projectile), iter_projectile
+            rts
+.endproc
 
-    ; update active component mask
-    ldy #$03                                ; go over component mask
-    lda (address_9), Y
-    ora #MOVEMENT_CMP
-    ora #SPRITE_CMP
-    ora #COLLISION_CMP
-    sta (address_9), Y
+;
+; Tick projectiles logic.
+;
+; Moves the projectiles, checks for collisions and destroys exhausted ones.
+;
+.proc tick_projectiles
+            lda #<projectiles       ; point tmp5 to projectiles array beginning
+            sta tmp5
+            lda #>projectiles
+            sta tmp5 + 1
 
-    ; offset to movement_component
-    lda var_6
-    clc
-    adc #$04
-    tay
-    lda (address_9), Y
-    sta address_8
-    iny
+.mac iter_proj
+            ;
+            ; Move projectiles based on their direction bit (up/down)
+            ;
+            ldy #Projectile::attr   ; offset to 'attr' field
+            lda (tmp5),y            ; load attribute value
+            sta tmp1                ; back it up to tmp1
+            beq @end                ; skip if disabled component encountered
+            and #KIND_BITS          ; AND with kind bit mask
+            lsr                     ; extract the kind value, to be used as index in 'speed_table'
+            tay                     ; move to y for using as index
+            lda speeds_table,y      ; load the speed value for the given projectile kind
+            sta tmp2                ; back it up to tmp2
+            ldy #Projectile::sprite ; offset to 'sprite' field
+            lda (tmp5),y            ; load lo part
+            sta tmp7                ; save lo part to tmp7
+            iny
+            lda (tmp5),y            ; load hi part
+            sta tmp7 + 1            ; save hi part to tmp7 + 1
+            ldy #Sprite::pos + 1    ; index to Y coord in the sprite component
+            lda (tmp7),y            ; load current Y coord value
+            pha                     ; push to stack
+            lda #OWNER_BIT          ; owner bit mask
+            bit tmp1                ; check whether it's player or enemy
+            beq @if_player
+@if_enemy:  pla                     ; pull back the Y coord value
+            clc
+            adc tmp2                ; in case of enemy, add the speed to it (move down)
+            bcs @destroy            ; on reaching the lower pixel row, destroy the projectile
+            sta (tmp7),y            ; update Y
+            jsr _collide_with_players
+            bcs @destroy            ; destroy if carry is set (we have a collision)
+            bcc @end                ; no hit, continue
+@if_player: pla                     ; pull back the Y coord value
+            sec
+            sbc tmp2                ; in case of player, subtract the speed from it (move up)
+            bcc @destroy            ; on reaching the topmost pixel row, destroy the projectile
+            sta (tmp7),y            ; update Y
+            jsr _collide_with_enemies
+            bcc @end                ; carry clear if no collision, skip over, otherwise destroy the projectile
+@destroy:   lda tmp5
+            sta ptr1
+            lda tmp6
+            sta ptr1 + 1
+            jsr destroy_projectile
+@end:
+.endmac
+            ; execute the macro above for each projectile
+            iter_ptr tmp5, projectiles_end, .sizeof(Projectile), iter_proj
 
-    lda (address_9), Y
-    sta address_8 + 1
+            rts
+.endproc
 
-    ldy #$03
-    lda var_3
-    sta (address_8), y                              ; xDir
 
-    iny
-    lda var_4                                       ; yDir
-    sta (address_8), Y
+.proc _collide_with_enemies
+.mac collide_enemy
+            ldy #Enemy::sprite
+            lda (tmp3),y            ; load sprite lo
+            sta tmp9                ; save to tmp9
+            iny
+            lda (tmp3),y            ; load sprite hi
+            beq @nohit              ; skip the check if the enemy sprite hi addr is null
+            sta tmp10               ; save to tmp10 (tmp9 + 1)
 
-    inc last_updated_projectile
-    lda last_updated_projectile
-    cmp #MAX_PROJECTILES_IN_BUFFER
-    bcc :+
-    lda #$00
-    sta last_updated_projectile
- :  rts
+            ldy #Sprite::pos
+            lda (tmp9),y            ; load enemy X coord
+            sta var1                ; var1 = enemy left side
+            clc
+            adc #16                 ; add the width
+            sta var3                ; var3 = enemy right side
+            iny
+            lda (tmp9),y            ; load enemy Y coord
+            sta var2                ; var2 = enemy top side
+            clc
+            adc #16                 ; add the height
+            sta var4                ; var4 = enemy bottom side
+
+            ldy #Sprite::pos
+            lda (tmp7),y            ; load projectile X coord
+            sta var5                ; var5 = projectile left side
+            clc
+            adc #8                  ; add projectile width
+            sta var7                ; var7 = projectile right side
+            iny
+            lda (tmp7),y            ; load projectile Y coord
+            sta var6                ; var6 = projectile top side
+            clc
+            adc #8                  ; add projectile height
+            sta var8                ; var8 = projectile bottom side
+
+            jsr check_rect_intersection
+            bcc @nohit
+            ldy #Enemy::hits
+            lda (tmp3),y            ; load the number of hits
+            clc
+            adc #1                  ; increase by 1 (carry is set!)
+            sta (tmp3),y            ; save it back
+            sec                     ; set carry and return
+            rts
+@nohit:
+.endmac
+
+            ; (tmp3,tmp4) = pointer to current enemy (lo,hi)
+            lda #<enemies
+            sta tmp3
+            lda #>enemies
+            sta tmp4
+            iter_ptr tmp3, enemies_end, .sizeof(Enemy), collide_enemy
+
+            clc                     ; clear the carry, no collisions with enemies
+            rts
+.endproc
+
+
+.proc _collide_with_players
+.mac collide_player
+            ldy #Player::ship
+            lda (tmp3),y            ; load ship sprite lo
+            sta tmp9                ; save to tmp9
+            iny
+            lda (tmp3),y            ; load ship sprite hi
+            beq @nohit              ; skip the check if the player ship sprite hi addr is null
+            sta tmp10               ; save to tmp10 (tmp9 + 1)
+
+            ldy #Sprite::pos
+            lda (tmp9),y            ; load player X coord
+            sta var1                ; var1 = player left side
+            clc
+            adc #16                 ; add the width
+            sta var3                ; var3 = player right side
+            iny
+            lda (tmp9),y            ; load player Y coord
+            sta var2                ; var2 = player top side
+            clc
+            adc #16                 ; add the height
+            sta var4                ; var4 = player bottom side
+
+            ldy #Sprite::pos
+            lda (tmp7),y            ; load projectile X coord
+            sta var5                ; var5 = projectile left side
+            clc
+            adc #8                  ; add projectile width
+            sta var7                ; var7 = projectile right side
+            iny
+            lda (tmp7),y            ; load projectile Y coord
+            sta var6                ; var6 = projectile top side
+            clc
+            adc #8                  ; add projectile height
+            sta var8                ; var8 = projectile bottom side
+
+            jsr check_rect_intersection
+            bcc @nohit
+            ldy #Player::hits
+            lda (tmp3),y            ; load the number of hits
+            clc
+            adc #1                  ; increase by 1 (carry is set!)
+            sta (tmp3),y            ; save it back
+            sec                     ; set carry and return
+            rts
+@nohit:
+.endmac
+
+            ; (tmp3,tmp4) = pointer to current player (lo,hi)
+            lda #<players
+            sta tmp3
+            lda #>players
+            sta tmp4
+            iter_ptr tmp3, players_end, .sizeof(Player), collide_player
+
+            clc                     ; clear the carry, no collisions with enemies
+            rts
 .endproc

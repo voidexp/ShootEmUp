@@ -1,357 +1,190 @@
 .include "globals.asm"
-.include "constants.asm"
+.include "macros.asm"
+.include "structs.asm"
 
-.import create_enemy_component
-.import create_collision_component
-.import create_sprite_component
-.import create_movement_component
-.import create_entity
+.import create_sprite
+.import destroy_sprite
 
-.export spawn_spacetopus
+.export destroy_enemies
+.export destroy_enemy
+.export spawn_enemy
+.export tick_enemies
+
 
 .rodata
-squady_idle_animation:
+squady_anim:
     .byte $04                               ; length frames
     .byte $08                               ; speed
     .byte $20                               ; starting tile ID
     .byte $03                               ; attribute set
     .byte $01                               ; padding x, z -> 1 tiles wide and high
 
-octi_idle_anim:
+octi_anim:
     .byte $04                               ; length frames
     .byte $08                               ; speed
     .byte $04                               ; starting tile ID
     .byte $02                               ; attribute set
     .byte $02                               ; padding x, z -> 2 tiles wide and high
 
-ufo_idle_animation:
+ufo_anim:
     .byte $04                               ; length frames
     .byte $08                               ; speed
     .byte $40                               ; starting tile ID
     .byte $03                               ; attribute set
     .byte $02                               ; padding x, z -> 1 tiles wide and high
 
-
-ufo_2_idle_animation:
+ufo2_anim:
     .byte $04                               ; length frames
     .byte $08                               ; speed
     .byte $48                               ; starting tile ID
     .byte $03                               ; attribute set
     .byte $02                               ; padding x, z -> 1 tiles wide and high
 
+
 .code
-.proc spawn_static_squad_enemy
-    lda #$00                                ; xDir
-    sta var_3
-    lda #$00                                ; yDir
-    sta var_4
-
-    lda #<squady_idle_animation
-    sta address_7
-
-    lda #>squady_idle_animation
-    sta address_7 + 1
-
-    jsr spawn_enemy
-
-    rts
-.endproc
-
-
-.proc spawn_static_spacetopus_enemy
-    lda #$00                                ; xDir
-    sta var_3
-    lda #$00                                ; yDir
-    sta var_4
-
-    lda #<octi_idle_anim
-    sta address_7
-
-    lda #>octi_idle_anim
-    sta address_7 + 1
-
-    jsr spawn_enemy
-
-    rts
-.endproc
-
-
-.proc spawn_static_ufo_enemy
-    lda #$00                                ; xDir
-    sta var_3
-    lda #$00                                ; yDir
-    sta var_4
-
-    lda #<ufo_idle_animation
-    sta address_7
-
-    lda #>ufo_idle_animation
-    sta address_7 + 1
-
-    jsr spawn_enemy
-
-    rts
-.endproc
-
-
-.proc spawn_static_ufo_2_enemy
-    lda #$00                                ; xDir
-    sta var_3
-    lda #$00                                ; yDir
-    sta var_4
-
-    lda #<ufo_2_idle_animation
-    sta address_7
-
-    lda #>ufo_2_idle_animation
-    sta address_7 + 1
-
-    jsr spawn_enemy
-
-    rts
-.endproc
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; spawn a squad enemy
-; ARGS:
-;   var_1           - xPos
-;   var_2           - yPos
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-.proc spawn_squady
-    lda #$40                                ; xPos
-    sta var_1
-    lda #$10                                ; yPos
-    sta var_2
-
-    jsr spawn_static_squad_enemy
-
-    lda #$c0                                ; xPos
-    sta var_1
-    lda #$10                                ; yPos
-    sta var_2
-
-    jsr spawn_static_squad_enemy
-
-    lda #$40                                ; xPos
-    sta var_1
-    lda #$50                                ; yPos
-    sta var_2
-
-    jsr spawn_static_squad_enemy
-
-    lda #$c0                                ; xPos
-    sta var_1
-    lda #$50                                ; yPos
-    sta var_2
-
-    jsr spawn_static_squad_enemy
-    rts
-.endproc
-
-
-.proc spawn_spacetopus
-    lda #$30                                ; xPos
-    sta var_1
-    lda #$10                                ; yPos
-    sta var_2
-
-    jsr spawn_static_ufo_2_enemy
-
-    lda #$65                                ; xPos
-    sta var_1
-    lda #$20                                ; yPos
-    sta var_2
-
-    jsr spawn_static_spacetopus_enemy
-
-    lda #$8e                                ; xPos
-    sta var_1
-    lda #$20                                ; yPos
-    sta var_2
-
-    jsr spawn_static_spacetopus_enemy
-
-    lda #$c0                                ; xPos
-    sta var_1
-    lda #$10                                ; yPos
-    sta var_2
-
-    jsr spawn_static_ufo_enemy
-
-    lda #$48                                ; xPos
-    sta var_1
-    lda #$42                                ; yPos
-    sta var_2
-
-    jsr spawn_static_ufo_enemy
-
-    lda #$18                                ; xPos
-    sta var_1
-    lda #$52                                ; yPos
-    sta var_2
-
-    jsr spawn_static_spacetopus_enemy
-
-    lda #$a8                                ; xPos
-    sta var_1
-    lda #$42                                ; yPos
-    sta var_2
-
-    jsr spawn_static_ufo_2_enemy
-
-    lda #$d8                                ; xPos
-    sta var_1
-    lda #$52                                ; yPos
-    sta var_2
-
-    jsr spawn_static_spacetopus_enemy
-
-    lda #$30                                ; xPos
-    sta var_1
-    lda #$80                                ; yPos
-    sta var_2
-
-    jsr spawn_static_ufo_2_enemy
-
-    lda #$65                                ; xPos
-    sta var_1
-    lda #$70                                ; yPos
-    sta var_2
-
-    jsr spawn_static_spacetopus_enemy
-
-    lda #$8e                                ; xPos
-    sta var_1
-    lda #$70                                ; yPos
-    sta var_2
-    ; rts
-    jsr spawn_static_spacetopus_enemy
-
-    lda #$c0                                ; xPos
-    sta var_1
-    lda #$80                                ; yPos
-    sta var_2
-
-    jsr spawn_static_ufo_enemy
-    rts
-.endproc
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; spawn an enemy
-; ARGS:
-;   var_1           - xPosition
-;   var_2           - yPosition
-;   var_3           - xDir
-;   var_4           - yDir, now one byte will be reduced
-;   address_7       - enemy sprite config
 ;
-; RETURN:
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Spawn an enemy of a given kind.
+;
+; Parameters:
+;   var1       - X coord
+;   var2       - Y coord
+;   var3       - kind of enemy to spawn, see 'EnemyKind' enum
+;
+; Returns:
+;   ptr1   - address of the enemy object
+;
+; Finds the first enemy object with NONE kind, initializes and returns its
+; address.
+;
 .proc spawn_enemy
-    lda var_4
-    pha
+            lda #<octi_anim         ; point ptr1 to octi_anim
+            sta ptr1
+            lda #>octi_anim
+            sta ptr1 + 1
 
-    lda var_3
-    pha                                     ; push var_3 (xDir) to stack
+            jsr create_sprite       ; create a sprite for the enemy, address is in ptr2
 
-    lda #$00                                ; load component mask: sprite &&  movement component mask
-    ora #MOVEMENT_CMP
-    ora #SPRITE_CMP
-    ora #COLLISION_CMP
-    ora #ENEMY_CMP
-    sta var_3
+.mac find_none
+            ldy #Enemy::kind
+            lda (ptr1),y            ; load 'kind'; if 0, iteration stops
+.endmac
 
-    ; 1. Create Entity
-    jsr create_entity                       ; None -> address_1 entity address
+            lda #<enemies           ; point ptr1 to enemies array
+            sta ptr1
+            lda #>enemies
+            sta ptr1 + 1
+            find_ptr ptr1, enemies_end, .sizeof(Enemy), find_none   ; find the first empty enemy record
 
-    pla
-    sta var_3                               ; get xDir from stack, store to var_3 again
+            lda var3
+            sta (ptr1),y            ; set 'kind' field; y already has the right index
 
-    pla
-    sta var_4
+            ldy #Enemy::sprite
+            lda ptr2
+            sta (ptr1),y            ; set 'sprite' field lo
+            iny
+            lda ptr2 + 1
+            sta (ptr1),y            ; set 'sprite' field hi
 
-    ; 2. Create MOVEMENT component
-    jsr create_movement_component           ; arguments (address_1: owner, var_1-4: config) => return address_2 of component
-
-    ; 3. store address of movement component in entity component buffer
-    ldy #$04
-    lda address_2
-    sta (address_1), y
-    iny
-
-    lda address_2 + 1
-    sta (address_1), y
-    iny
-
-    lda address_7
-    sta address_2
-
-    lda address_7 + 1
-    sta address_2 + 1
-
-    ; 4. Create SPRITE component
-    jsr create_sprite_component             ; arguments (address_1: owner, address_2: sprite config) => return address_3 of component
-
-    ; 5. Store sprite component address in entity component buffer
-    ldy #$06
-    lda address_3
-    sta (address_1), y
-    iny
-
-    lda address_3 + 1
-    sta (address_1), y
-    iny
-
-    ; 6. Create COLLISON component
-    ; set collision mask
-    lda #$00
-    ora #PROJECTILE_LYR
-    ora #PLAYER_LYR
-    sta var_1
-
-    ; set collision layer
-    lda #$00
-    ora #ENEMY_LYR
-    sta var_2
-
-    ; get width and height from animation for the AABB
-    ldy #$04
-    lda (address_2), y
-    sta var_3
-    sta var_4
-
-    jsr create_collision_component             ; arguments (var_1: mask, var_2: layer, var_3: w, var_4:h ) => return address_2 of component
-
-    ; 5. Store collision component address in entity component buffer
-    ldy #$08
-    lda address_2
-    sta (address_1), y
-    iny
-
-    lda address_2 + 1
-    sta (address_1), y
+            rts
+.endproc
 
 
-    ldy #$06
-    lda (address_1), y
-    sta address_2
+;
+; Destroy a given enemy.
+;
+; Parameters:
+;   ptr1    - address of a valid enemy object.
+;
+.proc destroy_enemy
+            ldy #Enemy::sprite
+            lda (ptr1),y
+            sta ptr2                ; ptr2 lo = sprite lo
+            iny
+            lda (ptr1),y
+            sta ptr2 + 1            ; ptr2 hi = sprite hi
+            lda ptr1
+            pha                     ; save ptr1 lo to stack
+            lda ptr1 + 1
+            pha                     ; save ptr1 hi to stack
+            lda ptr2
+            sta ptr1                ; ptr1 lo = sprite lo
+            lda ptr2 + 1
+            sta ptr1 + 1            ; ptr1 hi = sprite hi
+            jsr destroy_sprite      ; destroy the sprite associated with the enemy
+            pla
+            sta ptr1 + 1            ; restore ptr1 hi
+            pla
+            sta ptr1                ; restore ptr1 lo
+            fill_mem ptr1, .sizeof(Enemy), #0   ; clear the enemy record
+            rts
+.endproc
 
-    sta (address_1), y
-    sta address_2 + 1
 
-    jsr create_enemy_component             ; arguments (address_1: owner, address_2: sprite component) => return address_3 of component
+;
+; Destroy all enemies.
+;
+.proc destroy_enemies
+            lda ptr1
+            pha                     ; save ptr1 lo
+            lda ptr1 + 1
+            pha                     ; save ptr1 hi
 
-    ; 5. Store enemy component address in entity component buffer
-    ldy #$0a
-    lda address_3
-    sta (address_1), y
-    iny
+.mac iter_enemy
+            ldy #Enemy::kind
+            lda (ptr1),y            ; load enemy kind
+            beq @skip               ; if 0 (disabled), skip this enemy
+            jsr destroy_enemy
+@skip:
+.endmac
+            lda #<enemies
+            sta ptr1
+            lda #>enemies
+            sta ptr1 + 1
+            iter_ptr ptr1, enemies_end, .sizeof(Enemy), iter_enemy
 
-    lda address_3 + 1
-    sta (address_1), y
-    iny
+            pla
+            sta ptr1 + 1            ; restore ptr1 hi
+            pla
+            sta ptr1                ; restore ptr1 lo
 
-    rts
+            rts
+.endproc
+
+
+;
+; Tick enemies.
+;
+; Iterates all enemy objects and performs collision detection, movement and
+; rendering.
+;
+.proc tick_enemies
+            lda ptr1
+            pha
+            lda ptr1 + 1
+            pha
+
+.mac tick_enemy
+            ldy #Enemy::kind
+            lda (ptr1),y            ; load 'kind' attribute
+            beq @end                ; skip this enemy if zero
+
+            ldy #Enemy::hits
+            lda (ptr1),y            ; load 'hits' attribute
+            beq @end                ; skip if this enemy wasn't hit
+            jsr destroy_enemy       ; destroy if there were hits
+@end:
+.endmac
+
+            lda #<enemies
+            sta ptr1
+            lda #>enemies
+            sta ptr1 + 1
+            iter_ptr ptr1, enemies_end, .sizeof(Enemy), tick_enemy
+
+            pla
+            sta ptr1 + 1
+            pla
+            sta ptr1
+
+            rts
 .endproc

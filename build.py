@@ -13,12 +13,9 @@ OUT_DIR = 'build'
 ROM = 'game.nes'
 LINKER_CFG = 'rom.cfg'
 MAIN = 'main.asm'
-TESTBED = 'testbed.asm'
 
 ASSEMBLER = 'ca65.exe'
 LINKER = 'ld65.exe'
-
-LOAD_TESTBED = False
 
 
 def run(args):
@@ -138,9 +135,6 @@ def build(linker, assembler):
     # compile assembly files
     if success:
         for asm_file in pathlib.Path(SRC_DIR).rglob('*.asm'):
-            # FIXME: enable testbed builds
-            if 'testbed' in str(asm_file):
-                continue
             prefix = pathlib.Path(OUT_DIR).joinpath(asm_file.parent)
             prefix.mkdir(parents=True, exist_ok=True)
             o_file = prefix.joinpath(f'{asm_file.stem}.o')
