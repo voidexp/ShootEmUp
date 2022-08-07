@@ -1,5 +1,3 @@
-.include "rom.asm" ; must be first
-
 .include "nes.asm"
 .include "macros.asm"
 .include "structs.asm"
@@ -13,6 +11,12 @@
 .import sprite_palettes
 .import shooter_mode
 
+;
+; Address at which the level data is placed.
+;
+; NOTE: this is a symbol defined during linking stage.
+;
+.import __LEVEL_LOAD__
 
 .code
 ;
@@ -156,10 +160,10 @@ vblankwait2:
             lda #size >> 8          ; SIZE_HI
             sta $00,X
             dex
-            lda #>level             ; SRC_HI
+            lda #>__LEVEL_LOAD__    ; SRC_HI
             sta $00,X
             dex
-            lda #<level             ; SRC_LO
+            lda #<__LEVEL_LOAD__    ; SRC_LO
             sta $00,X
             dex
             lda #<VRAM_NAMETABLE0   ; VRAM_LO
@@ -179,10 +183,10 @@ vblankwait2:
             lda #size >> 8          ; SIZE_HI
             sta $00,X
             dex
-            lda #>(level + size)    ; SRC_HI
+            lda #>(__LEVEL_LOAD__ + size)    ; SRC_HI
             sta $00,X
             dex
-            lda #<(level + size)    ; SRC_LO
+            lda #<(__LEVEL_LOAD__ + size)    ; SRC_LO
             sta $00,X
             dex
             lda #<VRAM_NAMETABLE2   ; VRAM_LO

@@ -2,22 +2,27 @@
 ;
 ; iNES header for the emulators.
 ;
-.segment "INESHDR"
-    .byt "NES",$1A  ; magic signature
-    .byt 1          ; PRG ROM size in 16384 byte units
-    .byt 1          ; CHR ROM size in 8192 byte units
-    .byt $00        ; mirroring type and mapper number lower nibble
-    .byt $00        ; mapper number upper nibble
+.segment "INES"
+    .byte "NES",$1A  ; Magic signature
+    .byte $01        ; PRG ROM size in 16384 byte units
+    .byte $01        ; CHR ROM size in 8192 byte units
+    .byte $00        ; Mirroring type and mapper number lower nibble
+    .byte $08        ; Mapper 0; NES 2.0
+    .byte $00        ; No submapper
+    .byte $00        ; PRG ROM not 4 MiB or larger
+    .byte $00        ; No PRG RAM
+    .byte $00        ; No CHR RAM
+    .byte $00        ; 0 or 1 for NTSC or PAL respectively
+    .byte $00        ; No special PPU
 
 ;
-; PRG-ROM, read-only data (together with code)
+; PRG-ROM, level data (accessible via __LEVEL_LOAD__ implicitly defined symbol)
 ;
-.rodata
-level: .incbin "{{ level }}"
-
+.segment "LEVEL"
+.incbin "{{ level }}"
 
 ;
-; CHR-ROM, tile data (accessible by the PPU)
+; CHR-ROM, tile data
 ;
 .segment "CHR"
 {% for tileset in tilesets %}
