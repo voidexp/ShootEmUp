@@ -1,0 +1,8 @@
+---
+tilesets:
+  - ../../tilesets/ships.chr
+  - ../../tilesets/background.chr
+
+screens:
+  - starfield.bmp
+  - starfield.bmp

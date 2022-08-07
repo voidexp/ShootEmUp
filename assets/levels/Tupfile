@@ -1,0 +1,5 @@
+include_rules
+
+LEVELS = demo
+
+: $(LEVELS) |> python $(TOOLS_DIR)/lvl2bin.py %f/level.yaml %o |> %f/level.bin $(ASSETS_DIR)/<levels>

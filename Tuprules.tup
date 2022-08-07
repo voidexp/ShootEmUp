@@ -1,0 +1,6 @@
+ROOT_DIR = $(TUP_CWD)
+TOOLS_DIR = $(ROOT_DIR)/tools
+ASSETS_DIR = $(ROOT_DIR)/assets
+GAME_CFG = $(ROOT_DIR)/game.yaml
+GAME_FILE = $(ROOT_DIR)/game.nes
+ROM_CFG = $(ROOT_DIR)/rom.cfg

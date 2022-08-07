@@ -1,0 +1,15 @@
+include_rules
+
+SOURCES = components/*.asm \
+          entities/*.asm \
+          game_modes/*.asm \
+          *.asm
+
+# Generate the ROM data embedding code first
+: $(GAME_CFG) | $(ASSETS_DIR)/<tilesets> $(ASSETS_DIR)/<levels> |> python $(TOOLS_DIR)/genrom.py %f %o |> rom.asm
+
+# Compile assembly code, including the binary data
+: foreach $(SOURCES) | rom.asm |> ca65 -I. %f -o %o |> %B.o
+
+# Link everything into the resulting .nes ROM file
+: *.o |> ld65 -C $(ROM_CFG) -o %o %f |> $(GAME_FILE)

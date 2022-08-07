@@ -1,3 +1,5 @@
+.include "rom.asm" ; must be first
+
 .include "nes.asm"
 .include "macros.asm"
 .include "structs.asm"
@@ -10,38 +12,6 @@
 .import poll_joypads
 .import sprite_palettes
 .import shooter_mode
-
-
-;
-; iNES header for the emulators.
-;
-.segment "INESHDR"
-    .byt "NES",$1A  ; magic signature
-    .byt 1          ; PRG ROM size in 16384 byte units
-    .byt 2          ; CHR ROM size in 8192 byte units
-    .byt $00        ; mirroring type and mapper number lower nibble
-    .byt $00        ; mapper number upper nibble
-
-
-;
-; CHR-ROM, accessible by the PPU
-;
-.segment "CHR1"
-.incbin "../build/ships.chr"
-
-.segment "CHR2"
-.incbin "../build/background.chr"
-
-
-;
-; PRG-ROM, read-only data
-;
-.rodata
-    starfield1: .incbin "../build/levels/starfield.lvl"
-    starfield1_end:
-
-    starfield2: .incbin "../build/levels/starfield.lvl"
-    starfield2_end:
 
 
 .code
@@ -177,19 +147,19 @@ vblankwait2:
             jsr load_color_palettes
 
             ;
-            ; Populate nametable-0 with starfield1 stored in PRG-ROM
+            ; Populate nametable-0 with first level screen
             ;
-            size1 = starfield1_end - starfield1
-            lda #size1 & $ff        ; SIZE_LO
+            size = $3C0
+            lda #size & $ff         ; SIZE_LO
             sta $00,X
             dex
-            lda #size1 >> 8         ; SIZE_HI
+            lda #size >> 8          ; SIZE_HI
             sta $00,X
             dex
-            lda #>starfield1        ; SRC_HI
+            lda #>level             ; SRC_HI
             sta $00,X
             dex
-            lda #<starfield1        ; SRC_LO
+            lda #<level             ; SRC_LO
             sta $00,X
             dex
             lda #<VRAM_NAMETABLE0   ; VRAM_LO
@@ -201,19 +171,18 @@ vblankwait2:
             jsr copy_to_vram
 
             ;
-            ; Populate nametable-2 with starfield2 stored in PRG-ROM
+            ; Populate nametable-2 with second level screen
             ;
-            size2 = starfield2_end - starfield2
-            lda #size2 & $ff        ; SIZE_LO
+            lda #size & $ff         ; SIZE_LO
             sta $00,X
             dex
-            lda #size2 >> 8         ; SIZE_HI
+            lda #size >> 8          ; SIZE_HI
             sta $00,X
             dex
-            lda #>starfield2        ; SRC_HI
+            lda #>(level + size)    ; SRC_HI
             sta $00,X
             dex
-            lda #<starfield2        ; SRC_LO
+            lda #<(level + size)    ; SRC_LO
             sta $00,X
             dex
             lda #<VRAM_NAMETABLE2   ; VRAM_LO
@@ -222,7 +191,6 @@ vblankwait2:
             lda #>VRAM_NAMETABLE2   ; VRAM_HI
             sta $00,X
             dex
-
             jsr copy_to_vram
 
             ;
