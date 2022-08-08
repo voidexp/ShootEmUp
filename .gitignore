@@ -7,3 +7,4 @@ __pycache__
 *.chr
 *.bin
 src/rom.asm
+build-editor-Desktop*/
