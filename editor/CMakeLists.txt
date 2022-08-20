@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.5)
 
 project(editor VERSION 0.1 LANGUAGES CXX)
 
+add_subdirectory(chrplugin)
+
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(CMAKE_AUTOUIC ON)
@@ -21,6 +23,11 @@ set(PROJECT_SOURCES
         mainwindow.ui
         canvas.h
         canvas.cpp
+        scene.h
+        scene.cpp
+        tileset_explorer.h
+        tileset_explorer.cpp
+        tileset_explorer.ui
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -48,6 +55,8 @@ endif()
 
 target_link_libraries(editor PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 
+add_dependencies(editor chrplugin)
+
 set_target_properties(editor PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
@@ -56,9 +65,16 @@ set_target_properties(editor PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
+set_target_properties(chrplugin PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/imageformats
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/imageformats)
+
 install(TARGETS editor
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+install(TARGETS chrplugin
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/imageformats)
 
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(editor)

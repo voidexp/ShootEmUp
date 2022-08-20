@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 #include "canvas.h"
-#include "./ui_mainwindow.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -9,9 +8,3 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     setCentralWidget(new Canvas(this));
 }
-
-MainWindow::~MainWindow()
-{
-    delete ui;
-}
-
