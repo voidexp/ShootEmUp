@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icons/no-tile.png</file>
+        <file>icons/brush.png</file>
+    </qresource>
+</RCC>

@@ -18,16 +18,13 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
 set(PROJECT_SOURCES
         main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        mainwindow.ui
-        canvas.h
-        canvas.cpp
-        scene.h
-        scene.cpp
-        tileset_explorer.h
-        tileset_explorer.cpp
-        tileset_explorer.ui
+        mainwindow.cpp mainwindow.h mainwindow.ui
+        canvas.h canvas.cpp
+        scene.h scene.cpp
+        tileset_explorer.h tileset_explorer.cpp tileset_explorer.ui
+        tileset_view.h tileset_view.cpp
+        brushtoolpanel.h brushtoolpanel.cpp brushtoolpanel.ui
+        state.h state.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -55,7 +52,10 @@ endif()
 
 target_link_libraries(editor PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 
+qt_add_binary_resources(resources resources.qrc)
+
 add_dependencies(editor chrplugin)
+add_dependencies(editor resources)
 
 set_target_properties(editor PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com

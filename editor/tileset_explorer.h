@@ -3,8 +3,10 @@
 
 #include <QWidget>
 #include <QGraphicsScene>
+#include <QGraphicsView>
 #include <memory>
 #include "ui_tileset_explorer.h"
+
 
 class TilesetExplorer : public QWidget
 {
@@ -12,6 +14,9 @@ class TilesetExplorer : public QWidget
 
 public:
     explicit TilesetExplorer(QWidget *parent = nullptr);
+
+public slots:
+    void loadTilesetFile(const QString &file);
 
 private:
     std::unique_ptr<Ui::TilesetExplorer> ui;
