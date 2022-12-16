@@ -7,6 +7,7 @@
 #include <memory>
 #include "ui_tileset_explorer.h"
 
+class Tileset;
 
 class TilesetExplorer : public QWidget
 {
@@ -15,8 +16,8 @@ class TilesetExplorer : public QWidget
 public:
     explicit TilesetExplorer(QWidget *parent = nullptr);
 
-public slots:
-    void loadTilesetFile(const QString &file);
+protected slots:
+    void updateTileset(Tileset *tileset);
 
 private:
     std::unique_ptr<Ui::TilesetExplorer> ui;

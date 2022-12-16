@@ -2,5 +2,8 @@
     <qresource prefix="/">
         <file>icons/no-tile.png</file>
         <file>icons/brush.png</file>
+        <file alias="icon-undo">icons/arrow-go-back-line.png</file>
+        <file alias="icon-redo">icons/arrow-go-forward-line.png</file>
+        <file alias="icon-brush">icons/brush-fill.png</file>
     </qresource>
 </RCC>

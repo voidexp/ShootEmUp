@@ -36,9 +36,8 @@ public:
 
         // create the indexed image and set a palette
         auto img = QImage(pixelData, 8, 8, QImage::Format::Format_Indexed8, cleanupFunc, pixelData);
-        img.setColorCount(4);
         img.setColorTable(QList<QRgb>{
-            Qt::transparent,
+            QRgb(0xff000000),
             QRgb(0x6844fcff),
             QRgb(0x9878f8ff),
             QRgb(0xd8b8f8ff),

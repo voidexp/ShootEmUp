@@ -3,8 +3,9 @@
 
 #include <QMouseEvent>
 #include <QGraphicsPixmapItem>
+#include "commands.h"
 
-const float scaleFactor = 4.0;
+constexpr float scaleFactor = 4.0;
 
 Canvas::Canvas(QWidget *parent)
     : QGraphicsView{parent}
@@ -86,18 +87,13 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event)
     {
         // get the tile ID of the current brush and its associated pixmap
         auto tileID = state->getBrush()->getTile();
-        auto tilePixmap = (*state->getTileset())[tileID];
 
-        // add the pixmap to the scene
-        auto item = scene()->addPixmap(tilePixmap);
+        // map the UI event position to scene coordinate system
         auto pos = sceneToLevel(mapToScene(event->pos()));
-        auto scenePos = levelToScene(pos);
-        item->setPos(scenePos);
 
-        // store the tile ID in pixmap item's data
-        item->setData(DataKey::TILE_INDEX, QVariant::fromValue(tileID));
-
-        qDebug() << "Painting" << tileID << "at" << pos;
+        // issue the actual command for execution
+        auto cmd = newSetTileCommand(Coord{(int)pos.x(), (int)pos.y()}, Tile{tileID, 0});
+        state->pushCommand(cmd);
     }
 }
 

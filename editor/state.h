@@ -1,8 +1,12 @@
 #ifndef STATE_H
 #define STATE_H
 
+#include "level.h"
+
 #include <QObject>
 #include <QList>
+#include <QUndoStack>
+#include <QPixmap>
 #include <memory>
 
 enum DataKey
@@ -64,6 +68,9 @@ Q_DECLARE_METATYPE(Brush)
 
 /*
  * Editor state: brushes, palettes, tilesets, etc.
+ *
+ * This class also provides signals about relevant state changes and slot
+ * methods, through which these changes are performed.
  */
 class State : public QObject
 {
@@ -82,18 +89,25 @@ public:
 
     static State* get();
 
+    void pushCommand(QUndoCommand *cmd);
+
     Brush* getBrush() { return brush_; }
 
     Tool getActiveTool() const { return activeTool_; }
-    void setActiveTool(Tool tool) { activeTool_ = tool; emit activeToolChanged(tool); }
 
     Tileset *getTileset() const { return tileset_.get(); }
 
-    void setTileset(Tileset *tileset)
-    {
-        tileset_ = std::unique_ptr<Tileset>(tileset);
-        emit tilesetChanged(tileset);
-    }
+    // The current level.
+    // Do not change it directly, use commands for that.
+    Level* level() const { return level_.get(); }
+
+    // The current stack of commands
+    const QUndoStack& undoStack() const { return undoStack_; }
+
+public slots:
+    void setActiveTool(Tool tool) { activeTool_ = tool; emit activeToolChanged(tool); }
+    void loadTilesetFromFile();
+    void setTileset(Tileset *tileset);
 
 signals:
     void activeToolChanged(State::Tool tool);
@@ -105,6 +119,9 @@ private:
     Brush *brush_ = nullptr;
     Tool activeTool_ = Tool::NONE;
     std::unique_ptr<Tileset> tileset_;
+    std::unique_ptr<Level> level_;
+    QUndoStack undoStack_;
+    QString lastTilesetDir_;
 };
 
 #endif // STATE_H

@@ -25,6 +25,8 @@ set(PROJECT_SOURCES
         tileset_view.h tileset_view.cpp
         brushtoolpanel.h brushtoolpanel.cpp brushtoolpanel.ui
         state.h state.cpp
+        level.h level.cpp
+        commands.h commands.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

@@ -4,7 +4,7 @@
 
 #include <QImageReader>
 #include <QGraphicsPixmapItem>
-#include <QFileDialog>
+
 
 TilesetExplorer::TilesetExplorer(QWidget *parent)
     : QWidget{parent}
@@ -13,27 +13,24 @@ TilesetExplorer::TilesetExplorer(QWidget *parent)
     ui->setupUi(this);
     ui->graphicsView->setScene(&scene);
 
-    // When clicking on load button, open a file dialog for selecting .chr files
-    connect(ui->loadButton, &QToolButton::clicked, this, [=](){
-        auto dialog = new QFileDialog{this, "Select a CHR file...", "../assets", "*.chr"};
+    auto state = State::get();
 
-        dialog->connect(dialog, &QFileDialog::fileSelected, this, &TilesetExplorer::loadTilesetFile);
-        dialog->show();
-    });
+    // When clicking on load button, initiate a loading of the tileset from file
+    connect(ui->loadButton, &QToolButton::clicked, state, &State::loadTilesetFromFile);
 
     // On tile selection, set the current brush tile ID
     connect(ui->graphicsView, &TilesetView::tileSelected, this, [=](int tileID){
         qDebug() << "Using tile" << tileID;
         State::get()->getBrush()->setTile(tileID);
     });
+
+    // On tileset change, update the scene
+    connect(state, &State::tilesetChanged, this, &TilesetExplorer::updateTileset);
 }
 
-void TilesetExplorer::loadTilesetFile(const QString &file)
+void TilesetExplorer::updateTileset(Tileset *tileset)
 {
-    qDebug() << "Loading tileset" << file;
-    auto tileset = Tileset::loadFromFile(file);
-    auto state = State::get();
-    state->setTileset(tileset);
+    scene.clear();
 
     for (int row = 0; row < 16; row++)
     {

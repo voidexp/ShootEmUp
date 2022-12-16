@@ -24,13 +24,31 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::createToolBars()
 {
+    auto state = State::get();
+
     auto bar = addToolBar("Tools");
 
     // Brush
-    auto brushIcon = QIcon(QPixmap(":/icons/brush.png"));
+    auto brushIcon = QIcon(QPixmap(":/icon-brush"));
     auto brushAction = bar->addAction(brushIcon, "Brush", QKeySequence(Qt::Key::Key_B));
     brushAction->setCheckable(true);
     connect(brushAction, &QAction::triggered, this, &MainWindow::onBrushAction);
+
+    auto actions = addToolBar("Actions");
+
+    // Undo
+    auto undoIcon = QIcon(QPixmap(":/icon-undo"));
+    auto undoAction = state->undoStack().createUndoAction(this);
+    undoAction->setIcon(undoIcon);
+    undoAction->setShortcut(QKeySequence::Undo);
+    actions->addAction(undoAction);
+
+    // Redo
+    auto redoIcon = QIcon(QPixmap(":/icon-redo"));
+    auto redoAction = state->undoStack().createRedoAction(this);
+    redoAction->setIcon(redoIcon);
+    redoAction->setShortcut(QKeySequence::Redo);
+    actions->addAction(redoAction);
 }
 
 void MainWindow::onBrushAction(bool checked)
