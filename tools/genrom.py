@@ -26,15 +26,15 @@ def build(cfg_yaml, out_asm):
     # project
     cfg_dir = path.dirname(path.realpath(cfg_yaml.name))
 
-    # Compute the location of `assets` directory relateive to the output file
-    assets_dir = path.join(cfg_dir, 'assets')
-    assets_reldir = path.relpath(assets_dir, path.dirname(path.realpath(out_asm.name)))
-    assert path.exists(assets_reldir), f'{assets_reldir} not found'
+    # Compute the location of `data` directory relateive to the output file
+    data_dir = path.join(cfg_dir, 'data')
+    data_reldir = path.relpath(data_dir, path.dirname(path.realpath(out_asm.name)))
+    assert path.exists(data_reldir), f'{data_reldir} not found'
 
     # Utility function for obtaining relative asset paths
     def asset_relpath(file_path):
         return path.relpath(
-            path.normpath(path.join(assets_reldir, file_path)),
+            path.normpath(path.join(data_reldir, file_path)),
             path.dirname(path.realpath(out_asm.name)))
 
     # Level directory

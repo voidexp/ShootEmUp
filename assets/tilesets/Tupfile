@@ -1,3 +1,0 @@
-include_rules
-
-: foreach *.bmp |> python $(TOOLS_DIR)/bmp2chr.py %f %o |> %B.chr $(ASSETS_DIR)/<tilesets>
