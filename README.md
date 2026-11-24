@@ -1,31 +1,32 @@
 Shoot 'Em Up!
 =============
-A shooter game for Nintendo Entertainment System.
+The most boring space shooter for the Nintendo Entertainment System.
 
-# Python virtualenv
-The build scripts are written in Python and depend on few packages.
-Create and setup a virtual environment for the project:
+# Prerequisites
 
-    python -m venv .venv
-    .venv/bin/activate          # Unix-es
-    .venv/Scripts/activate.bat  # Windows CMD
-    .venv/Scripts/activate.ps1  # Windows PowerShell
+To build the game, the following software is required:
 
-    pip install -r requirements.txt
+- The CC65 toolchain (`cc65`, `ld65`)
+- Python 3.10+
+- Make
+
+The build scripts and tests are written in Python and depend on a few packages.
+
+It is a good practice to install and run them from an isolated virtual
+environment. Run these commands in the project's root directory:
+
+    $ python -m venv .venv
+    $ .venv/bin/activate          # Unix-es
+    $ .venv/Scripts/activate.bat  # Windows CMD
+    $ .venv/Scripts/activate.ps1  # Windows PowerShell
+    $ pip install -r requirements.txt
 
 # Building the ROM
-Ensure to have the virtualenv activated and that the CC65 toolchain is in your
-PATH, then just run:
+Once your build environment is set up, just run:
 
-    python build.py
+    $ make
 
-You can explicitly set the path to the assembler and linker executables with
-`-a` and `-l` options respectively:
+If everything goes ok, the `game.nes` ROM file will be created in the project's
+root.
 
-    python build.py -a D:\Software\cc65\bin\ca65.exe -l D:\Software\cc65\bin\ld65.exe
-
-For more options, check:
-
-    python build.py --help
-
-If everything goes ok, the ROM file will be created in `build/game.nes`.
+You can run it in your favourite NES emulator, enjoy!
