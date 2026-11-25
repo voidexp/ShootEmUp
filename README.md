@@ -16,9 +16,9 @@ It is a good practice to install and run them from an isolated virtual
 environment. Run these commands in the project's root directory:
 
     $ python -m venv .venv
-    $ .venv/bin/activate          # Unix-es
-    $ .venv/Scripts/activate.bat  # Windows CMD
-    $ .venv/Scripts/activate.ps1  # Windows PowerShell
+    $ . venv/bin/activate          # Unix-es
+    $ . venv/Scripts/activate.bat  # Windows CMD
+    $ . venv/Scripts/activate.ps1  # Windows PowerShell
     $ pip install -r requirements.txt
 
 # Building the ROM
