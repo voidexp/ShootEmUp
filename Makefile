@@ -1,6 +1,7 @@
 AS := ca65
 LD := ld65
 PY := $(PWD)/.venv/bin/python
+PYTEST := $(PWD)/.venv/bin/pytest
 BMP2CHR := $(PY) $(PWD)/tools/bmp2chr.py
 LVL2BIN := $(PY) $(PWD)/tools/lvl2bin.py
 GENROM := $(PY) $(PWD)/tools/genrom.py
@@ -33,3 +34,6 @@ clean:
 	$(MAKE) -C data/tilesets clean
 	$(MAKE) -C src clean
 	@rm -fv game.nes
+
+test:
+	$(PYTEST)
